@@ -6,3 +6,6 @@ dist/
 .DS_Store
 coverage/
 *.tsbuildinfo
+
+# Public images are deployable assets, even if a global Git ignore excludes PNGs.
+!/public/**/*.png
