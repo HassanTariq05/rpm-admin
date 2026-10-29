@@ -1,0 +1,103 @@
+.app-header-context {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 14px;
+}
+.organization-identity {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 12px 5px 5px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  border-radius: 12px;
+  background: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--accent) 7%, var(--panel)),
+    var(--panel)
+  );
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--accent) 5%, transparent);
+}
+.organization-emblem {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--control-accent, var(--accent));
+  color: var(--control-on-accent, var(--accent-foreground));
+}
+.organization-copy {
+  min-width: 0;
+}
+.organization-label {
+  display: block;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 12px;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.organization-name {
+  display: block;
+  max-width: min(28vw, 340px);
+  overflow: hidden;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 19px;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.header-page-context {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.header-page-context svg {
+  flex-shrink: 0;
+  opacity: 0.65;
+}
+.header-page-context span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 767px) {
+  .app-header-context {
+    gap: 0;
+  }
+  .organization-identity {
+    gap: 7px;
+    padding-right: 9px;
+  }
+  .organization-name {
+    max-width: none;
+    font-size: 12px;
+    line-height: 18px;
+  }
+  .organization-label {
+    font-size: 7px;
+    letter-spacing: 0.035em;
+  }
+  .organization-emblem {
+    width: 29px;
+    height: 29px;
+  }
+  .header-page-context {
+    display: none;
+  }
+}

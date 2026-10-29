@@ -6,6 +6,7 @@ import {
   Shield,
   UserRoundCog,
   ChevronDown,
+  ChevronRight,
   CircleHelp,
   HeartPulse,
   // LayoutDashboard,
@@ -27,6 +28,7 @@ import { Fragment, type ReactNode } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
 import { getInitials } from '@/lib/initials'
 import { ThemePicker } from '@/app/components/theme-picker'
+import './app-shell.css'
 
 type AppPath =
   | '/'
@@ -85,6 +87,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     : (pageTitles[pathname] ?? 'Workspace')
 
   const { auth } = useAuthStore()
+  const organizationName =
+    auth.user?.organisation?.name?.trim() || auth.user?.organization?.name?.trim() || 'Organization'
   const roleName = auth.user?.role?.name
   const showAdministration = roleName === 'Super Admin' || roleName === 'Administrator'
   const visibleNavItems = navItems.filter((item) => !item.administration || showAdministration)
@@ -209,25 +213,26 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         {/* Top header */}
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-2 border-b border-border bg-surface/95 px-3 backdrop-blur sm:px-5 lg:px-6">
-          <div className="flex min-w-0 items-center gap-2">
-            {/* Mobile branding */}
-            <div className="hidden h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground sm:flex lg:hidden">
-              <HeartPulse size={18} />
-            </div>
-
-            {/* Desktop breadcrumb */}
-            <div className="hidden items-center gap-1.5 text-xs muted md:flex">
-              <span className="font-semibold">
-                {auth.user?.organisation?.name || 'Organization'}
+          <div className="app-header-context">
+            <div
+              className="organization-identity"
+              role="group"
+              aria-label="Current organization"
+              title={organizationName}
+            >
+              <span className="organization-emblem" aria-hidden="true">
+                <Building2 size={19} strokeWidth={1.8} />
               </span>
-              <span>/</span>
-              <span className="font-bold text-foreground">{pageTitle}</span>
+              <div className="organization-copy">
+                <span className="organization-label">
+                  Organization<span className="md:hidden"> · {pageTitle}</span>
+                </span>
+                <span className="organization-name">{organizationName}</span>
+              </div>
             </div>
-
-            {/* Mobile page title */}
-            <div className="md:hidden">
-              <p className="text-sm font-bold">{pageTitle}</p>
-              <p className="text-[10px] muted">{auth.user?.organisation?.name || 'Organization'}</p>
+            <div className="header-page-context">
+              <ChevronRight size={14} aria-hidden="true" />
+              <span>{pageTitle}</span>
             </div>
           </div>
 
