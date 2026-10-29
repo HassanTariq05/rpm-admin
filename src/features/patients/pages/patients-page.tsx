@@ -44,7 +44,7 @@ export function PatientsPage() {
           <tbody className="divide-y divide-[var(--border)]">{isPending ? <tr><td colSpan={8} className="p-12 text-center text-sm muted">Loading patient records…</td></tr> : table.getRowModel().rows.length ? table.getRowModel().rows.map((row) => <tr key={row.id} className="transition hover:bg-slate-50/70 dark:hover:bg-slate-800/40">{row.getVisibleCells().map((cell) => <td key={cell.id} className="px-4 py-4 first:pl-5">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}<td className="px-5 py-4"><Button size="sm" variant="ghost" onPress={() => toast.info(`Connect details navigation for ${row.original.name}.`)}>View</Button></td></tr>) : <tr><td colSpan={8} className="p-12 text-center text-sm muted">No patients match “{globalFilter}”.</td></tr>}</tbody>
         </table>
       </div>
-      <div className="flex items-center justify-between border-t border-[var(--border)] px-5 py-4 text-[11px] muted"><span>{table.getFilteredRowModel().rows.length} records shown</span><span>Pagination API-ready · demo shows first 8</span></div>
+      <div className="flex items-center justify-between border-t border-[var(--border)] px-5 py-4 text-[11px] muted"><span>{table.getFilteredRowModel().rows.length} records shown</span><span>Sample records</span></div>
     </section>
   </>
 }

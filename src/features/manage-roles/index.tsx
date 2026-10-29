@@ -55,8 +55,8 @@ function PermissionEditor({
   const knownValues = permissionsData.flatMap((group) =>
     group.actions.map((action) => action.value),
   )
-  const selectedDemoCount = knownValues.filter((value) => selected.has(value)).length
-  const retainedCount = selected.size - selectedDemoCount
+  const selectedPermissionCount = knownValues.filter((value) => selected.has(value)).length
+  const retainedCount = selected.size - selectedPermissionCount
   const allSelected = knownValues.every((value) => selected.has(value))
   return (
     <div className="space-y-3">
@@ -68,7 +68,7 @@ function PermissionEditor({
           <div>
             <h2 className="text-sm font-bold">{role.name}</h2>
             <p className="mt-1 text-xs text-muted">
-              {organizationName(role)} · {selectedDemoCount} demo permissions selected
+              {organizationName(role)} · {selectedPermissionCount} permissions selected
               {dirty ? ' · Unsaved changes' : ''}
             </p>
           </div>
@@ -105,16 +105,22 @@ function PermissionEditor({
       {readOnly && (
         <div
           role="status"
-          className="flex items-center gap-2 rounded-xl border border-border bg-surface-muted p-4 text-sm"
+          className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${
+            reserved
+              ? 'border-warning-border border-l-4 bg-warning-bg text-warning'
+              : 'border-border bg-surface-muted'
+          }`}
         >
-          <LockKeyhole size={16} />
-          {reserved
-            ? 'Only a Super Admin can change permissions for this reserved role.'
-            : outsideOrganization
-              ? 'This role belongs to another organization.'
-              : organizationCheckPending
-                ? 'Verifying this role’s organization…'
-                : 'Unable to verify this role’s organization. Choose a role from your organization or try reloading.'}
+          <LockKeyhole size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <span>
+            {reserved
+              ? 'Only a Super Admin can change permissions for this reserved role.'
+              : outsideOrganization
+                ? 'This role belongs to another organization.'
+                : organizationCheckPending
+                  ? 'Verifying this role’s organization…'
+                  : 'Unable to verify this role’s organization. Choose a role from your organization or try reloading.'}
+          </span>
         </div>
       )}
       {update.error && (
@@ -129,7 +135,7 @@ function PermissionEditor({
       )}
       <div className="flex flex-wrap items-center justify-between gap-2 px-1">
         <p className="text-xs text-muted">
-          Demo RPM catalog · Select permissions individually or by group.
+          RPM permission catalog · Select permissions individually or by group.
         </p>
         <CheckField
           label="Select all permissions"
@@ -217,7 +223,7 @@ export function ManageRolesPage() {
       <AdminPageHeader
         icon={ShieldCheck}
         title="Manage roles"
-        description="Explore demo permissions for patient monitoring, clinical workflows, and workspace administration."
+        description="Manage permissions for patient monitoring, clinical workflows, and workspace administration."
         actions={
           <Link
             to="/roles"

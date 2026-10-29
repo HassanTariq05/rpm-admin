@@ -60,8 +60,8 @@ export function DashboardPage() {
               variant="outline"
               size="md"
               onPress={() =>
-                toast.success(
-                  'Demo report export queued. Connect your reporting API to enable downloads.',
+                toast.info(
+                  'Report export is not connected. Connect your reporting API to enable downloads.',
                 )
               }
             >
@@ -297,7 +297,7 @@ export function DashboardPage() {
             </div>
           ) : null}
           <div className="flex items-center justify-between border-t border-[var(--border)] px-6 py-4 text-[11px] muted">
-            <span>Showing {patientsQuery.data?.length ?? 0} of 128 demo patients</span>
+            <span>Showing {patientsQuery.data?.length ?? 0} sample patients</span>
             <Link
               to="/patients"
               className="flex items-center gap-1 font-bold text-teal-700 dark:text-teal-300"
@@ -309,7 +309,7 @@ export function DashboardPage() {
       </section>
       <div className="mt-5 flex flex-wrap gap-3 text-[11px] muted">
         <span className="flex items-center gap-1.5">
-          <CalendarDays size={13} /> Data snapshot: demo records
+          <CalendarDays size={13} /> Data snapshot: sample records
         </span>
         <span className="flex items-center gap-1.5">
           <CheckCircle2 size={13} className="text-emerald-600" /> UI is ready to connect to an API
