@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sampleReadings } from './readings.fixtures'
+import { sampleReadings, thermometerReading } from './readings.fixtures'
 import {
   displayText,
   filterReadings,
@@ -9,6 +9,39 @@ import {
 } from './readings'
 
 describe('device reading normalization', () => {
+  it('defaults Smart Meter temperature to Fahrenheit and respects explicit units', () => {
+    expect(measurement(thermometerReading)).toEqual({
+      value: '97.4',
+      unit: '°F',
+      secondary: null,
+      tone: 'rose',
+    })
+    expect(measurement({ ...thermometerReading, source: 'other_provider' }).unit).toBeNull()
+    for (const unit of ['F', '°F', 'fahrenheit']) {
+      expect(
+        measurement({
+          ...thermometerReading,
+          payload: { temperature: '97.4', temperature_unit: unit },
+        }),
+      ).toMatchObject({ value: '97.4', unit: '°F' })
+    }
+    for (const unit of ['C', '°C', 'celsius']) {
+      expect(
+        measurement({ ...thermometerReading, payload: { temperature: 36.3, unit } }),
+      ).toMatchObject({ value: '36.3', unit: '°C' })
+    }
+    expect(measurement({ ...thermometerReading, payload: { temperature_f: 97.4 } })).toMatchObject({
+      value: '97.4',
+      unit: '°F',
+    })
+    expect(measurement({ ...thermometerReading, payload: { temperature_c: 0 } })).toMatchObject({
+      value: '0',
+      unit: '°C',
+    })
+    for (const temperature of [null, '', 'invalid', Infinity]) {
+      expect(measurement({ ...thermometerReading, payload: { temperature } }).value).toBe('—')
+    }
+  })
   it('reads Pylo values by type rather than array position', () => {
     expect(measurement(sampleReadings[0]!)).toMatchObject({
       value: '124 / 86',

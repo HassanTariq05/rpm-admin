@@ -12,11 +12,11 @@ import {
   Droplets,
   Eye,
   HeartPulse,
-  Loader2,
   MonitorSmartphone,
   RefreshCw,
   Scale,
   Search,
+  Thermometer,
   X,
 } from 'lucide-react'
 import { AdminDirectory, AdminPageHeader } from '@/app/components/administration/admin-page'
@@ -38,6 +38,7 @@ import {
   viewerTimeZone,
 } from './readings'
 import { ReadingDetails } from './components/reading-details'
+import { ReadingsSkeleton } from './components/readings-skeleton'
 import { DeviceBrand, ReadingTime, UnassignedPatient } from './components/reading-presentation'
 import './readings.css'
 
@@ -50,7 +51,9 @@ function ReadingValue({ reading }: { reading: DeviceReading }) {
         ? Droplets
         : reading.readingType === 'blood_pressure'
           ? HeartPulse
-          : Activity
+          : reading.readingType === 'thermometer'
+            ? Thermometer
+            : Activity
   return (
     <div className={`reading-value admin-tone-${result.tone}`}>
       <span className="reading-type-icon" aria-hidden="true">
@@ -64,9 +67,9 @@ function ReadingValue({ reading }: { reading: DeviceReading }) {
         </p>
         {result.secondary && <p className="mt-1 text-[11px] text-muted">{result.secondary}</p>}
         {!result.unit &&
-          ['blood_pressure', 'blood_glucose', 'weight'].includes(reading.readingType) && (
-            <p className="mt-1 text-[10px] text-muted">Unit not supplied</p>
-          )}
+          ['blood_pressure', 'blood_glucose', 'weight', 'thermometer'].includes(
+            reading.readingType,
+          ) && <p className="mt-1 text-[10px] text-muted">Unit not supplied</p>}
         {irregularFlag(reading) === true && (
           <span className="mt-1 inline-block rounded bg-warning-bg px-1.5 py-0.5 text-[10px] font-medium text-warning">
             Irregular flag
@@ -113,6 +116,7 @@ export function DeviceReadingsPage() {
     { id: 'blood_glucose', label: 'Blood glucose', icon: Droplets, tone: 'amber' },
     { id: 'weight', label: 'Weight', icon: Scale, tone: 'blue' },
     { id: 'pulse_ox', label: 'Pulse oximetry', icon: Activity, tone: 'teal' },
+    { id: 'thermometer', label: 'Temperature', icon: Thermometer, tone: 'rose' },
   ]
   const hasLocalFilters = !!search || type !== 'all'
   const currentPage = data?.page ?? page
@@ -125,7 +129,7 @@ export function DeviceReadingsPage() {
   const last = data
     ? Math.min((data.page - 1) * data.pageSize + data.readings.length, data.total)
     : 0
-  const typeOptions = ['blood_pressure', 'blood_glucose', 'weight', 'pulse_ox']
+  const typeOptions = ['blood_pressure', 'blood_glucose', 'weight', 'pulse_ox', 'thermometer']
   const unknownTypes = [
     ...new Set([
       ...(data?.readings ?? []).map((reading) => reading.readingType),
@@ -314,13 +318,7 @@ export function DeviceReadingsPage() {
                     </Link>
                   </div>
                 ) : query.isPending && !data ? (
-                  <div
-                    role="status"
-                    className="flex min-h-64 items-center justify-center gap-3 p-8 text-sm text-muted"
-                  >
-                    <Loader2 size={20} className="animate-spin motion-reduce:animate-none" />
-                    Loading device readings…
-                  </div>
+                  <ReadingsSkeleton />
                 ) : data ? (
                   <>
                     <div className="overflow-x-auto" aria-busy={query.isFetching}>

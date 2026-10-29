@@ -7,6 +7,7 @@ import { useAuthStore, type AuthUser } from '@/stores/auth-store'
 import { sampleReadings } from '@/features/device-readings/readings.fixtures'
 
 const service = vi.hoisted(() => ({ getReadings: vi.fn() }))
+vi.mock('@/hooks/use-readings-realtime', () => ({ useReadingsRealtime: vi.fn() }))
 vi.mock('@/services/reading-services/reading-services', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/services/reading-services/reading-services')>()),
   useReadingService: () => service,

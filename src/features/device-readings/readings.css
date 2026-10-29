@@ -93,11 +93,123 @@
   margin: 0 auto;
   color: var(--admin-violet);
 }
+.readings-skeleton {
+  animation: readings-skeleton-pulse 1.8s ease-in-out infinite;
+}
+.readings-skeleton-table {
+  table-layout: fixed;
+}
+.readings-skeleton-table th:nth-child(1) {
+  width: 22%;
+}
+.readings-skeleton-table th:nth-child(2) {
+  width: 16%;
+}
+.readings-skeleton-table th:nth-child(3) {
+  width: 20%;
+}
+.readings-skeleton-table th:nth-child(4),
+.readings-skeleton-table th:nth-child(5) {
+  width: 16%;
+}
+.readings-skeleton-table th:nth-child(6) {
+  width: 10%;
+}
+.readings-skeleton-table tbody tr:hover {
+  background: transparent;
+}
+.readings-skeleton-block {
+  display: block;
+  flex-shrink: 0;
+  width: 100%;
+  height: 9px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--muted) 16%, var(--panel));
+}
+.readings-skeleton-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.readings-skeleton-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+}
+.readings-skeleton-measurement {
+  align-items: flex-start;
+}
+.readings-skeleton-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+}
+.readings-skeleton-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+}
+.readings-skeleton-line {
+  width: 105px;
+  max-width: 100%;
+}
+.readings-skeleton-line-short {
+  width: 78px;
+  max-width: 100%;
+}
+.readings-skeleton-line-small {
+  width: 54px;
+  max-width: 100%;
+}
+.readings-skeleton-value {
+  width: 100px;
+  height: 17px;
+}
+.readings-skeleton-id {
+  width: 55px;
+  height: 7px;
+  margin-top: 10px;
+}
+.readings-skeleton-brand {
+  width: 105px;
+  height: 30px;
+  border-radius: 6px;
+}
+.readings-skeleton-calendar {
+  width: 39px;
+  height: 45px;
+  border-radius: 8px;
+}
+.readings-skeleton-button {
+  width: 78px;
+  height: 30px;
+  border-radius: 9px;
+}
+@keyframes readings-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .readings-skeleton {
+    animation: none;
+  }
+}
 .reading-details-modal {
+  --admin-rose: #be185d;
   --admin-violet: var(--editor-violet);
   --admin-blue: var(--editor-blue);
   --admin-teal: var(--editor-teal);
   --admin-amber: var(--editor-amber);
+}
+.dark .reading-details-modal {
+  --admin-rose: #f9a8d4;
 }
 
 /* Reading workspace */

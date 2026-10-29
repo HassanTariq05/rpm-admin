@@ -28,6 +28,7 @@ export function readingLabel(type: string) {
         blood_glucose: 'Blood glucose',
         weight: 'Weight',
         pulse_ox: 'Pulse oximetry',
+        thermometer: 'Temperature',
       } as Record<string, string>
     )[type] ?? humanize(type)
   )
@@ -76,7 +77,7 @@ export interface ReadingMeasurement {
   value: string
   unit: string | null
   secondary: string | null
-  tone: 'violet' | 'teal' | 'blue' | 'amber'
+  tone: 'violet' | 'teal' | 'blue' | 'amber' | 'rose'
 }
 export function measurement(reading: DeviceReading): ReadingMeasurement {
   const pulse = valueOf(reading, 'pulse_bpm') ?? valueOf(reading, 'pulse')
@@ -87,6 +88,31 @@ export function measurement(reading: DeviceReading): ReadingMeasurement {
   const pulseText =
     pulse == null ? null : `Pulse ${formatted(pulse)}${pulseUnit ? ` ${pulseUnit}` : ''}`
   switch (reading.readingType) {
+    case 'thermometer': {
+      const fahrenheit = valueOf(reading, 'temperature_f')
+      const celsius = valueOf(reading, 'temperature_c')
+      const suppliedUnit =
+        displayText(reading.payload.temperature_unit) ?? displayText(reading.payload.unit)
+      const normalizedUnit = suppliedUnit?.replace(/°/g, '').trim().toLowerCase()
+      const unit =
+        normalizedUnit === 'f' || normalizedUnit === 'fahrenheit'
+          ? '°F'
+          : normalizedUnit === 'c' || normalizedUnit === 'celsius'
+            ? '°C'
+            : suppliedUnit
+      return {
+        value: formatted(fahrenheit ?? celsius ?? valueOf(reading, 'temperature')),
+        // Smart Meter's unqualified temperature field is Fahrenheit (confirmed API contract).
+        unit:
+          fahrenheit != null
+            ? '°F'
+            : celsius != null
+              ? '°C'
+              : (unit ?? (reading.source === 'smart_meter' ? '°F' : null)),
+        secondary: null,
+        tone: 'rose',
+      }
+    }
     case 'blood_pressure':
       return {
         value: `${formatted(valueOf(reading, 'systolic_mmhg') ?? valueOf(reading, 'systolic'))} / ${formatted(valueOf(reading, 'diastolic_mmhg') ?? valueOf(reading, 'diastolic'))}`,

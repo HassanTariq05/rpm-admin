@@ -3,7 +3,7 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { DeviceReadingsPage } from './index'
-import { sampleReadings } from './readings.fixtures'
+import { sampleReadings, thermometerReading } from './readings.fixtures'
 import { useAuthStore } from '@/stores/auth-store'
 
 const state = vi.hoisted(() => ({
@@ -108,6 +108,7 @@ it('shows loading, retry, stale-data errors, empty states, and missing-session g
   state.pending = true
   const view = render(<DeviceReadingsPage />)
   expect(screen.getByText('Loading device readings…')).toBeInTheDocument()
+  expect(screen.getByRole('status', { name: 'Loading device readings' })).toBeInTheDocument()
   state.pending = false
   state.error = new Error('failure')
   view.rerender(<DeviceReadingsPage />)
@@ -122,10 +123,21 @@ it('shows loading, retry, stale-data errors, empty states, and missing-session g
   state.data = { readings: [], page: 1, pageSize: 25, total: 0 }
   view.rerender(<DeviceReadingsPage />)
   expect(screen.getByText('No readings found')).toBeInTheDocument()
+  expect(screen.queryByRole('status', { name: 'Loading device readings' })).not.toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Next readings page' })).toBeDisabled()
   state.ready = false
   view.rerender(<DeviceReadingsPage />)
   expect(screen.getByRole('link', { name: 'Sign in again' })).toHaveAttribute('href', '/login')
+})
+
+it('keeps the readings visible during realtime updates and background refetches', () => {
+  const view = render(<DeviceReadingsPage />)
+  state.fetching = true
+  view.rerender(<DeviceReadingsPage />)
+  expect(screen.getByText('Updating readings…')).toBeInTheDocument()
+  expect(screen.getByRole('table', { name: 'Device readings' })).toBeInTheDocument()
+  expect(screen.getByText('124 / 86')).toBeVisible()
+  expect(screen.queryByRole('status', { name: 'Loading device readings' })).not.toBeInTheDocument()
 })
 
 it('requests source filtering from page one and refreshes on demand', async () => {
@@ -174,6 +186,29 @@ it('filters with the reading-type tabs and reflects the selected type', async ()
   expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(3)
   await user.click(screen.getByRole('tab', { name: /^All readings/ }))
   expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(7)
+})
+
+it('shows thermometer measurements with their own color, tab, and detail units', async () => {
+  const user = userEvent.setup()
+  state.data = {
+    readings: [...sampleReadings, thermometerReading],
+    page: 1,
+    pageSize: 25,
+    total: 7,
+  }
+  render(<DeviceReadingsPage />)
+  const tab = screen.getByRole('tab', { name: /^Temperature/ })
+  expect(tab).toHaveClass('admin-tone-rose')
+  await user.click(tab)
+  expect(tab).toHaveAttribute('aria-selected', 'true')
+  const table = within(screen.getByRole('table'))
+  expect(table.getAllByRole('row')).toHaveLength(2)
+  expect(table.getByText('97.4')).toHaveTextContent('97.4 °F')
+  expect(table.getByText('Temperature').closest('.reading-value')).toHaveClass('admin-tone-rose')
+  await user.click(screen.getByRole('button', { name: 'View reading 18' }))
+  const dialog = within(screen.getByRole('dialog'))
+  expect(dialog.getByText('97.4')).toHaveTextContent('97.4 °F')
+  expect(dialog.getByText('97.4').closest('.reading-detail-summary')).toHaveClass('admin-tone-rose')
 })
 
 it('shows patient assignments as unassigned in details without changing source records', async () => {

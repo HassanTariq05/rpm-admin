@@ -2,6 +2,7 @@ import axios from 'axios'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth-store'
 import { useAdminScope } from '@/hooks/use-administration'
+import { useReadingsRealtime } from '@/hooks/use-readings-realtime'
 import {
   ReadingsResponseError,
   useReadingService,
@@ -9,6 +10,7 @@ import {
 } from '@/services/reading-services/reading-services'
 
 export function useReadings(params: ReadingsParams) {
+  useReadingsRealtime()
   const service = useReadingService()
   const { user, orgId } = useAdminScope()
   const token = useAuthStore((state) => state.auth.accessToken)

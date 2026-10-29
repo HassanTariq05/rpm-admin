@@ -1,5 +1,22 @@
 import type { DeviceReading } from '@/services/reading-services/reading-services'
 
+export const thermometerReading: DeviceReading = {
+  id: '18',
+  source: 'smart_meter',
+  externalReadingId: 'external-temperature-18',
+  deviceId: 'temperature-device-18',
+  deviceModel: 'JPD-FR409-4G',
+  readingType: 'thermometer',
+  patientId: null,
+  dateRecorded: '2026-10-29T13:17:00',
+  dateReceived: '2026-10-29T18:17:00',
+  recordedAt: '2026-10-29T14:17:00.000Z',
+  receivedAt: '2026-10-29T19:17:00.000Z',
+  timeZoneOffset: -1,
+  signalStrength: 1,
+  payload: { temperature: 97.4, battery: 90, event_flag: 4, time_zone_offset: -1 },
+}
+
 // Synthetic records matching both provider contracts; no live patient/device IDs.
 export const sampleReadings: DeviceReading[] = [
   {

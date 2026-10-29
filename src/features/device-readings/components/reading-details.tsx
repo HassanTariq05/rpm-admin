@@ -6,6 +6,7 @@ import {
   HeartPulse,
   MonitorSmartphone,
   Scale,
+  Thermometer,
 } from 'lucide-react'
 import { DeviceBrand, ReadingTime, UnassignedPatient } from './reading-presentation'
 import { FormModal } from '@/app/components/administration/admin-ui'
@@ -107,7 +108,9 @@ export function ReadingDetails({
         ? Scale
         : reading.readingType === 'blood_glucose'
           ? Droplets
-          : Activity
+          : reading.readingType === 'thermometer'
+            ? Thermometer
+            : Activity
   const entries = Object.entries(reading).filter(([key]) => key !== 'payload')
   const groups = [
     {

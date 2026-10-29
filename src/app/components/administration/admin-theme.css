@@ -3,12 +3,14 @@
   --admin-teal: #0f766e;
   --admin-amber: #b45309;
   --admin-blue: #2563eb;
+  --admin-rose: #be185d;
 }
 .dark .admin-page {
   --admin-violet: #a78bfa;
   --admin-teal: #2dd4bf;
   --admin-amber: #fbbf24;
   --admin-blue: #60a5fa;
+  --admin-rose: #f9a8d4;
 }
 .admin-tone-violet {
   --admin-tone: var(--admin-violet);
@@ -21,6 +23,9 @@
 }
 .admin-tone-blue {
   --admin-tone: var(--admin-blue);
+}
+.admin-tone-rose {
+  --admin-tone: var(--admin-rose);
 }
 
 .admin-page-header {

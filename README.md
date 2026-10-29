@@ -96,7 +96,11 @@ Use **React Context** for genuinely app-wide client state (current user/session 
 
 `/` opens Device Readings (`/device-readings` redirects there) and connects to the EMR readings API through `src/services/reading-services/reading-services.ts` and `src/hooks/useReadings.ts`. Configure `VITE_EMR_API_BASE_URL` for a different environment; the default is the supplied `/api/emr` endpoint. The service forwards the signed-in session bearer token using the existing API client, validates responses, applies a 20-second timeout, and supports cancellation.
 
-The API must allow the deployed frontend origin (and `http://localhost:5173` during development) through CORS, including GET requests and the Authorization header. Browser requests cannot succeed without those response headers.
+While Device Readings is mounted, `use-readings-realtime.ts` requests a short-lived ticket using the signed-in session bearer token and connects to the readings WebSocket. `vitals.refresh` events invalidate readings in the current account/organization and refetch the active page without changing its filters. Concurrent refreshes are deduplicated. Connections retry with exponential backoff (up to 30 seconds), obtain a fresh ticket each time, and refresh on connection to catch missed events. Leaving the page, signing out, or changing sessions closes the connection and cancels pending ticket requests/retries. Ticket responses with 401/403 stop retries until the session changes. Manual refresh remains available.
+
+Override `VITE_REALTIME_TICKET_URL` and `VITE_READINGS_WEBSOCKET_URL` for other environments; defaults use the supplied backend endpoints. Tokens and tickets are obtained at runtime and are never stored in frontend configuration.
+
+The API must allow the deployed frontend origin (and `http://localhost:5173` during development) through CORS, including GET/POST requests and the Authorization header. Browser requests cannot succeed without those response headers.
 
 Pagination and source filtering run on the server. The verified API does not apply the `readingType` parameter; search, type filtering, and sorting explicitly apply to the current server page. The page never silently downloads the entire collection. Opening Details exposes every returned metadata field and the full source payload. Missing patient IDs are shown as unassigned. Local timestamps use the device offset when canonical UTC timestamps are unavailable; displayed times identify the viewer's timezone. Unspecified measurement units are not inferred.
 
