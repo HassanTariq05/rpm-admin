@@ -1,0 +1,40 @@
+/* Palette adapted from Kiranism/next-shadcn-dashboard-starter (MIT). */
+html[data-theme='zen'] {
+  --app-bg: oklch(0.9195 0.0169 88.003);
+  --text: oklch(0.235 0 0);
+  --panel: oklch(0.953 0.0156 86.4257);
+  --brand: oklch(0.3012 0 0);
+  --brand-foreground: oklch(0.9169 0.0175 99.616);
+  --panel-muted: oklch(0.834 0.0232 87.163);
+  --muted: oklch(0.4688 0.0136 84.5932);
+  --border: oklch(0.8434 0.0231 87.1621);
+  --input-bg: oklch(0.8434 0.0231 87.1621);
+  --focus-ring: oklch(0.3012 0 0);
+  --chart-1: oklch(0.6863 0.1743 34.2614);
+  --chart-2: oklch(0.235 0 0);
+  --chart-3: oklch(0.4688 0.0136 84.5932);
+  --chart-4: oklch(0.7057 0.025 82.0932);
+  --chart-5: oklch(0.834 0.0232 87.163);
+  --sidebar-bg: oklch(0.8985 0.0199 87.5195);
+  --app-font-sans: 'Inter', sans-serif;
+}
+
+html[data-theme='zen'].dark {
+  --app-bg: oklch(0.1913 0 0);
+  --text: oklch(0.9173 0.0133 82.4015);
+  --panel: oklch(0.2264 0 0);
+  --brand: oklch(0.852 0.0205 100.6306);
+  --brand-foreground: oklch(0.3329 0 0);
+  --panel-muted: oklch(0.285 0 0);
+  --muted: oklch(0.6348 0.0113 81.7875);
+  --border: oklch(0.2931 0 0);
+  --input-bg: oklch(0.2931 0 0);
+  --focus-ring: oklch(0.852 0.0205 100.6306);
+  --chart-1: oklch(0.6863 0.1743 34.2614);
+  --chart-2: oklch(0.859 0.0209 74.6369);
+  --chart-3: oklch(0.6348 0.0113 81.7875);
+  --chart-4: oklch(0.4681 0.0069 84.5829);
+  --chart-5: oklch(0.3523 0 0);
+  --sidebar-bg: oklch(0.173 0 0);
+  --app-font-sans: 'Inter', sans-serif;
+}

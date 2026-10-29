@@ -1,0 +1,40 @@
+/* Palette adapted from Kiranism/next-shadcn-dashboard-starter (MIT). */
+html[data-theme='mono'] {
+  --app-bg: oklch(1 0 0);
+  --text: oklch(0.1448 0 0);
+  --panel: oklch(1 0 0);
+  --brand: oklch(0.5555 0 0);
+  --brand-foreground: oklch(0.9851 0 0);
+  --panel-muted: oklch(0.9702 0 0);
+  --muted: oklch(0.5486 0 0);
+  --border: oklch(0.9219 0 0);
+  --input-bg: oklch(0.9219 0 0);
+  --focus-ring: oklch(0.709 0 0);
+  --chart-1: oklch(0.5555 0 0);
+  --chart-2: oklch(0.5555 0 0);
+  --chart-3: oklch(0.5555 0 0);
+  --chart-4: oklch(0.5555 0 0);
+  --chart-5: oklch(0.5555 0 0);
+  --sidebar-bg: oklch(0.9851 0 0);
+  --app-font-sans: Geist Mono, monospace;
+}
+
+html[data-theme='mono'].dark {
+  --app-bg: oklch(0.1448 0 0);
+  --text: oklch(0.9851 0 0);
+  --panel: oklch(0.2134 0 0);
+  --brand: oklch(0.5555 0 0);
+  --brand-foreground: oklch(0.9851 0 0);
+  --panel-muted: oklch(0.2686 0 0);
+  --muted: oklch(0.709 0 0);
+  --border: oklch(0.3407 0 0);
+  --input-bg: oklch(0.4386 0 0);
+  --focus-ring: oklch(0.5555 0 0);
+  --chart-1: oklch(0.5555 0 0);
+  --chart-2: oklch(0.5555 0 0);
+  --chart-3: oklch(0.5555 0 0);
+  --chart-4: oklch(0.5555 0 0);
+  --chart-5: oklch(0.5555 0 0);
+  --sidebar-bg: oklch(0.2046 0 0);
+  --app-font-sans: Geist Mono, monospace;
+}

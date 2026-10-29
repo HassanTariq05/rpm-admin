@@ -1,0 +1,40 @@
+/* Palette adapted from Kiranism/next-shadcn-dashboard-starter (MIT). */
+html[data-theme='supabase'] {
+  --app-bg: oklch(0.9911 0 0);
+  --text: oklch(0.2046 0 0);
+  --panel: oklch(0.9911 0 0);
+  --brand: oklch(0.8348 0.1302 160.908);
+  --brand-foreground: oklch(0.2626 0.0147 166.4589);
+  --panel-muted: oklch(0.9461 0 0);
+  --muted: oklch(0.2435 0 0);
+  --border: oklch(0.9037 0 0);
+  --input-bg: oklch(0.9731 0 0);
+  --focus-ring: oklch(0.8348 0.1302 160.908);
+  --chart-1: oklch(0.8348 0.1302 160.908);
+  --chart-2: oklch(0.6231 0.188 259.8145);
+  --chart-3: oklch(0.6056 0.2189 292.7172);
+  --chart-4: oklch(0.7686 0.1647 70.0804);
+  --chart-5: oklch(0.6959 0.1491 162.4796);
+  --sidebar-bg: oklch(0.9911 0 0);
+  --app-font-sans: Outfit, sans-serif;
+}
+
+html[data-theme='supabase'].dark {
+  --app-bg: oklch(0.1822 0 0);
+  --text: oklch(0.9288 0.0126 255.5078);
+  --panel: oklch(0.2046 0 0);
+  --brand: oklch(0.4365 0.1044 156.7556);
+  --brand-foreground: oklch(0.9213 0.0135 167.1556);
+  --panel-muted: oklch(0.2393 0 0);
+  --muted: oklch(0.7122 0 0);
+  --border: oklch(0.2809 0 0);
+  --input-bg: oklch(0.2603 0 0);
+  --focus-ring: oklch(0.8003 0.1821 151.711);
+  --chart-1: oklch(0.8003 0.1821 151.711);
+  --chart-2: oklch(0.7137 0.1434 254.624);
+  --chart-3: oklch(0.709 0.1592 293.5412);
+  --chart-4: oklch(0.8369 0.1644 84.4286);
+  --chart-5: oklch(0.7845 0.1325 181.912);
+  --sidebar-bg: oklch(0.1822 0 0);
+  --app-font-sans: Outfit, sans-serif;
+}

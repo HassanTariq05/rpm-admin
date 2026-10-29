@@ -1,0 +1,186 @@
+/* Keep control borders clear while preserving the selected theme’s full accent color. */
+:root,
+html[data-theme] {
+  --control-bg: color-mix(in srgb, var(--panel) 96%, var(--accent));
+  --control-bg-hover: color-mix(in srgb, var(--panel) 92%, var(--accent));
+  --control-border: color-mix(in srgb, var(--accent) 50%, var(--border));
+  --control-border-hover: var(--accent);
+  --control-placeholder: color-mix(in srgb, var(--text) 65%, var(--panel));
+  --control-accent: var(--accent);
+  --control-accent-hover: var(--accent-hover);
+  --control-on-accent: var(--accent-foreground);
+  --control-disabled-bg: color-mix(in srgb, var(--panel) 88%, var(--text));
+  --field-border-width: 1px;
+  --field-background: var(--control-bg);
+  --field-foreground: var(--text);
+  --field-placeholder: var(--control-placeholder);
+  --field-border: var(--control-border);
+  --field-hover: var(--control-bg-hover);
+  --field-focus: var(--control-bg);
+  --field-border-hover: var(--control-border-hover);
+  --field-border-focus: var(--control-accent);
+  --focus: var(--control-accent);
+}
+
+:is([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger'], .rpm-otp-input) {
+  border: 1px solid var(--control-border);
+  background: var(--control-bg);
+  color: var(--text);
+  box-shadow: none;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    outline-color 150ms ease;
+}
+
+:is([data-slot='input'], [data-slot='select-trigger']) {
+  min-height: 40px;
+}
+
+:is([data-slot='input'], [data-slot='textarea'], .rpm-otp-input)::placeholder,
+[data-slot='select-value'][data-placeholder='true'] {
+  color: var(--control-placeholder);
+  opacity: 1;
+}
+
+:is([data-slot='textfield'], [data-slot='select'], [data-slot='checkbox']) [data-slot='label'] {
+  color: var(--text);
+}
+
+@media (hover: hover) {
+  :is(
+      [data-slot='input'],
+      [data-slot='textarea'],
+      [data-slot='select-trigger'],
+      .rpm-otp-input
+    ):hover:not(:disabled):not([data-disabled='true']) {
+    border-color: var(--control-border-hover);
+    background: var(--control-bg-hover);
+  }
+}
+
+:is([data-slot='input'], [data-slot='textarea'], .rpm-otp-input):focus,
+[data-slot='select-trigger']:is(:focus-visible, [data-focus-visible='true'], [data-open='true']) {
+  border-color: var(--control-accent);
+  outline: 2px solid var(--control-accent);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+:is([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger'], .rpm-otp-input):is(
+  :disabled,
+  [data-disabled='true'],
+  [aria-disabled='true']
+) {
+  opacity: 1;
+  border-style: dashed;
+  background: var(--control-disabled-bg);
+  color: var(--control-placeholder);
+  cursor: not-allowed;
+}
+
+:is([data-slot='input'], [data-slot='textarea'], .rpm-otp-input):is(
+  [data-invalid='true'],
+  [aria-invalid='true']
+),
+[data-slot='select'][data-invalid='true'] [data-slot='select-trigger'] {
+  border-color: var(--danger);
+  outline-color: var(--danger);
+}
+
+[data-slot='checkbox-content'] {
+  width: 100%;
+  min-height: 28px;
+  gap: 10px;
+}
+
+[data-slot='checkbox-control'] {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--control-border);
+  border-radius: 5px;
+  background: var(--control-bg);
+  box-shadow: none;
+}
+
+[data-slot='checkbox']:hover [data-slot='checkbox-control'] {
+  border-color: var(--control-border-hover);
+}
+
+[data-slot='checkbox']:is([data-selected='true'], [data-indeterminate='true'])
+  [data-slot='checkbox-control'] {
+  border-color: var(--control-accent);
+  background: var(--control-accent);
+}
+
+[data-slot='checkbox-content'][data-focus-visible='true'] [data-slot='checkbox-control'] {
+  outline: 2px solid var(--control-accent);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+
+[data-slot='checkbox'][data-disabled='true'] {
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+[data-slot='checkbox'][data-disabled='true'] [data-slot='label'] {
+  color: var(--control-placeholder);
+}
+
+[data-slot='checkbox'][data-disabled='true']:not([data-selected='true'])
+  [data-slot='checkbox-control'] {
+  border-style: dashed;
+  background: var(--control-disabled-bg);
+}
+
+[data-slot='checkbox'][data-invalid='true'] [data-slot='checkbox-control'] {
+  border-color: var(--danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger'], .rpm-otp-input) {
+    transition: none;
+  }
+}
+
+:is([data-slot='input'], [data-slot='textarea'])[readonly] {
+  cursor: text;
+}
+
+[data-slot='select-popover'] {
+  border: 1px solid var(--control-border);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 4px;
+}
+
+[data-slot='list-box-item'] {
+  border-radius: 8px;
+  color: var(--text);
+}
+
+[data-slot='list-box-item'][data-selected='true'] {
+  background: color-mix(in srgb, var(--control-accent) 20%, var(--panel));
+}
+
+[data-slot='list-box-item-indicator'] {
+  color: var(--control-accent);
+}
+
+:is([data-slot='textfield'], [data-slot='select'], [data-slot='checkbox'])[data-disabled='true']
+  [data-slot='label'] {
+  color: var(--control-placeholder);
+  opacity: 1;
+}
+
+:is([data-slot='textfield'], [data-slot='select'], [data-slot='checkbox'])
+  [data-slot='description'],
+[data-slot='checkbox'] .muted {
+  color: var(--control-placeholder);
+}
+
+:is([data-slot='textfield'], [data-slot='select'])[data-invalid='true'] [data-slot='label'] {
+  color: var(--danger);
+}

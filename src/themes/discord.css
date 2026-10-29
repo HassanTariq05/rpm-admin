@@ -1,0 +1,39 @@
+/* Palette adapted from Kiranism/next-shadcn-dashboard-starter (MIT). */
+html[data-theme='discord'] {
+  --app-bg: oklch(0.994 0 0);
+  --text: oklch(0 0 0);
+  --panel: oklch(1 0 180);
+  --brand: oklch(0.5772 0.2129 274);
+  --brand-foreground: oklch(1 0 180);
+  --panel-muted: oklch(0.9612 0 0);
+  --muted: oklch(0.605 0 180);
+  --border: oklch(0.9401 0 0);
+  --input-bg: oklch(0.851 0 180);
+  --focus-ring: oklch(0.683 0 180);
+  --chart-1: oklch(0.5772 0.2129 274);
+  --chart-2: oklch(0.8726 0.0593 270.45);
+  --chart-3: oklch(0.6792 0.1659 272.92);
+  --chart-4: oklch(0.931 0.0312 269.69);
+  --chart-5: oklch(0.7896 0.105 270.59);
+  --sidebar-bg: oklch(0.9761 0 0);
+  --app-font-sans: 'Google Sans Flex', ui-sans-serif, sans-serif;
+}
+
+html[data-theme='discord'].dark {
+  --app-bg: oklch(0.2195 0.0077 285.74);
+  --text: oklch(0.9881 0 0);
+  --panel: oklch(0.2624 0.0093 285.74);
+  --brand: oklch(0.5774 0.2091 273.85);
+  --brand-foreground: oklch(1 0 0);
+  --panel-muted: oklch(0.2387 0.0114 293.1598);
+  --muted: oklch(0.689 0 164.055);
+  --border: oklch(0.3089 0.0038 264.5091);
+  --input-bg: oklch(0.2568 0.0076 274.65);
+  --focus-ring: oklch(0.7157 0.1532 235.71);
+  --chart-1: oklch(0.5772 0.2129 274);
+  --chart-2: oklch(0.8726 0.0593 270.45);
+  --chart-3: oklch(0.6792 0.1659 272.92);
+  --chart-4: oklch(0.931 0.0312 269.69);
+  --chart-5: oklch(0.7896 0.105 270.59);
+  --sidebar-bg: oklch(0.2452 0.0075 285.83);
+}

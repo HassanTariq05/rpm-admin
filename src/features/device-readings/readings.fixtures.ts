@@ -1,0 +1,80 @@
+import type { DeviceReading } from '@/services/reading-services/reading-services'
+
+// Synthetic records matching both provider contracts; no live patient/device IDs.
+export const sampleReadings: DeviceReading[] = [
+  {
+    id: '1',
+    source: 'pylo',
+    externalReadingId: 'external-1',
+    deviceId: 'device-1',
+    imei: 'imei-1',
+    deviceModel: 'PY-BP',
+    readingType: 'blood_pressure',
+    patientId: 'None',
+    recordedAt: '2026-10-27T05:11:00.000Z',
+    receivedAt: '2026-10-27T05:13:09.288Z',
+    payload: {
+      Values: [
+        { Type: 'diastolic', Value: 86 },
+        { Type: 'systolic', Value: 124 },
+        { Type: 'pulse', Value: 99 },
+        { Type: 'irregular', Value: 0 },
+      ],
+    },
+  },
+  {
+    id: '2',
+    source: 'smart_meter',
+    externalReadingId: 'external-2',
+    deviceId: 'device-2',
+    deviceModel: 'SM-BP',
+    readingType: 'blood_pressure',
+    patientId: null,
+    recordedAt: '2026-10-26T01:20:19.000Z',
+    receivedAt: '2026-10-26T01:20:41.000Z',
+    payload: { systolic_mmhg: 120, diastolic_mmhg: 80, pulse_bpm: 87, irregular: true },
+  },
+  {
+    id: '3',
+    source: 'smart_meter',
+    externalReadingId: 'external-3',
+    deviceId: 'device-3',
+    deviceModel: 'SM-OX',
+    readingType: 'pulse_ox',
+    patientId: 'patient-1',
+    recordedAt: '2026-10-26T01:23:28.000Z',
+    payload: { spo2: 97, pulse_bpm: 69 },
+  },
+  {
+    id: '4',
+    source: 'pylo',
+    externalReadingId: 'external-4',
+    deviceId: 'device-4',
+    readingType: 'blood_glucose',
+    patientId: 'None',
+    payload: {
+      Values: [
+        { Type: 'glucose', Value: 148 },
+        { Type: 'before_meal', Value: 0 },
+      ],
+    },
+  },
+  {
+    id: '5',
+    source: 'pylo',
+    externalReadingId: 'external-5',
+    deviceId: 'device-5',
+    readingType: 'weight',
+    patientId: 'patient-2',
+    payload: { Values: [{ Type: 'weight', Value: 171.5027 }] },
+  },
+  {
+    id: '6',
+    source: 'smart_meter',
+    externalReadingId: 'external-6',
+    deviceId: 'device-6',
+    readingType: 'weight',
+    patientId: null,
+    payload: { weight_kg: 78.97, weight_lbs: 174.1 },
+  },
+]

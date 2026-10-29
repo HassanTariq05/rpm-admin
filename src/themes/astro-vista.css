@@ -1,0 +1,40 @@
+/* Palette adapted from Kiranism/next-shadcn-dashboard-starter (MIT). */
+html[data-theme='astro-vista'] {
+  --app-bg: oklch(0.9383 0.0042 236.4993);
+  --text: oklch(0.3211 0 0);
+  --panel: oklch(1 0 0);
+  --brand: oklch(0.642 0.1691 38.5815);
+  --brand-foreground: oklch(1 0 0);
+  --panel-muted: oklch(0.9846 0.0017 247.8389);
+  --muted: oklch(0.551 0.0234 264.3637);
+  --border: oklch(0.8452 0 0);
+  --input-bg: oklch(0.97 0.0029 264.542);
+  --focus-ring: oklch(0.6397 0.172 36.4421);
+  --chart-1: oklch(0.6693 0.0706 248.923);
+  --chart-2: oklch(0.6678 0.1546 41.62);
+  --chart-3: oklch(0.5957 0.1807 19.9763);
+  --chart-4: oklch(0.7859 0.1342 83.6986);
+  --chart-5: oklch(0.4227 0.0732 267.3899);
+  --sidebar-bg: oklch(0.903 0.0046 258.3257);
+  --app-font-sans: 'Outfit', sans-serif;
+}
+
+html[data-theme='astro-vista'].dark {
+  --app-bg: oklch(0.2178 0 0);
+  --text: oklch(0.9219 0 0);
+  --panel: oklch(0.2435 0 0);
+  --brand: oklch(0.642 0.1691 38.5815);
+  --brand-foreground: oklch(1 0 0);
+  --panel-muted: oklch(0.285 0 0);
+  --muted: oklch(0.5999 0 0);
+  --border: oklch(0.329 0 0);
+  --input-bg: oklch(0.3092 0 0);
+  --focus-ring: oklch(0.6397 0.172 36.4421);
+  --chart-1: oklch(0.7124 0.0606 248.6896);
+  --chart-2: oklch(0.6678 0.1546 41.62);
+  --chart-3: oklch(0.5957 0.1807 19.9763);
+  --chart-4: oklch(0.7859 0.1342 83.6986);
+  --chart-5: oklch(0.4227 0.0732 267.3899);
+  --sidebar-bg: oklch(0.2393 0 0);
+  --app-font-sans: 'Outfit', sans-serif;
+}

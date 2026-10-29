@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f6faf8"/><stop offset="1" stop-color="#e0f3eb"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#a6e4cb" stop-opacity=".8"/><stop offset="1" stop-color="#a6e4cb" stop-opacity="0"/></radialGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a5e5ca"/><stop offset="1" stop-color="#6dcca5"/></linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1030" cy="280" r="370" fill="url(#glow)"/>
+  <circle cx="1010" cy="289" r="237" fill="none" stroke="#b9e1d1" stroke-width="1.5"/>
+  <circle cx="1010" cy="289" r="186" fill="none" stroke="#b0dac9" stroke-width="1.5" stroke-dasharray="5 10"/>
+  <path d="M0 560C200 480 430 670 740 557s368-77 460-23v96H0Z" fill="#cbe9dc" opacity=".45"/>
+  <rect x="72" y="66" width="64" height="64" rx="18" fill="#85d7b5"/>
+  <g transform="translate(83 77) scale(1.75)" fill="none" stroke="#174b3d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>
+    <path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>
+  </g>
+  <text x="155" y="104" font-family="Helvetica, Arial, sans-serif" font-size="16" letter-spacing="2.4" font-weight="700" fill="#346757">CONNECTED CARE WORKSPACE</text>
+  <g font-family="Helvetica, Arial, sans-serif" fill="#173f34">
+    <text x="72" y="258" font-size="78" font-weight="700" letter-spacing="-3">Remote Patient</text>
+    <text x="72" y="347" font-size="78" font-weight="700" letter-spacing="-3">Monitoring</text>
+    <text x="75" y="405" font-size="25" fill="#527467">Connected care, wherever patients are.</text>
+  </g>
+  <rect x="884" y="163" width="220" height="236" rx="54" fill="#286b52" opacity=".06" transform="rotate(-8 994 281)"/>
+  <rect x="876" y="155" width="220" height="236" rx="54" fill="url(#tile)" stroke="#ffffff" stroke-opacity=".8" stroke-width="3" transform="rotate(-8 986 273)"/>
+  <g transform="translate(913 195) scale(6.1)" fill="none" stroke="#215843" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>
+    <path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>
+  </g>
+  <g font-family="Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#346757">
+    <rect x="74" y="486" width="129" height="44" rx="22" fill="#ffffff" stroke="#cee2d8"/>
+    <circle cx="97" cy="508" r="4" fill="#60b891"/><text x="111" y="514">Patients</text>
+    <rect x="215" y="486" width="129" height="44" rx="22" fill="#ffffff" stroke="#cee2d8"/>
+    <circle cx="238" cy="508" r="4" fill="#60b891"/><text x="252" y="514">Devices</text>
+    <rect x="356" y="486" width="141" height="44" rx="22" fill="#ffffff" stroke="#cee2d8"/>
+    <circle cx="379" cy="508" r="4" fill="#60b891"/><text x="393" y="514">Readings</text>
+  </g>
+  <text x="1128" y="570" text-anchor="end" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#527467">rpm.inforcodes.com</text>
+</svg>

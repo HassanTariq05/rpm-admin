@@ -1,0 +1,44 @@
+/* Palette adapted from Kiranism/next-shadcn-dashboard-starter (MIT). */
+html[data-theme='whatsapp'] {
+  --app-bg: oklch(0.9605 0.0046 258.3248);
+  --text: oklch(0.2153 0.0187 235.1251);
+  --panel: oklch(1 0 0);
+  --brand: oklch(0.4335 0.0754 182.2315);
+  --brand-foreground: oklch(1 0 0);
+  --panel-muted: oklch(0.9605 0.0046 258.3248);
+  --muted: oklch(0.5589 0.0255 233.7233);
+  --border: oklch(0.9436 0.0051 228.8204);
+  --input-bg: oklch(0.9436 0.0051 228.8204);
+  --focus-ring: oklch(0.761 0.2015 149.7403);
+  --chart-1: oklch(0.761 0.2015 149.7403);
+  --chart-2: oklch(0.4335 0.0754 182.2315);
+  --chart-3: oklch(0.5762 0.0995 182.3964);
+  --chart-4: oklch(0.7356 0.137 232.8053);
+  --chart-5: oklch(0.6509 0.1283 170.4258);
+  --sidebar-bg: oklch(1 0 0);
+  --app-font-sans:
+    'Segoe UI', 'Helvetica Neue', Helvetica, 'Lucida Grande', Arial, Ubuntu, Cantarell, 'Fira Sans',
+    sans-serif;
+}
+
+html[data-theme='whatsapp'].dark {
+  --app-bg: oklch(0.1854 0.0182 238.2143);
+  --text: oklch(0.9436 0.0051 228.8204);
+  --panel: oklch(0.2848 0.023 235.6578);
+  --brand: oklch(0.6509 0.1283 170.4258);
+  --brand-foreground: oklch(0.2153 0.0187 235.1251);
+  --panel-muted: oklch(0.2456 0.0195 239.1061);
+  --muted: oklch(0.6637 0.0236 235.1968);
+  --border: oklch(0.3351 0.0253 234.8586);
+  --input-bg: oklch(0.3351 0.0253 234.8586);
+  --focus-ring: oklch(0.6509 0.1283 170.4258);
+  --chart-1: oklch(0.761 0.2015 149.7403);
+  --chart-2: oklch(0.6509 0.1283 170.4258);
+  --chart-3: oklch(0.5762 0.0995 182.3964);
+  --chart-4: oklch(0.7356 0.137 232.8053);
+  --chart-5: oklch(0.4335 0.0754 182.2315);
+  --sidebar-bg: oklch(0.2153 0.0187 235.1251);
+  --app-font-sans:
+    'Segoe UI', 'Helvetica Neue', Helvetica, 'Lucida Grande', Arial, Ubuntu, Cantarell, 'Fira Sans',
+    sans-serif;
+}

@@ -1,0 +1,40 @@
+/* Palette adapted from Kiranism/next-shadcn-dashboard-starter (MIT). */
+html[data-theme='vercel'] {
+  --app-bg: oklch(0.99 0 0);
+  --text: oklch(0 0 0);
+  --panel: oklch(1 0 0);
+  --brand: oklch(0 0 0);
+  --brand-foreground: oklch(1 0 0);
+  --panel-muted: oklch(0.97 0 0);
+  --muted: oklch(0.44 0 0);
+  --border: oklch(0.92 0 0);
+  --input-bg: oklch(0.94 0 0);
+  --focus-ring: oklch(0 0 0);
+  --chart-1: oklch(0.81 0.17 75.35);
+  --chart-2: oklch(0.55 0.22 264.53);
+  --chart-3: oklch(0.72 0 0);
+  --chart-4: oklch(0.92 0 0);
+  --chart-5: oklch(0.56 0 0);
+  --sidebar-bg: oklch(0.99 0 0);
+  --app-font-sans: Geist, sans-serif;
+}
+
+html[data-theme='vercel'].dark {
+  --app-bg: oklch(0 0 0);
+  --text: oklch(1 0 0);
+  --panel: oklch(0.14 0 0);
+  --brand: oklch(1 0 0);
+  --brand-foreground: oklch(0 0 0);
+  --panel-muted: oklch(0.23 0 0);
+  --muted: oklch(0.72 0 0);
+  --border: oklch(0.26 0 0);
+  --input-bg: oklch(0.32 0 0);
+  --focus-ring: oklch(0.72 0 0);
+  --chart-1: oklch(0.81 0.17 75.35);
+  --chart-2: oklch(0.58 0.21 260.84);
+  --chart-3: oklch(0.56 0 0);
+  --chart-4: oklch(0.44 0 0);
+  --chart-5: oklch(0.92 0 0);
+  --sidebar-bg: oklch(0.18 0 0);
+  --app-font-sans: Geist, sans-serif;
+}

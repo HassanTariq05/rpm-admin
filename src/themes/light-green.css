@@ -1,0 +1,40 @@
+/* Palette adapted from Kiranism/next-shadcn-dashboard-starter (MIT). */
+html[data-theme='light-green'] {
+  --app-bg: oklch(0.9892 0.0054 117.9205);
+  --text: oklch(0.2077 0.0398 265.7549);
+  --panel: oklch(1 0 0);
+  --brand: oklch(0.8871 0.2122 128.5041);
+  --brand-foreground: oklch(0 0 0);
+  --panel-muted: oklch(0.9683 0.0069 247.8956);
+  --muted: oklch(0.5544 0.0407 257.4166);
+  --border: oklch(0.9288 0.0126 255.5078);
+  --input-bg: oklch(0.9288 0.0126 255.5078);
+  --focus-ring: oklch(0.8871 0.2122 128.5041);
+  --chart-1: oklch(0.8871 0.2122 128.5041);
+  --chart-2: oklch(0.3717 0.0392 257.287);
+  --chart-3: oklch(0.7227 0.192 149.5793);
+  --chart-4: oklch(0.5544 0.0407 257.4166);
+  --chart-5: oklch(0.7107 0.0351 256.7878);
+  --sidebar-bg: oklch(1 0 0);
+  --app-font-sans: 'Inter', system-ui, sans-serif;
+}
+
+html[data-theme='light-green'].dark {
+  --app-bg: oklch(0.1288 0.0406 264.6952);
+  --text: oklch(0.9842 0.0034 247.8575);
+  --panel: oklch(0.2077 0.0398 265.7549);
+  --brand: oklch(0.8871 0.2122 128.5041);
+  --brand-foreground: oklch(0 0 0);
+  --panel-muted: oklch(0.2795 0.0368 260.031);
+  --muted: oklch(0.7107 0.0351 256.7878);
+  --border: oklch(0.2795 0.0368 260.031);
+  --input-bg: oklch(0.2795 0.0368 260.031);
+  --focus-ring: oklch(0.8871 0.2122 128.5041);
+  --chart-1: oklch(0.8871 0.2122 128.5041);
+  --chart-2: oklch(0.6231 0.188 259.8145);
+  --chart-3: oklch(0.7227 0.192 149.5793);
+  --chart-4: oklch(0.6268 0.2325 303.9004);
+  --chart-5: oklch(0.7686 0.1647 70.0804);
+  --sidebar-bg: oklch(0.1288 0.0406 264.6952);
+  --app-font-sans: 'Inter', system-ui, sans-serif;
+}

@@ -1,0 +1,15 @@
+{
+  "name": "Remote Patient Monitoring",
+  "short_name": "RPM",
+  "description": "Connected care workspace for patients, devices, and readings.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f8fb",
+  "theme_color": "#85d7b5",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
