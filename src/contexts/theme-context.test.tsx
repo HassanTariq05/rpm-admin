@@ -31,13 +31,13 @@ afterEach(() => {
 })
 
 describe('color themes', () => {
-  it('uses the existing appearance by default', () => {
+  it('uses Indigo by default', () => {
     render(
       <ThemeProvider>
         <Controls />
       </ThemeProvider>,
     )
-    expect(document.documentElement.dataset.theme).toBe('default')
+    expect(document.documentElement.dataset.theme).toBe('discord')
     expect(document.documentElement).not.toHaveClass('dark')
   })
 
@@ -62,7 +62,7 @@ describe('color themes', () => {
         <Controls />
       </ThemeProvider>,
     )
-    fireEvent.click(screen.getByText('Indigo'))
+    fireEvent.click(screen.getByText('Mint'))
     fireEvent.click(screen.getByText('Toggle mode'))
     view.unmount()
     render(
@@ -70,18 +70,18 @@ describe('color themes', () => {
         <Controls />
       </ThemeProvider>,
     )
-    expect(screen.getByLabelText('Selected palette')).toHaveTextContent('discord')
-    expect(document.documentElement.dataset.theme).toBe('discord')
+    expect(screen.getByLabelText('Selected palette')).toHaveTextContent('supabase')
+    expect(document.documentElement.dataset.theme).toBe('supabase')
     expect(document.documentElement).toHaveClass('dark')
   })
 
-  it('falls back to Default for an unknown saved palette', () => {
+  it('falls back to Indigo for an unknown saved palette', () => {
     localStorage.setItem('rpm-theme-preset', 'unknown-theme')
     render(
       <ThemeProvider>
         <Controls />
       </ThemeProvider>,
     )
-    expect(document.documentElement.dataset.theme).toBe('default')
+    expect(document.documentElement.dataset.theme).toBe('discord')
   })
 })

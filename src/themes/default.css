@@ -1,0 +1,44 @@
+/* Default: ink surfaces with a cool indigo accent. */
+html[data-theme='default'] {
+  --app-bg: #f4f6fc;
+  --panel: #ffffff;
+  --panel-muted: #edf0fa;
+  --text: #11182e;
+  --muted: #596582;
+  --text-inverse: #ffffff;
+  --brand: #4f46e5;
+  --brand-foreground: #ffffff;
+  --border: #dce2f1;
+  --input-bg: #ffffff;
+  --focus-ring: #6366f1;
+  --sidebar-bg: #f8f9fe;
+  --auth-bg: #0b1023;
+  --auth-text: #f1f4ff;
+  --auth-muted: #acb7d3;
+  --auth-accent: #a5b4fc;
+  --chart-1: #6366f1;
+  --chart-2: #818cf8;
+  --chart-3: #38bdf8;
+  --chart-4: #a78bfa;
+  --chart-5: #34d399;
+}
+
+html[data-theme='default'].dark {
+  --app-bg: #060914;
+  --panel: #0d1222;
+  --panel-muted: #151d33;
+  --text: #f0f3ff;
+  --muted: #a4b0ce;
+  --text-inverse: #080c19;
+  --brand: #818cf8;
+  --brand-foreground: #090d1c;
+  --border: #25304a;
+  --input-bg: #0a1020;
+  --focus-ring: #a5b4fc;
+  --sidebar-bg: #090d1a;
+  --auth-bg: #060914;
+  --auth-text: #f0f3ff;
+  --auth-muted: #a4b0ce;
+  --auth-accent: #a5b4fc;
+  --shadow-color: rgb(0 0 0 / 40%);
+}

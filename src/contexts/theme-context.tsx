@@ -48,9 +48,9 @@ function getInitialTheme(): Theme {
 function getInitialPreset(): ThemePreset {
   try {
     const savedPreset = window.localStorage.getItem(PRESET_STORAGE_KEY)
-    return isThemePreset(savedPreset) ? savedPreset : 'default'
+    return isThemePreset(savedPreset) ? savedPreset : 'discord'
   } catch {
-    return 'default'
+    return 'discord'
   }
 }
 

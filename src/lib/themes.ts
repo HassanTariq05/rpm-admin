@@ -1,5 +1,5 @@
 export const themePresets = [
-  { id: 'default', label: 'Default', color: '#737373' },
+  { id: 'default', label: 'Default', color: '#0d1222' },
   { id: 'claude', label: 'Terracotta', color: 'oklch(0.6171 0.1375 39.0427)' },
   { id: 'discord', label: 'Indigo', color: 'oklch(0.5772 0.2129 274)' },
   { id: 'supabase', label: 'Mint', color: 'oklch(0.8348 0.1302 160.908)' },

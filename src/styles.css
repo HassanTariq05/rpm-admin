@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import '@heroui/styles';
+@import './themes/default.css';
 @import './themes/claude.css';
 @import './themes/discord.css';
 @import './themes/supabase.css';
@@ -393,8 +394,8 @@ button {
   }
 }
 
-/* Adapt named palettes to HeroUI controls without changing the Default palette. */
-html[data-theme]:not([data-theme='default']) {
+/* Keep every palette, including Default, consistent across HeroUI controls. */
+html[data-theme] {
   --brand-hover: color-mix(in oklch, var(--brand) 86%, var(--text));
   --accent: var(--brand);
   --accent-hover: var(--brand-hover);
@@ -421,10 +422,10 @@ html[data-theme]:not([data-theme='default']) {
   font-family: var(--app-font-sans, Inter, ui-sans-serif, system-ui, sans-serif);
 }
 
-html[data-theme]:not([data-theme='default']) body {
+html[data-theme] body {
   font-family: inherit;
 }
 
-html[data-theme]:not([data-theme='default']) .app-sidebar {
+html[data-theme] .app-sidebar {
   background: var(--sidebar-bg, var(--panel));
 }
