@@ -44,7 +44,7 @@ export const Login = () => {
 
   return (
     <main className="min-h-screen bg-background text-foreground transition-colors lg:grid lg:grid-cols-2">
-      <section className="relative hidden min-h-screen flex-col justify-between overflow-hidden login-hero lg:flex lg:px-10 lg:py-6 xl:px-16 xl:py-8 gap-2">
+      <section className="relative hidden min-h-screen flex-col overflow-hidden login-hero lg:flex lg:px-10 lg:py-6 xl:px-16 xl:py-8 gap-2">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -right-28 -top-28 h-96 w-96 rounded-full login-orbit border"
@@ -53,7 +53,7 @@ export const Login = () => {
           aria-hidden="true"
           className="pointer-events-none absolute -bottom-28 -left-20 h-80 w-80 rounded-full login-glow blur-3xl"
         />
-        <Link to="/" className="relative z-10 flex items-center gap-3">
+        <Link to="/" className="relative z-10 flex shrink-0 items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--control-accent)] text-[var(--control-on-accent)]">
             <HeartPulse size={25} strokeWidth={2.2} />
           </div>
@@ -63,7 +63,7 @@ export const Login = () => {
           </div>
         </Link>
 
-        <div className="relative z-10 my-8 max-w-xl">
+        <div className="login-hero-copy relative z-10 my-auto max-w-xl py-8">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-sm text-[var(--control-accent)]">
             <Activity size={15} />
             Connected care, made simple

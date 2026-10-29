@@ -54,6 +54,16 @@ function valueOf(reading: DeviceReading, field: string) {
   )
   return entry ? numeric(entry.Value) : null
 }
+// Units for Pylo Values are defined by the provider's webhook contract:
+// https://docs.pylo.com/ (blood pressure, glucose, weight, and pulse-ox webhooks).
+function hasPyloValue(reading: DeviceReading, field: string) {
+  return (
+    reading.source === 'pylo' &&
+    reading.payload[field] == null &&
+    Array.isArray(reading.payload.Values) &&
+    valueOf(reading, field) != null
+  )
+}
 export function irregularFlag(reading: DeviceReading): boolean | null {
   const direct = reading.payload.irregular
   if (typeof direct === 'boolean') return direct
@@ -70,43 +80,59 @@ export interface ReadingMeasurement {
 }
 export function measurement(reading: DeviceReading): ReadingMeasurement {
   const pulse = valueOf(reading, 'pulse_bpm') ?? valueOf(reading, 'pulse')
+  const pulseUnit =
+    reading.payload.pulse_bpm != null
+      ? 'bpm'
+      : (displayText(reading.payload.pulse_unit) ?? (hasPyloValue(reading, 'pulse') ? 'bpm' : null))
   const pulseText =
-    pulse == null
-      ? null
-      : `Pulse ${formatted(pulse)}${reading.payload.pulse_bpm != null ? ' bpm' : ''}`
+    pulse == null ? null : `Pulse ${formatted(pulse)}${pulseUnit ? ` ${pulseUnit}` : ''}`
   switch (reading.readingType) {
     case 'blood_pressure':
       return {
         value: `${formatted(valueOf(reading, 'systolic_mmhg') ?? valueOf(reading, 'systolic'))} / ${formatted(valueOf(reading, 'diastolic_mmhg') ?? valueOf(reading, 'diastolic'))}`,
-        unit: reading.payload.systolic_mmhg != null ? 'mmHg' : null,
+        unit:
+          reading.payload.systolic_mmhg != null || reading.payload.diastolic_mmhg != null
+            ? 'mmHg'
+            : (displayText(reading.payload.blood_pressure_unit) ??
+              displayText(reading.payload.unit) ??
+              (hasPyloValue(reading, 'systolic') || hasPyloValue(reading, 'diastolic')
+                ? 'mmHg'
+                : null)),
         secondary: pulseText,
         tone: 'violet',
       }
     case 'pulse_ox':
       return {
         value: formatted(valueOf(reading, 'spo2')),
-        unit: reading.payload.spo2 != null ? '% SpO₂' : null,
+        unit: reading.payload.spo2 != null || hasPyloValue(reading, 'spo2') ? '% SpO₂' : null,
         secondary: pulseText,
         tone: 'teal',
       }
     case 'blood_glucose':
       return {
         value: formatted(valueOf(reading, 'glucose')),
-        unit: displayText(reading.payload.glucose_unit ?? reading.payload.unit),
+        unit:
+          displayText(reading.payload.glucose_unit) ??
+          displayText(reading.payload.unit) ??
+          (hasPyloValue(reading, 'glucose') ? 'mg/dL' : null),
         secondary: null,
         tone: 'amber',
       }
     case 'weight': {
       const kg = valueOf(reading, 'weight_kg')
       const lbs = valueOf(reading, 'weight_lbs')
+      const weight = valueOf(reading, 'weight')
+      const pyloUnit = hasPyloValue(reading, 'weight') ? 'lb' : null
       return {
-        value: formatted(kg ?? lbs ?? valueOf(reading, 'weight')),
+        value: formatted(kg ?? lbs ?? weight),
         unit:
           kg != null
             ? 'kg'
             : lbs != null
               ? 'lb'
-              : displayText(reading.payload.weight_unit ?? reading.payload.unit),
+              : (displayText(reading.payload.weight_unit) ??
+                displayText(reading.payload.unit) ??
+                pyloUnit),
         secondary: kg != null && lbs != null ? `${formatted(lbs)} lb` : null,
         tone: 'blue',
       }

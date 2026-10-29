@@ -12,8 +12,8 @@ describe('device reading normalization', () => {
   it('reads Pylo values by type rather than array position', () => {
     expect(measurement(sampleReadings[0]!)).toMatchObject({
       value: '124 / 86',
-      secondary: 'Pulse 99',
-      unit: null,
+      secondary: 'Pulse 99 bpm',
+      unit: 'mmHg',
     })
     expect(irregularFlag(sampleReadings[0]!)).toBe(false)
   })
@@ -30,14 +30,69 @@ describe('device reading normalization', () => {
       secondary: 'Pulse 69 bpm',
     })
   })
-  it('does not invent units for glucose or unqualified scale values', () => {
-    expect(measurement(sampleReadings[3]!)).toMatchObject({ value: '148', unit: null })
-    expect(measurement(sampleReadings[4]!)).toMatchObject({ value: '171.5', unit: null })
+  it('uses documented Pylo weight units while keeping explicit Smart Meter units', () => {
+    expect(measurement(sampleReadings[3]!)).toMatchObject({ value: '148', unit: 'mg/dL' })
+    expect(measurement(sampleReadings[4]!)).toMatchObject({ value: '171.5', unit: 'lb' })
     expect(measurement(sampleReadings[5]!)).toMatchObject({
       value: '78.97',
       unit: 'kg',
       secondary: '174.1 lb',
     })
+  })
+  it('only defaults weight to pounds for Pylo Values and respects explicit units', () => {
+    const weight = sampleReadings[4]!
+    expect(measurement({ ...weight, deviceModel: 'PY-200-LTE' })).toMatchObject({
+      value: '171.5',
+      unit: 'lb',
+    })
+    expect(measurement({ ...weight, payload: { ...weight.payload, weight_unit: 'kg' } }).unit).toBe(
+      'kg',
+    )
+    expect(
+      measurement({ ...weight, payload: { ...weight.payload, weight_unit: '', unit: 'kg' } }).unit,
+    ).toBe('kg')
+    expect(measurement({ ...weight, source: 'smart_meter' }).unit).toBeNull()
+    expect(measurement({ ...weight, payload: { weight: 171.5027 } }).unit).toBeNull()
+    expect(measurement({ ...weight, payload: {} }).unit).toBeNull()
+    expect(
+      measurement({ ...weight, payload: { Values: [{ Type: 'weight', Value: 0 }] } }),
+    ).toMatchObject({ value: '0', unit: 'lb' })
+  })
+  it('uses documented Pylo glucose and blood pressure units without guessing for other providers', () => {
+    const glucose = sampleReadings[3]!
+    const pressure = sampleReadings[0]!
+    expect(measurement({ ...glucose, source: 'smart_meter' }).unit).toBeNull()
+    expect(measurement({ ...pressure, source: 'smart_meter' }).unit).toBeNull()
+    expect(
+      measurement({ ...glucose, payload: { ...glucose.payload, glucose_unit: 'mmol/L' } }).unit,
+    ).toBe('mmol/L')
+    expect(
+      measurement({ ...glucose, payload: { ...glucose.payload, glucose_unit: '', unit: 'mmol/L' } })
+        .unit,
+    ).toBe('mmol/L')
+    expect(measurement({ ...pressure, payload: { ...pressure.payload, unit: 'kPa' } }).unit).toBe(
+      'kPa',
+    )
+    expect(measurement({ ...glucose, payload: {} }).unit).toBeNull()
+    expect(measurement({ ...pressure, payload: {} }).unit).toBeNull()
+    expect(
+      measurement({ ...glucose, payload: { Values: [{ Type: 'glucose', Value: 0 }] } }),
+    ).toMatchObject({ value: '0', unit: 'mg/dL' })
+    expect(measurement({ ...glucose, payload: { glucose: 148 } }).unit).toBeNull()
+  })
+  it('recognizes Pylo pulse-ox and pulse units from the same Values contract', () => {
+    expect(
+      measurement({
+        ...sampleReadings[2]!,
+        source: 'pylo',
+        payload: {
+          Values: [
+            { Type: 'spo2', Value: 97 },
+            { Type: 'pulse', Value: 69 },
+          ],
+        },
+      }),
+    ).toMatchObject({ value: '97', unit: '% SpO₂', secondary: 'Pulse 69 bpm' })
   })
   it('keeps zero readings and tolerates missing and unknown values', () => {
     expect(
