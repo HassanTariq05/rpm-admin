@@ -33,16 +33,6 @@ export const permissionsData: PermissionData = [
     ],
   },
   {
-    id: 6,
-    name: 'Care plans',
-    actions: [
-      { label: 'Read', value: PERMISSIONS.READ_CARE_PLAN },
-      { label: 'Create', value: PERMISSIONS.CREATE_CARE_PLAN },
-      { label: 'Update', value: PERMISSIONS.UPDATE_CARE_PLAN },
-      { label: 'Delete', value: PERMISSIONS.DELETE_CARE_PLAN },
-    ],
-  },
-  {
     id: 7,
     name: 'Reports',
     actions: [

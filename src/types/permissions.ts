@@ -15,11 +15,6 @@ export const PERMISSIONS = {
   CREATE_READING: 'readings.create',
   UPDATE_READING: 'readings.update',
   DELETE_READING: 'readings.delete',
-  // Care plans
-  READ_CARE_PLAN: 'careplans.read',
-  CREATE_CARE_PLAN: 'careplans.create',
-  UPDATE_CARE_PLAN: 'careplans.update',
-  DELETE_CARE_PLAN: 'careplans.delete',
   // Reports
   READ_REPORT: 'reports.read',
   CREATE_REPORT: 'reports.create',

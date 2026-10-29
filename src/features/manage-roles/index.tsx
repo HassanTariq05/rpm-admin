@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   ChartColumn,
   ChevronDown,
-  ClipboardList,
   Cpu,
   HeartPulse,
   LockKeyhole,
@@ -149,8 +148,7 @@ function PermissionEditor({
       </div>
       <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {permissionsData.map((group, index) => {
-          const GroupIcon =
-            [UsersRound, Cpu, HeartPulse, ClipboardList, ChartColumn][index] ?? ShieldCheck
+          const GroupIcon = [UsersRound, Cpu, HeartPulse, ChartColumn][index] ?? ShieldCheck
           const tone = ['violet', 'blue', 'teal', 'amber'][index % 4]
           const values = group.actions.map((action) => action.value)
           const count = values.filter((value) => selected.has(value)).length
