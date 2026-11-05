@@ -1,9 +1,10 @@
+import { dateFormatter, numberFormatter, translate as t } from '@/i18n'
 import axios from 'axios'
 import type { DeviceReading } from '@/services/reading-services/reading-services'
 import { ReadingsResponseError } from '@/services/reading-services/reading-services'
 
 export const viewerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
-export const timeFormat = new Intl.DateTimeFormat(undefined, {
+export const timeFormat = dateFormatter({
   hour: 'numeric',
   minute: '2-digit',
   hour12: true,
@@ -71,7 +72,7 @@ export function irregularFlag(reading: DeviceReading): boolean | null {
   const value = valueOf(reading, 'irregular')
   return value === 1 ? true : value === 0 ? false : null
 }
-const numberFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 })
+const numberFormat = numberFormatter({ maximumFractionDigits: 2 })
 const formatted = (value: number | null) => (value == null ? '—' : numberFormat.format(value))
 export interface ReadingMeasurement {
   value: string
@@ -86,7 +87,9 @@ export function measurement(reading: DeviceReading): ReadingMeasurement {
       ? 'bpm'
       : (displayText(reading.payload.pulse_unit) ?? (hasPyloValue(reading, 'pulse') ? 'bpm' : null))
   const pulseText =
-    pulse == null ? null : `Pulse ${formatted(pulse)}${pulseUnit ? ` ${pulseUnit}` : ''}`
+    pulse == null
+      ? null
+      : t('Pulse {{value}}', { value: `${formatted(pulse)}${pulseUnit ? ` ${pulseUnit}` : ''}` })
   switch (reading.readingType) {
     case 'thermometer': {
       const fahrenheit = valueOf(reading, 'temperature_f')

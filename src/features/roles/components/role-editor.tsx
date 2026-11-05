@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { Building2, FileText, ShieldCheck } from 'lucide-react'
 import { Form, Formik } from 'formik'
 import {
@@ -22,6 +23,8 @@ export function RoleEditor({
   organizations: Organization[]
   onClose: () => void
 }) {
+  useAppTranslation()
+
   const scope = useAdminScope()
   const create = useCreateRole()
   const update = useUpdateRole()
@@ -61,29 +64,29 @@ export function RoleEditor({
           className="sm:w-full sm:max-w-5xl sm:p-6"
           dialogClassName="admin-editor-modal max-w-4xl"
           headerIcon={<ShieldCheck size={25} strokeWidth={1.8} />}
-          title={record ? 'Edit role' : 'Add role'}
-          description="Define a role, then choose its permissions in Manage roles."
+          title={record ? t('Edit role') : t('Add role')}
+          description={t('Define a role, then choose its permissions in Manage roles.')}
           pending={pending || isSubmitting}
           onClose={onClose}
           footer={
             <SubmitButton form="role-form" pending={pending || isSubmitting}>
               <ShieldCheck size={16} aria-hidden="true" />
-              {record ? 'Save changes' : 'Create role'}
+              {record ? t('Save changes') : t('Create role')}
             </SubmitButton>
           }
         >
           <Form id="role-form" className="grid items-start gap-x-6 gap-y-4 md:grid-cols-2">
             <FormTextField
               name="name"
-              label="Role name"
-              placeholder="Enter role name"
+              label={t('Role name')}
+              placeholder={t('Enter role name')}
               icon={<ShieldCheck size={17} className="admin-icon-violet" />}
             />
             {scope.isSuperAdmin && (
               <FormChoiceField
                 name="organizationId"
-                label="Organization"
-                placeholder="Choose an organization"
+                label={t('Organization')}
+                placeholder={t('Choose an organization')}
                 icon={<Building2 size={17} className="admin-icon-amber" />}
                 options={organizations.map((organization) => ({
                   id: organization.id,
@@ -94,15 +97,15 @@ export function RoleEditor({
             <div className="md:col-span-2">
               <FormTextField
                 name="description"
-                label="Description"
-                placeholder="Describe this role and its responsibilities"
+                label={t('Description')}
+                placeholder={t('Describe this role and its responsibilities')}
                 multiline
                 icon={<FileText size={17} className="admin-icon-blue" />}
               />
             </div>
             {status && (
               <p role="alert" className="text-sm text-danger md:col-span-2">
-                {status}
+                {t(status)}
               </p>
             )}
           </Form>

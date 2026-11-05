@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { Button } from '@heroui/react/button'
 import { Input } from '@heroui/react/input'
 import { TextField } from '@heroui/react/textfield'
@@ -25,6 +26,8 @@ const LoginSchema = Yup.object({
 })
 
 export const Login = () => {
+  useAppTranslation()
+
   const router = useRouter()
 
   const loginMutation = useAuthLogin()
@@ -58,26 +61,27 @@ export const Login = () => {
             <HeartPulse size={25} strokeWidth={2.2} />
           </div>
           <div>
-            <p className="text-lg font-bold tracking-tight">Remote Patient Monitoring</p>
-            <p className="text-xs text-[var(--login-muted)]">Connected care workspace</p>
+            <p className="text-lg font-bold tracking-tight">{t('Remote Patient Monitoring')}</p>
+            <p className="text-xs text-[var(--login-muted)]">{t('Connected care workspace')}</p>
           </div>
         </Link>
 
         <div className="login-hero-copy relative z-10 my-auto max-w-xl py-8">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-sm text-[var(--control-accent)]">
             <Activity size={15} />
-            Connected care, made simple
+            {t(' Connected care, made simple ')}
           </div>
 
           <h1 className="text-4xl font-semibold leading-tight tracking-tight xl:text-5xl">
-            Better visibility.
+            {t(' Better visibility. ')}
             <br />
-            <span className="text-[var(--control-accent)]">Better patient care.</span>
+            <span className="text-[var(--control-accent)]">{t('Better patient care.')}</span>
           </h1>
 
           <p className="mt-6 max-w-md text-base leading-7 text-[var(--login-muted)]">
-            Monitor patient health, track vital signs, and help your care team make informed
-            decisions from one central workspace.
+            {t(
+              ' Monitor patient health, track vital signs, and help your care team make informed decisions from one central workspace. ',
+            )}
           </p>
 
           <div className="mt-12 rounded-2xl border border-border bg-surface/60 p-5 backdrop-blur-sm">
@@ -86,9 +90,9 @@ export const Login = () => {
                 <Stethoscope size={23} />
               </div>
               <div>
-                <p className="font-medium">Care teams, connected</p>
+                <p className="font-medium">{t('Care teams, connected')}</p>
                 <p className="mt-1 text-sm text-[var(--login-muted)]">
-                  Patient insights in one organized workspace
+                  {t(' Patient insights in one organized workspace ')}
                 </p>
               </div>
               <ShieldCheck className="ml-auto shrink-0 text-[var(--control-accent)]" size={22} />
@@ -104,20 +108,22 @@ export const Login = () => {
               <HeartPulse size={23} />
             </div>
             <div>
-              <p className="font-bold text-foreground">Remote Patient Monitoring</p>
-              <p className="text-xs text-[var(--control-placeholder)]">Connected care workspace</p>
+              <p className="font-bold text-foreground">{t('Remote Patient Monitoring')}</p>
+              <p className="text-xs text-[var(--control-placeholder)]">
+                {t('Connected care workspace')}
+              </p>
             </div>
           </Link>
 
           <div className="mb-6">
             <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--control-accent)]">
-              Welcome back
+              {t(' Welcome back ')}
             </p>
             <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-              Sign in to your account
+              {t(' Sign in to your account ')}
             </h2>
             <p className="mt-3 text-sm leading-6 text-[var(--control-placeholder)]">
-              Enter your credentials to access your healthcare dashboard.
+              {t(' Enter your credentials to access your healthcare dashboard. ')}
             </p>
           </div>
 
@@ -145,10 +151,16 @@ export const Login = () => {
                   isInvalid={Boolean(touched.email && errors.email)}
                   isRequired
                 >
-                  <Label className="mb-2 block text-sm font-medium text-foreground">Email</Label>
-                  <Input placeholder="you@clinic.com" autoComplete="email" className="w-full" />
+                  <Label className="mb-2 block text-sm font-medium text-foreground">
+                    {t('Email')}
+                  </Label>
+                  <Input
+                    placeholder={t('you@clinic.com')}
+                    autoComplete="email"
+                    className="w-full"
+                  />
                   {touched.email && errors.email && (
-                    <p className="mt-1 text-sm text-danger">{errors.email}</p>
+                    <p className="mt-1 text-sm text-danger">{t(errors.email)}</p>
                   )}
                 </TextField>
 
@@ -162,15 +174,15 @@ export const Login = () => {
                   isRequired
                 >
                   <div className="mb-2 flex items-center justify-between gap-3">
-                    <Label className="text-sm font-medium text-foreground">Password</Label>
+                    <Label className="text-sm font-medium text-foreground">{t('Password')}</Label>
                   </div>
                   <Input
-                    placeholder="Enter your password"
+                    placeholder={t('Enter your password')}
                     autoComplete="current-password"
                     className="w-full"
                   />
                   {touched.password && errors.password && (
-                    <p className="mt-1 text-sm text-danger">{errors.password}</p>
+                    <p className="mt-1 text-sm text-danger">{t(errors.password)}</p>
                   )}
                 </TextField>
 
@@ -186,7 +198,7 @@ export const Login = () => {
                   ) : (
                     <ArrowRight size={17} aria-hidden="true" />
                   )}
-                  {loginMutation.isPending ? 'Signing in...' : 'Sign in'}
+                  {loginMutation.isPending ? t('Signing in...') : t('Sign in')}
                 </Button>
               </form>
             )}

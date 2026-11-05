@@ -72,9 +72,10 @@ it('uses the current bearer token and an encoded ticket, ignoring unrelated or m
   renderHook(useReadingsRealtime, { wrapper })
   await flush()
   expect(axios.post).toHaveBeenCalledWith(
-    env.realtimeTicketUrl,
+    '/auth/realtime-ticket',
     undefined,
     expect.objectContaining({
+      baseURL: env.apiBaseUrl,
       headers: { Authorization: 'Bearer synthetic-session-token' },
       timeout: 20_000,
       withCredentials: false,
@@ -211,7 +212,7 @@ it('replaces the connection when the session changes and does not reconnect on p
   await flush()
   expect(TestSocket.instances[0]!.close).toHaveBeenCalled()
   expect(axios.post).toHaveBeenLastCalledWith(
-    env.realtimeTicketUrl,
+    '/auth/realtime-ticket',
     undefined,
     expect.objectContaining({
       headers: { Authorization: 'Bearer replacement-token' },

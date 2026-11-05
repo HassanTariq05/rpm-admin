@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { useState } from 'react'
 import { Button } from '@heroui/react'
 import {
@@ -67,7 +68,7 @@ const columns: EntityColumn<User>[] = [
       organizationId(row) ? (
         <span className="admin-organization">
           <Building2 size={13} aria-hidden="true" />
-          {organizationName(row)}
+          {t(organizationName(row))}
         </span>
       ) : (
         <span className="text-muted">—</span>
@@ -95,6 +96,8 @@ const columns: EntityColumn<User>[] = [
   },
 ]
 export function UsersPage() {
+  useAppTranslation()
+
   const query = useUsers()
   const organizations = useOrganizations()
   const scope = useAdminScope()
@@ -103,19 +106,19 @@ export function UsersPage() {
   return (
     <div className="admin-page">
       <AdminPageHeader
-        title="Users"
+        title={t('Users')}
         icon={UsersRound}
-        description="Manage your people, connect teams, and keep account access in check."
+        description={t('Manage your people, connect teams, and keep account access in check.')}
         actions={
           <Button variant="primary" onPress={() => setEditor({})} isDisabled={!canCreate}>
             <Plus size={16} />
-            Add user
+            {t(' Add user ')}
           </Button>
         }
       />
       <AdminDirectory
-        title="User directory"
-        description="Use Edit to manage account details"
+        title={t('User directory')}
+        description={t('Use Edit to manage account details')}
         icon={UserRound}
       >
         <RequestState
@@ -124,7 +127,7 @@ export function UsersPage() {
           retry={() => void query.refetch()}
         >
           <EntityTable
-            label="users"
+            label={t('users')}
             data={query.data ?? []}
             columns={columns}
             filter={{
@@ -140,12 +143,12 @@ export function UsersPage() {
                 size="sm"
                 variant="ghost"
                 className="admin-edit-button"
-                aria-label={`Edit ${record.name}`}
+                aria-label={t('Edit {{value0}}', { value0: record.name })}
                 isDisabled={!organizations.isSuccess}
                 onPress={() => setEditor({ record })}
               >
                 <Pencil size={14} />
-                Edit
+                {t(' Edit ')}
               </Button>
             )}
           />
@@ -153,9 +156,9 @@ export function UsersPage() {
       </AdminDirectory>
       {organizations.isError && (
         <p role="alert" className="mt-3 text-xs text-danger">
-          Organization choices could not be loaded.{' '}
+          {t(' Organization choices could not be loaded.')}{' '}
           <button className="underline" onClick={() => void organizations.refetch()}>
-            Try again
+            {t(' Try again ')}
           </button>
         </p>
       )}

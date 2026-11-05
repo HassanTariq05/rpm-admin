@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { Button, Dropdown } from '@heroui/react'
@@ -34,7 +35,7 @@ const columns: EntityColumn<Role>[] = [
       <div className="flex items-center gap-2">
         <AdminRecordName id={row.id} name={row.name} />
         {isReservedRole(row.name) && (
-          <LockKeyhole size={13} className="text-muted" aria-label="Reserved role" />
+          <LockKeyhole size={13} className="text-muted" aria-label={t('Reserved role')} />
         )}
       </div>
     ),
@@ -47,7 +48,7 @@ const columns: EntityColumn<Role>[] = [
     render: (row) => (
       <span className="admin-organization">
         <Building2 size={13} aria-hidden="true" />
-        {organizationName(row)}
+        {t(organizationName(row))}
       </span>
     ),
   },
@@ -58,7 +59,7 @@ const columns: EntityColumn<Role>[] = [
     render: (row) => (
       <span className="admin-role">
         <ShieldCheck size={13} aria-hidden="true" />
-        {row.permissions ? `${row.permissions.length} permissions` : '—'}
+        {row.permissions ? t('{{value0}} permissions', { value0: row.permissions.length }) : '—'}
       </span>
     ),
   },
@@ -76,6 +77,8 @@ const columns: EntityColumn<Role>[] = [
   },
 ]
 export function RolesPage() {
+  useAppTranslation()
+
   const navigate = useNavigate()
   const query = useRoles()
   const organizations = useOrganizations()
@@ -87,8 +90,8 @@ export function RolesPage() {
     <div className="admin-page">
       <AdminPageHeader
         icon={ShieldCheck}
-        title="Roles"
-        description="Define organization roles and control what each role can access."
+        title={t('Roles')}
+        description={t('Define organization roles and control what each role can access.')}
         actions={
           <>
             <Link
@@ -96,18 +99,18 @@ export function RolesPage() {
               className="inline-flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-xs font-semibold"
             >
               <Settings2 size={14} />
-              Manage permissions
+              {t(' Manage permissions ')}
             </Link>
             <Button isDisabled={!organizations.isSuccess} onPress={() => setEditor({})}>
               <Plus size={16} />
-              Add role
+              {t(' Add role ')}
             </Button>
           </>
         }
       />
       <AdminDirectory
-        title="Role directory"
-        description="Manage roles and their permissions"
+        title={t('Role directory')}
+        description={t('Manage roles and their permissions')}
         icon={ShieldCheck}
       >
         <RequestState
@@ -116,7 +119,7 @@ export function RolesPage() {
           retry={() => void query.refetch()}
         >
           <EntityTable
-            label="roles"
+            label={t('roles')}
             data={query.data ?? []}
             columns={columns}
             actions={(record) => {
@@ -124,13 +127,13 @@ export function RolesPage() {
               return (
                 <Dropdown>
                   <Dropdown.Trigger
-                    aria-label={`Actions for ${record.name}`}
+                    aria-label={t('Actions for {{value0}}', { value0: record.name })}
                     className="rounded-lg p-2 hover:bg-surface-muted"
                   >
                     <MoreHorizontal size={16} />
                   </Dropdown.Trigger>
                   <Dropdown.Popover>
-                    <Dropdown.Menu aria-label="Role actions">
+                    <Dropdown.Menu aria-label={t('Role actions')}>
                       <Dropdown.Item
                         id="manage"
                         onAction={() =>
@@ -141,7 +144,7 @@ export function RolesPage() {
                         }
                       >
                         <Settings2 size={14} />
-                        Manage permissions
+                        {t(' Manage permissions ')}
                       </Dropdown.Item>
                       <Dropdown.Item
                         id="edit"
@@ -149,7 +152,7 @@ export function RolesPage() {
                         onAction={() => setEditor({ record })}
                       >
                         <Pencil size={14} />
-                        Edit
+                        {t(' Edit ')}
                       </Dropdown.Item>
                       <Dropdown.Item
                         id="delete"
@@ -161,7 +164,7 @@ export function RolesPage() {
                         }}
                       >
                         <Trash2 size={14} />
-                        Delete
+                        {t(' Delete ')}
                       </Dropdown.Item>
                     </Dropdown.Menu>
                   </Dropdown.Popover>
@@ -173,9 +176,9 @@ export function RolesPage() {
       </AdminDirectory>
       {organizations.isError && (
         <p role="alert" className="mt-3 text-xs text-danger">
-          Organization choices could not be loaded.{' '}
+          {t(' Organization choices could not be loaded.')}{' '}
           <button className="underline" onClick={() => void organizations.refetch()}>
-            Try again
+            {t(' Try again ')}
           </button>
         </p>
       )}

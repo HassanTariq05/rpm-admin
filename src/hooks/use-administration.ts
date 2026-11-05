@@ -1,3 +1,4 @@
+import { translate as t } from '@/i18n'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
@@ -17,14 +18,15 @@ export function useAdminMutation<TData, TVariables>(
   mutationFn: (variables: TVariables) => Promise<TData>,
   message: string,
   invalidate: string[],
+  errorMessage: (error: unknown) => string = apiErrorMessage,
 ) {
   const client = useQueryClient()
   return useMutation({
     mutationFn,
     onSuccess: async () => {
       await Promise.all(invalidate.map((key) => client.invalidateQueries({ queryKey: [key] })))
-      toast.success(message)
+      toast.success(t(message))
     },
-    onError: (error) => toast.error(apiErrorMessage(error)),
+    onError: (error) => toast.error(t(errorMessage(error))),
   })
 }

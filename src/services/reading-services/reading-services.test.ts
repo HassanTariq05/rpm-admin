@@ -13,7 +13,7 @@ function setup(data: unknown) {
       return { data, status: 200, statusText: 'OK', headers: {}, config }
     },
   })
-  return { requests, service: createReadingService(client, 'https://example.test/api/emr') }
+  return { requests, service: createReadingService(client, 'https://example.test/api') }
 }
 
 describe('readings service contract', () => {
@@ -32,8 +32,8 @@ describe('readings service contract', () => {
     expect(response.total).toBe(40)
     expect(response.readings).toHaveLength(6)
     expect(requests[0]).toMatchObject({
-      url: '/readings',
-      baseURL: 'https://example.test/api/emr',
+      url: '/emr/readings',
+      baseURL: 'https://example.test/api',
       withCredentials: false,
       params: { page: 2, pageSize: 25, source: 'pylo' },
       timeout: 20000,

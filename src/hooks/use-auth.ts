@@ -1,3 +1,4 @@
+import { translate as t } from '@/i18n'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthService } from '@/services/auth-services/auth-services'
 import { toast } from 'sonner'
@@ -18,11 +19,11 @@ export const useAuthLogin = () => {
     onSuccess: (response) => {
       auth.setUser(response.user)
       auth.setAccessToken(response.token)
-      toast.success(`Welcome back, ${response.user.name}!`)
+      toast.success(t('Welcome back, {{name}}!', { name: response.user.name }))
       queryClient.invalidateQueries({ queryKey: authQueryKeys.all })
     },
     onError: () => {
-      toast.error('Invalid email or password.')
+      toast.error(t('Invalid email or password.'))
     },
   })
 }

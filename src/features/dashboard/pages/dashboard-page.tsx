@@ -1,5 +1,6 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { useQuery } from '@tanstack/react-query'
-import { format } from 'date-fns'
+import { dateFormatter } from '@/i18n'
 import { Button } from '@heroui/react'
 import {
   Activity,
@@ -32,6 +33,8 @@ const queryKeys = {
 }
 
 export function DashboardPage() {
+  useAppTranslation()
+
   const { auth } = useAuthStore()
   const overviewQuery = useQuery({
     queryKey: queryKeys.overview,
@@ -51,9 +54,11 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader
-        eyebrow={`${format(new Date(), 'EEEE, MMMM d, yyyy')} · Clinical operations`}
-        title={`Good evening, ${auth?.user?.name || 'there'} 👋`}
-        description="Here’s what’s happening across your remote patient monitoring program."
+        eyebrow={t('{{value0}} · Clinical operations', {
+          value0: dateFormatter({ dateStyle: 'full' }).format(new Date()),
+        })}
+        title={t('Good evening, {{value0}} 👋', { value0: auth?.user?.name || 'there' })}
+        description={t('Here’s what’s happening across your remote patient monitoring program.')}
         actions={
           <>
             <Button
@@ -61,19 +66,21 @@ export function DashboardPage() {
               size="md"
               onPress={() =>
                 toast.info(
-                  'Report export is not connected. Connect your reporting API to enable downloads.',
+                  t(
+                    'Report export is not connected. Connect your reporting API to enable downloads.',
+                  ),
                 )
               }
             >
-              <Download size={16} /> Export
+              <Download size={16} /> {t(' Export ')}
             </Button>
             <Button
               size="md"
               onPress={() =>
-                toast.info('Patient enrollment form is a great next feature to wire up.')
+                toast.info(t('Patient enrollment form is a great next feature to wire up.'))
               }
             >
-              <Plus size={16} /> Add patient
+              <Plus size={16} /> {t(' Add patient ')}
             </Button>
           </>
         }
@@ -84,16 +91,18 @@ export function DashboardPage() {
           <HeartPulse size={21} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold">Your monitoring program is on track</p>
+          <p className="text-sm font-bold">{t('Your monitoring program is on track')}</p>
           <p className="muted mt-0.5 text-xs leading-5">
-            Patient engagement is up this week. Three urgent alerts may need clinician review.
+            {t(
+              ' Patient engagement is up this week. Three urgent alerts may need clinician review. ',
+            )}
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Active patients"
+          label={t('Active patients')}
           value={overview ? overview.activePatients : '—'}
           caption="Patients enrolled in RPM"
           icon={UsersRound}
@@ -101,7 +110,7 @@ export function DashboardPage() {
           trend={overview?.patientsTrend}
         />
         <StatCard
-          label="Connected devices"
+          label={t('Connected devices')}
           value={overview ? overview.connectedDevices : '—'}
           caption="Devices reporting in today"
           icon={MonitorSmartphone}
@@ -109,7 +118,7 @@ export function DashboardPage() {
           trend={overview?.devicesTrend}
         />
         <StatCard
-          label="Open alerts"
+          label={t('Open alerts')}
           value={overview ? overview.openAlerts : '—'}
           caption="Across all care teams"
           icon={ShieldAlert}
@@ -118,7 +127,7 @@ export function DashboardPage() {
           trendIsAlert
         />
         <StatCard
-          label="Reading adherence"
+          label={t('Reading adherence')}
           value={overview ? `${overview.adherence}%` : '—'}
           caption="7-day average completion"
           icon={Activity}
@@ -131,41 +140,46 @@ export function DashboardPage() {
         <section className="panel min-w-0 p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-base font-bold">Patient engagement</h2>
-              <p className="muted mt-1 text-xs">Daily completed readings · last 7 days</p>
+              <h2 className="text-base font-bold">{t('Patient engagement')}</h2>
+              <p className="muted mt-1 text-xs">{t('Daily completed readings · last 7 days')}</p>
             </div>
             <div className="flex items-center gap-3 text-[11px] font-medium muted">
               <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-teal-600" /> Engagement
+                <span className="h-2 w-2 rounded-full bg-teal-600" /> {t(' Engagement ')}
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-3 border-t border-dashed border-slate-400" /> Target
+                <span className="h-0.5 w-3 border-t border-dashed border-slate-400" />{' '}
+                {t(' Target ')}
               </span>
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl font-bold">86.1%</span>
-            <span className="text-xs font-semibold text-emerald-600">+4.8% vs last week</span>
+            <span className="text-xs font-semibold text-emerald-600">
+              {t('+4.8% vs last week')}
+            </span>
           </div>
           {engagementQuery.isPending ? (
             <div className="h-[250px] animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
           ) : engagementQuery.data ? (
             <EngagementChart data={engagementQuery.data} />
           ) : (
-            <p className="muted py-20 text-center text-sm">Engagement data is unavailable.</p>
+            <p className="muted py-20 text-center text-sm">
+              {t('Engagement data is unavailable.')}
+            </p>
           )}
           <div className="mt-2 flex items-center gap-2 border-t border-[var(--border)] pt-4 text-xs muted">
             <CheckCircle2 size={15} className="text-emerald-600" />{' '}
-            <span>Weekly target is 80% completion</span>
-            <span className="ml-auto font-bold text-emerald-600">Target met</span>
+            <span>{t('Weekly target is 80% completion')}</span>
+            <span className="ml-auto font-bold text-emerald-600">{t('Target met')}</span>
           </div>
         </section>
 
         <section className="panel min-w-0 p-5 sm:p-6">
           <div className="mb-4 flex items-start justify-between">
             <div>
-              <h2 className="text-base font-bold">Needs attention</h2>
-              <p className="muted mt-1 text-xs">Alerts that may require follow-up</p>
+              <h2 className="text-base font-bold">{t('Needs attention')}</h2>
+              <p className="muted mt-1 text-xs">{t('Alerts that may require follow-up')}</p>
             </div>
           </div>
           <div className="space-y-1">
@@ -194,14 +208,14 @@ export function DashboardPage() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-xs font-bold">{alert.kind}</p>
+                        <p className="truncate text-xs font-bold">{t(alert.kind)}</p>
                         <StatusBadge status={alert.severity} />
                       </div>
                       <p className="mt-1 truncate text-[11px] muted">
-                        {alert.patient} · {alert.detail}
+                        {alert.patient} · {t(alert.detail)}
                       </p>
                       <p className="mt-1 flex items-center gap-1 text-[10px] muted">
-                        <Clock3 size={11} /> {alert.time}
+                        <Clock3 size={11} /> {t(alert.time)}
                       </p>
                     </div>
                   </div>
@@ -214,23 +228,25 @@ export function DashboardPage() {
       <section className="panel mt-6 overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-5 sm:px-6">
           <div>
-            <h2 className="text-base font-bold">Recently monitored patients</h2>
-            <p className="muted mt-1 text-xs">Latest readings received by your care teams</p>
+            <h2 className="text-base font-bold">{t('Recently monitored patients')}</h2>
+            <p className="muted mt-1 text-xs">{t('Latest readings received by your care teams')}</p>
           </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              onPress={() => toast.info('Connect refresh to invalidate your live patient query.')}
+              onPress={() =>
+                toast.info(t('Connect refresh to invalidate your live patient query.'))
+              }
             >
-              <RefreshCw size={14} /> Refresh
+              <RefreshCw size={14} /> {t(' Refresh ')}
             </Button>
             <Button
               size="sm"
               variant="secondary"
-              onPress={() => toast.info('Patient roster export is not connected yet.')}
+              onPress={() => toast.info(t('Patient roster export is not connected yet.'))}
             >
-              Export list
+              {t(' Export list ')}
             </Button>
           </div>
         </div>
@@ -238,11 +254,11 @@ export function DashboardPage() {
           <table className="w-full min-w-[700px] text-left text-sm">
             <thead>
               <tr className="bg-slate-50/80 text-[10px] font-bold uppercase tracking-[.1em] text-slate-500 dark:bg-slate-900/40">
-                <th className="px-6 py-3">Patient</th>
-                <th className="px-4 py-3">Care program</th>
-                <th className="px-4 py-3">Latest reading</th>
-                <th className="px-4 py-3">Last sync</th>
-                <th className="px-4 py-3">Status</th>
+                <th className="px-6 py-3">{t('Patient')}</th>
+                <th className="px-4 py-3">{t('Care program')}</th>
+                <th className="px-4 py-3">{t('Latest reading')}</th>
+                <th className="px-4 py-3">{t('Last sync')}</th>
+                <th className="px-4 py-3">{t('Status')}</th>
                 <th className="px-5 py-3"></th>
               </tr>
             </thead>
@@ -260,16 +276,16 @@ export function DashboardPage() {
                       <span>
                         <span className="block text-xs font-bold">{patient.name}</span>
                         <span className="mt-0.5 block text-[10px] muted">
-                          {patient.id} · {patient.age} yrs
+                          {patient.id} · {t(patient.age)} {t(' yrs ')}
                         </span>
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-xs">{patient.condition}</td>
+                  <td className="px-4 py-4 text-xs">{t(patient.condition)}</td>
                   <td className="px-4 py-4 text-xs font-semibold tabular-nums">
-                    {patient.latestReading}
+                    {t(patient.latestReading)}
                   </td>
-                  <td className="px-4 py-4 text-xs muted">{patient.lastSync}</td>
+                  <td className="px-4 py-4 text-xs muted">{t(patient.lastSync)}</td>
                   <td className="px-4 py-4">
                     <StatusBadge status={patient.status} />
                   </td>
@@ -277,9 +293,13 @@ export function DashboardPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onPress={() => toast.info(`Connect ${patient.name}'s profile route.`)}
+                      onPress={() =>
+                        toast.info(
+                          t("Connect {{value0}}'s profile route.", { value0: patient.name }),
+                        )
+                      }
                     >
-                      View
+                      {t(' View ')}
                     </Button>
                   </td>
                 </tr>
@@ -297,22 +317,27 @@ export function DashboardPage() {
             </div>
           ) : null}
           <div className="flex items-center justify-between border-t border-[var(--border)] px-6 py-4 text-[11px] muted">
-            <span>Showing {patientsQuery.data?.length ?? 0} sample patients</span>
+            <span>
+              {t('Showing ')}
+              {patientsQuery.data?.length ?? 0} {t(' sample patients')}
+            </span>
             <Link
               to="/patients"
               className="flex items-center gap-1 font-bold text-teal-700 dark:text-teal-300"
             >
-              Go to patient directory <ArrowRight size={13} />
+              {t(' Go to patient directory ')}
+              <ArrowRight size={13} />
             </Link>
           </div>
         </div>
       </section>
       <div className="mt-5 flex flex-wrap gap-3 text-[11px] muted">
         <span className="flex items-center gap-1.5">
-          <CalendarDays size={13} /> Data snapshot: sample records
+          <CalendarDays size={13} /> {t(' Data snapshot: sample records ')}
         </span>
         <span className="flex items-center gap-1.5">
-          <CheckCircle2 size={13} className="text-emerald-600" /> UI is ready to connect to an API
+          <CheckCircle2 size={13} className="text-emerald-600" />{' '}
+          {t(' UI is ready to connect to an API ')}
         </span>
       </div>
     </>

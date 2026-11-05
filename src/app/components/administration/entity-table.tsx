@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Button, Dropdown, Input, Table, TextField } from '@heroui/react'
 import {
@@ -48,6 +49,8 @@ export function EntityTable<T extends { id: string }>({
     onChange?: (value: string) => void
   }
 }) {
+  const { i18n } = useAppTranslation()
+
   const [search, setSearch] = useState('')
   const [localFilterValue, setLocalFilterValue] = useState('all')
   const filterValue = filter?.selectedValue ?? localFilterValue
@@ -107,7 +110,7 @@ export function EntityTable<T extends { id: string }>({
     <section className="panel overflow-hidden">
       <div className="entity-table-toolbar flex flex-wrap items-end gap-3 border-b border-border p-4">
         <TextField
-          aria-label={`Search ${label}`}
+          aria-label={t('Search {{value0}}', { value0: t(label) })}
           value={search}
           onChange={setSearch}
           className="min-w-48 flex-1 sm:max-w-sm"
@@ -117,13 +120,16 @@ export function EntityTable<T extends { id: string }>({
               size={15}
               className="pointer-events-none absolute left-3 top-3 z-10 text-muted"
             />
-            <Input placeholder={`Search ${label}…`} className="w-full pl-9" />
+            <Input
+              placeholder={t('Search {{value0}}…', { value0: t(label) })}
+              className="w-full pl-9"
+            />
           </div>
         </TextField>
         {filter && (
           <div className="min-w-36">
             <ChoiceField
-              label={filter.label}
+              label={t(filter.label)}
               options={[
                 { id: 'all', label: `All ${filter.label.toLowerCase()}` },
                 ...filter.options,
@@ -136,11 +142,11 @@ export function EntityTable<T extends { id: string }>({
         <Dropdown>
           <Dropdown.Trigger className="ml-auto flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-xs">
             <Columns3 size={14} />
-            Columns
+            {t(' Columns ')}
           </Dropdown.Trigger>
           <Dropdown.Popover>
             <Dropdown.Menu
-              aria-label="Visible columns"
+              aria-label={t('Visible columns')}
               selectionMode="multiple"
               disallowEmptySelection
               selectedKeys={definitions
@@ -157,7 +163,7 @@ export function EntityTable<T extends { id: string }>({
             >
               {definitions.map((column) => (
                 <Dropdown.Item id={column.id} key={column.id}>
-                  {column.label}
+                  {t(column.label)}
                 </Dropdown.Item>
               ))}
             </Dropdown.Menu>
@@ -171,7 +177,7 @@ export function EntityTable<T extends { id: string }>({
               .getVisibleLeafColumns()
               .map((column) => column.id)
               .join('|')}
-            aria-label={label}
+            aria-label={t(label)}
             className="min-w-[680px]"
           >
             <Table.Header>
@@ -180,7 +186,7 @@ export function EntityTable<T extends { id: string }>({
                   key={header.id}
                   id={header.id}
                   isRowHeader={index === 0}
-                  textValue={String(header.column.columnDef.header)}
+                  textValue={t(String(header.column.columnDef.header))}
                 >
                   {header.column.getCanSort() ? (
                     <Button
@@ -189,7 +195,7 @@ export function EntityTable<T extends { id: string }>({
                       className="-ml-2 text-[11px] font-semibold"
                       onPress={() => header.column.toggleSorting()}
                     >
-                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {t(flexRender(header.column.columnDef.header, header.getContext()))}
                       {header.column.getIsSorted() === 'asc' ? (
                         <ArrowUp size={12} />
                       ) : header.column.getIsSorted() === 'desc' ? (
@@ -200,7 +206,7 @@ export function EntityTable<T extends { id: string }>({
                     </Button>
                   ) : (
                     <span className="text-[11px]">
-                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {t(flexRender(header.column.columnDef.header, header.getContext()))}
                     </span>
                   )}
                 </Table.Column>
@@ -208,12 +214,12 @@ export function EntityTable<T extends { id: string }>({
             </Table.Header>
             <Table.Body
               items={table.getRowModel().rows}
-              dependencies={[visibility, definitions]}
+              dependencies={[visibility, definitions, i18n.resolvedLanguage]}
               renderEmptyState={() => (
                 <div className="p-12 text-center text-sm text-muted">
                   {search || filterValue !== 'all'
-                    ? 'No records match your filters.'
-                    : `No ${label} yet.`}
+                    ? t('No records match your filters.')
+                    : t('No {{value0}} yet.', { value0: t(label) })}
                 </div>
               )}
             >
@@ -221,7 +227,7 @@ export function EntityTable<T extends { id: string }>({
                 <Table.Row id={row.id}>
                   {row.getVisibleCells().map((cell) => (
                     <Table.Cell key={cell.id} className="py-3 text-xs">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {t(flexRender(cell.column.columnDef.cell, cell.getContext()))}
                     </Table.Cell>
                   ))}
                 </Table.Row>
@@ -232,26 +238,28 @@ export function EntityTable<T extends { id: string }>({
       </Table>
       <div className="entity-table-footer flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-xs text-muted">
         <span>
-          {total ? pageIndex * pageSize + 1 : 0}–{Math.min((pageIndex + 1) * pageSize, total)} of{' '}
-          {total} {label}
+          {total ? pageIndex * pageSize + 1 : 0}–{t(Math.min((pageIndex + 1) * pageSize, total))}{' '}
+          {t(' of')} {t(total)} {t(label)}
         </span>
         <div className="flex items-center gap-3">
           <div className="w-24">
             <ChoiceField
-              label="Rows"
+              label={t('Rows')}
               options={[10, 20, 50].map((size) => ({ id: String(size), label: String(size) }))}
               value={String(pageSize)}
               onChange={(value) => table.setPageSize(Number(value))}
             />
           </div>
           <span>
-            Page {pageIndex + 1} of {Math.max(1, table.getPageCount())}
+            {t(' Page ')}
+            {pageIndex + 1} {t(' of ')}
+            {t(Math.max(1, table.getPageCount()))}
           </span>
           <Button
             isIconOnly
             size="sm"
             variant="outline"
-            aria-label="Previous page"
+            aria-label={t('Previous page')}
             isDisabled={!table.getCanPreviousPage()}
             onPress={() => table.previousPage()}
           >
@@ -261,7 +269,7 @@ export function EntityTable<T extends { id: string }>({
             isIconOnly
             size="sm"
             variant="outline"
-            aria-label="Next page"
+            aria-label={t('Next page')}
             isDisabled={!table.getCanNextPage()}
             onPress={() => table.nextPage()}
           >

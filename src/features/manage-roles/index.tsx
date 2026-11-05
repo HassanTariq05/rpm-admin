@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { Button } from '@heroui/react'
@@ -39,6 +40,8 @@ function PermissionEditor({
   organizationRoles?: Role[]
   organizationCheckPending: boolean
 }) {
+  useAppTranslation()
+
   const [selected, setSelected] = useState(
     () => new Set(normalizePermissions(role.permissions ?? [])),
   )
@@ -67,8 +70,9 @@ function PermissionEditor({
           <div>
             <h2 className="text-sm font-bold">{role.name}</h2>
             <p className="mt-1 text-xs text-muted">
-              {organizationName(role)} · {selectedPermissionCount} permissions selected
-              {dirty ? ' · Unsaved changes' : ''}
+              {t(organizationName(role))} · {t(selectedPermissionCount)}{' '}
+              {t(' permissions selected ')}
+              {dirty ? t(' · Unsaved changes') : ''}
             </p>
           </div>
         </div>
@@ -79,7 +83,7 @@ function PermissionEditor({
             isDisabled={!dirty || update.isPending}
             onPress={() => setSelected(new Set(normalizePermissions(role.permissions ?? [])))}
           >
-            Reset
+            {t(' Reset ')}
           </Button>
           <SubmitButton
             type="button"
@@ -97,7 +101,7 @@ function PermissionEditor({
               })
             }
           >
-            Save changes
+            {t(' Save changes ')}
           </SubmitButton>
         </div>
       </div>
@@ -113,31 +117,33 @@ function PermissionEditor({
           <LockKeyhole size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
           <span>
             {reserved
-              ? 'Only a Super Admin can change permissions for this reserved role.'
+              ? t('Only a Super Admin can change permissions for this reserved role.')
               : outsideOrganization
-                ? 'This role belongs to another organization.'
+                ? t('This role belongs to another organization.')
                 : organizationCheckPending
-                  ? 'Verifying this role’s organization…'
-                  : 'Unable to verify this role’s organization. Choose a role from your organization or try reloading.'}
+                  ? t('Verifying this role’s organization…')
+                  : t(
+                      'Unable to verify this role’s organization. Choose a role from your organization or try reloading.',
+                    )}
           </span>
         </div>
       )}
       {update.error && (
         <p role="alert" className="text-sm text-danger">
-          {apiErrorMessage(update.error)}
+          {t(apiErrorMessage(update.error))}
         </p>
       )}
       {retainedCount > 0 && (
         <p className="text-xs text-muted">
-          {retainedCount} additional existing permissions will be preserved when saving.
+          {t(retainedCount)} {t(' additional existing permissions will be preserved when saving. ')}
         </p>
       )}
       <div className="flex flex-wrap items-center justify-between gap-2 px-1">
         <p className="text-xs text-muted">
-          RPM permission catalog · Select permissions individually or by group.
+          {t(' RPM permission catalog · Select permissions individually or by group. ')}
         </p>
         <CheckField
-          label="Select all permissions"
+          label={t('Select all permissions')}
           selected={allSelected}
           indeterminate={!allSelected && knownValues.some((value) => selected.has(value))}
           disabled={readOnly || update.isPending}
@@ -162,9 +168,9 @@ function PermissionEditor({
                 <span className="admin-permission-icon" aria-hidden="true">
                   <GroupIcon size={17} />
                 </span>
-                <span className="flex-1">{group.name}</span>
+                <span className="flex-1">{t(group.name)}</span>
                 <span className="admin-permission-count text-[11px] font-semibold">
-                  {count}/{values.length}
+                  {t(count)}/{t(values.length)}
                 </span>
                 <ChevronDown
                   size={15}
@@ -173,7 +179,7 @@ function PermissionEditor({
               </summary>
               <div className="space-y-3 border-t border-border p-3">
                 <CheckField
-                  label={`Select all ${group.name}`}
+                  label={t('Select all {{value0}}', { value0: t(group.name) })}
                   selected={count === values.length}
                   indeterminate={count > 0 && count < values.length}
                   disabled={readOnly || update.isPending}
@@ -189,7 +195,7 @@ function PermissionEditor({
                       className="admin-permission-action rounded-lg border border-border px-3 py-2"
                     >
                       <CheckField
-                        label={action.label}
+                        label={t(action.label)}
                         selected={selected.has(action.value)}
                         disabled={readOnly || update.isPending}
                         onChange={(value) =>
@@ -211,6 +217,8 @@ function PermissionEditor({
 }
 
 export function ManageRolesPage() {
+  useAppTranslation()
+
   const { roleId } = useParams({ strict: false })
   const navigate = useNavigate()
   const roles = useRoles()
@@ -220,27 +228,31 @@ export function ManageRolesPage() {
     <div className="admin-page">
       <AdminPageHeader
         icon={ShieldCheck}
-        title="Manage roles"
-        description="Manage permissions for patient monitoring, clinical workflows, and workspace administration."
+        title={t('Manage roles')}
+        description={t(
+          'Manage permissions for patient monitoring, clinical workflows, and workspace administration.',
+        )}
         actions={
           <Link
             to="/roles"
             className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold"
           >
             <ArrowLeft size={14} aria-hidden="true" />
-            Back to roles
+            {t(' Back to roles ')}
           </Link>
         }
       />
       <div className="admin-role-picker panel mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
         <div>
-          <h2 className="text-sm font-semibold">Role permissions</h2>
-          <p className="mt-1 text-xs text-muted">Choose a role to review and update its access.</p>
+          <h2 className="text-sm font-semibold">{t('Role permissions')}</h2>
+          <p className="mt-1 text-xs text-muted">
+            {t('Choose a role to review and update its access.')}
+          </p>
         </div>
         <div className="w-full sm:w-80">
           <ChoiceField
-            label="Choose a role"
-            placeholder="Choose a role"
+            label={t('Choose a role')}
+            placeholder={t('Choose a role')}
             icon={<ShieldCheck size={17} className="text-muted" />}
             value={roleId ?? ''}
             disabled={roles.isPending || roles.isError}
@@ -264,11 +276,11 @@ export function ManageRolesPage() {
           <span className="admin-permission-icon admin-tone-violet p-4">
             <ShieldCheck size={32} />
           </span>
-          <p className="text-sm font-semibold">Choose a role to manage its permissions</p>
+          <p className="text-sm font-semibold">{t('Choose a role to manage its permissions')}</p>
           <p className="text-xs text-muted">
             {roles.isSuccess && !roles.data.length
-              ? 'Create a role first from the Roles page.'
-              : 'Permissions are grouped by the areas they control.'}
+              ? t('Create a role first from the Roles page.')
+              : t('Permissions are grouped by the areas they control.')}
           </p>
         </div>
       ) : (

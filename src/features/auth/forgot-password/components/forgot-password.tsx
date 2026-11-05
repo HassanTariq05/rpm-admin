@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { useCallback } from 'react'
 import { Button } from '@heroui/react/button'
 import { Input } from '@heroui/react/input'
@@ -21,6 +22,8 @@ const ForgotPasswordSchema = Yup.object({
 })
 
 export const ForgotPassword = () => {
+  useAppTranslation()
+
   const router = useRouter()
 
   const handleSubmit = useCallback(
@@ -67,8 +70,8 @@ export const ForgotPassword = () => {
             <HeartPulse size={25} />
           </div>
           <div>
-            <p className="text-lg font-bold">Remote Patient Monitoring</p>
-            <p className="text-xs text-[var(--auth-muted)]">Connected care workspace</p>
+            <p className="text-lg font-bold">{t('Remote Patient Monitoring')}</p>
+            <p className="text-xs text-[var(--auth-muted)]">{t('Connected care workspace')}</p>
           </div>
         </Link>
 
@@ -77,16 +80,17 @@ export const ForgotPassword = () => {
             <ShieldCheck size={30} />
           </div>
           <h1 className="text-4xl font-semibold leading-tight xl:text-5xl">
-            Your account security matters.
+            {t(' Your account security matters. ')}
           </h1>
           <p className="mt-6 max-w-md leading-7 text-[var(--auth-muted)]">
-            We'll help you securely regain access to your healthcare workspace. Follow the
-            verification steps to reset your password.
+            {t(
+              " We'll help you securely regain access to your healthcare workspace. Follow the verification steps to reset your password. ",
+            )}
           </p>
         </div>
 
         <p className="relative z-10 text-xs text-[var(--auth-muted)]">
-          Secure access for authorized healthcare professionals.
+          {t(' Secure access for authorized healthcare professionals. ')}
         </p>
       </section>
 
@@ -97,7 +101,7 @@ export const ForgotPassword = () => {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--auth-bg)] text-[var(--auth-accent)]">
               <HeartPulse size={23} />
             </div>
-            <span className="font-bold text-foreground">Remote Patient Monitoring</span>
+            <span className="font-bold text-foreground">{t('Remote Patient Monitoring')}</span>
           </Link>
 
           <Link
@@ -105,20 +109,21 @@ export const ForgotPassword = () => {
             className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-muted transition hover:text-primary"
           >
             <ArrowLeft size={16} />
-            Back to sign in
+            {t(' Back to sign in ')}
           </Link>
 
           <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-surface text-primary">
             <Mail size={26} />
           </div>
 
-          <p className="mb-3 text-sm font-semibold text-primary">ACCOUNT RECOVERY</p>
+          <p className="mb-3 text-sm font-semibold text-primary">{t('ACCOUNT RECOVERY')}</p>
           <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            Forgot your password?
+            {t(' Forgot your password? ')}
           </h2>
           <p className="mt-4 text-sm leading-6 text-muted">
-            No worries. Enter the email address associated with your account and we'll send you
-            instructions to reset your password.
+            {t(
+              " No worries. Enter the email address associated with your account and we'll send you instructions to reset your password. ",
+            )}
           </p>
 
           <Formik
@@ -147,11 +152,15 @@ export const ForgotPassword = () => {
                   isRequired
                 >
                   <Label className="mb-2 block text-sm font-medium text-foreground">
-                    Email address
+                    {t(' Email address ')}
                   </Label>
-                  <Input placeholder="you@clinic.com" autoComplete="email" className="w-full" />
+                  <Input
+                    placeholder={t('you@clinic.com')}
+                    autoComplete="email"
+                    className="w-full"
+                  />
                   {touched.email && errors.email && (
-                    <p className="mt-1 text-sm text-danger">{errors.email}</p>
+                    <p className="mt-1 text-sm text-danger">{t(errors.email)}</p>
                   )}
                 </TextField>
 
@@ -160,7 +169,7 @@ export const ForgotPassword = () => {
                     role="alert"
                     className="rounded-xl border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger"
                   >
-                    {status.error}
+                    {t(status.error)}
                   </div>
                 )}
 
@@ -170,7 +179,7 @@ export const ForgotPassword = () => {
                   isDisabled={isSubmitting}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-semibold text-primary-foreground transition hover:bg-primary-hover disabled:opacity-60"
                 >
-                  {isSubmitting ? 'Sending instructions...' : 'Send reset instructions'}
+                  {isSubmitting ? t('Sending instructions...') : t('Send reset instructions')}
                   {!isSubmitting && <ArrowRight size={17} />}
                 </Button>
               </form>
@@ -178,17 +187,17 @@ export const ForgotPassword = () => {
           </Formik>
 
           <p className="mt-6 text-center text-sm text-muted">
-            Remember your password?{' '}
+            {t(' Remember your password?')}{' '}
             <Link
               to="/login"
               className="font-semibold text-primary transition hover:text-primary-hover"
             >
-              Sign in
+              {t(' Sign in ')}
             </Link>
           </p>
 
           <p className="mt-6 text-center text-xs text-muted">
-            © {new Date().getFullYear()} Remote Patient Monitoring. All rights reserved.
+            © {t(new Date().getFullYear())} {t(' Remote Patient Monitoring. All rights reserved. ')}
           </p>
         </div>
       </section>

@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import './admin-editor.css'
 import { useState, type ReactNode } from 'react'
 import {
@@ -41,6 +42,8 @@ export function ChoiceField({
   onBlur?: () => void
   icon?: ReactNode
 }) {
+  useAppTranslation()
+
   return (
     <Select
       fullWidth
@@ -49,9 +52,9 @@ export function ChoiceField({
       onBlur={onBlur}
       isInvalid={!!error}
       isDisabled={disabled}
-      placeholder={placeholder}
+      placeholder={t(placeholder)}
     >
-      <Label className="text-xs font-semibold">{label}</Label>
+      <Label className="text-xs font-semibold">{t(label)}</Label>
       <Select.Trigger className="w-full">
         <span className="flex min-w-0 items-center gap-2">
           {icon && (
@@ -64,16 +67,16 @@ export function ChoiceField({
         <Select.Indicator />
       </Select.Trigger>
       <Select.Popover>
-        <ListBox items={options} aria-label={label}>
+        <ListBox items={options} aria-label={t(label)}>
           {(option) => (
-            <ListBox.Item id={option.id} textValue={option.label}>
-              {option.label}
+            <ListBox.Item id={option.id} textValue={t(option.label)}>
+              {t(option.label)}
               <ListBox.ItemIndicator />
             </ListBox.Item>
           )}
         </ListBox>
       </Select.Popover>
-      {error && <FieldError>{error}</FieldError>}
+      {error && <FieldError>{t(error)}</FieldError>}
     </Select>
   )
 }
@@ -84,6 +87,7 @@ export function FormTextField({
   type = 'text',
   multiline = false,
   disabled = false,
+  required = false,
   placeholder,
   icon,
   passwordToggle = false,
@@ -93,16 +97,20 @@ export function FormTextField({
   type?: string
   multiline?: boolean
   disabled?: boolean
+  required?: boolean
   placeholder?: string
   icon?: ReactNode
   passwordToggle?: boolean
 }) {
+  useAppTranslation()
+
   const [visible, setVisible] = useState(false)
   const [field, meta, helpers] = useField<string>(name)
   const error = meta.touched ? meta.error : undefined
   return (
     <TextField
       name={name}
+      isRequired={required}
       type={passwordToggle && visible ? 'text' : type}
       value={field.value}
       onChange={(value) => void helpers.setValue(value)}
@@ -110,7 +118,7 @@ export function FormTextField({
       isInvalid={!!error}
       isDisabled={disabled}
     >
-      <Label className="text-xs font-semibold">{label}</Label>
+      <Label className="text-xs font-semibold">{t(label)}</Label>
       {multiline ? (
         <div className="relative w-full">
           {icon && (
@@ -121,7 +129,10 @@ export function FormTextField({
               {icon}
             </span>
           )}
-          <TextArea className={cn('w-full min-h-24', icon && 'pl-10')} placeholder={placeholder} />
+          <TextArea
+            className={cn('w-full min-h-24', icon && 'pl-10')}
+            placeholder={t(placeholder)}
+          />
         </div>
       ) : (
         <div className="relative w-full">
@@ -135,13 +146,16 @@ export function FormTextField({
           )}
           <Input
             className={cn('w-full', icon && 'pl-10', passwordToggle && 'pr-11')}
-            placeholder={placeholder}
+            placeholder={t(placeholder)}
             autoComplete={type === 'password' ? 'new-password' : 'off'}
           />
           {passwordToggle && (
             <button
               type="button"
-              aria-label={`${visible ? 'Hide' : 'Show'} ${label.toLowerCase()}`}
+              aria-label={t('{{value0}} {{value1}}', {
+                value0: t(visible ? 'Hide' : 'Show'),
+                value1: t(label).toLowerCase(),
+              })}
               aria-pressed={visible}
               disabled={disabled}
               className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
@@ -152,12 +166,20 @@ export function FormTextField({
           )}
         </div>
       )}
-      {error && <FieldError>{error}</FieldError>}
+      {error && <FieldError>{t(error)}</FieldError>}
     </TextField>
   )
 }
 
-export function FormStatusField({ name = 'status' }: { name?: string }) {
+export function FormStatusField({
+  name = 'status',
+  disabled = false,
+}: {
+  name?: string
+  disabled?: boolean
+}) {
+  useAppTranslation()
+
   const [field, , helpers] = useField<string>(name)
   const active = field.value === 'active'
   return (
@@ -166,14 +188,15 @@ export function FormStatusField({ name = 'status' }: { name?: string }) {
         <Activity size={17} className="admin-icon-teal" aria-hidden="true" />
         <span>
           <span id={`${name}-label`} className="block text-xs font-semibold">
-            Status
+            {t(' Status ')}
           </span>
-          <span className="text-xs text-muted">{active ? 'Active' : 'Inactive'}</span>
+          <span className="text-xs text-muted">{active ? t('Active') : t('Inactive')}</span>
         </span>
       </span>
       <button
         type="button"
         role="switch"
+        disabled={disabled}
         aria-labelledby={`${name}-label`}
         aria-checked={active}
         className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${active ? 'bg-success' : 'bg-muted'}`}
@@ -204,16 +227,18 @@ export function FormChoiceField({
   onChange?: (value: string) => void
   icon?: ReactNode
 }) {
+  useAppTranslation()
+
   const [field, meta, helpers] = useField<string>(name)
   return (
     <ChoiceField
-      label={label}
+      label={t(label)}
       icon={icon}
       options={options}
       value={field.value}
       error={meta.touched ? meta.error : undefined}
       disabled={disabled}
-      placeholder={placeholder}
+      placeholder={t(placeholder)}
       onBlur={() => void helpers.setTouched(true)}
       onChange={(value) => {
         void helpers.setValue(value)
@@ -235,6 +260,8 @@ export function SubmitButton({
   onPress?: () => void
   type?: 'submit' | 'button'
 }) {
+  useAppTranslation()
+
   return (
     <Button
       variant="primary"
@@ -242,10 +269,10 @@ export function SubmitButton({
       form={props.form}
       onPress={props.onPress}
       isDisabled={pending || props.disabled}
-      aria-busy={pending}
+      isPending={pending}
     >
       {pending && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
-      {pending ? 'Saving…' : children}
+      {pending ? t('Saving…') : children}
     </Button>
   )
 }
@@ -258,6 +285,7 @@ export function FormModal({
   pending,
   children,
   footer,
+  footerStart,
   className,
   dialogClassName,
   scroll = 'inside',
@@ -271,12 +299,15 @@ export function FormModal({
   pending: boolean
   children: ReactNode
   footer: ReactNode
+  footerStart?: ReactNode
   className?: string
   dialogClassName?: string
   scroll?: 'inside' | 'outside'
   headerIcon?: ReactNode
   cancelLabel?: string
 }) {
+  useAppTranslation()
+
   return (
     <Modal.Backdrop
       isOpen={open}
@@ -300,22 +331,23 @@ export function FormModal({
                   {headerIcon}
                 </span>
                 <div className="min-w-0">
-                  <Modal.Heading>{title}</Modal.Heading>
-                  <p className="mt-1 text-sm text-muted">{description}</p>
+                  <Modal.Heading>{t(title)}</Modal.Heading>
+                  <p className="mt-1 text-sm text-muted">{t(description)}</p>
                 </div>
               </div>
             ) : (
               <>
-                <Modal.Heading>{title}</Modal.Heading>
-                <p className="mt-1 text-sm text-muted">{description}</p>
+                <Modal.Heading>{t(title)}</Modal.Heading>
+                <p className="mt-1 text-sm text-muted">{t(description)}</p>
               </>
             )}
           </Modal.Header>
-          {!pending && <Modal.CloseTrigger />}
+          {!pending && <Modal.CloseTrigger aria-label={t('Close')} />}
           <Modal.Body className="space-y-4">{children}</Modal.Body>
           <Modal.Footer>
+            {footerStart && <div className="me-auto">{footerStart}</div>}
             <Button variant="ghost" onPress={onClose} isDisabled={pending}>
-              {cancelLabel}
+              {t(cancelLabel)}
             </Button>
             {footer}
           </Modal.Footer>
@@ -336,6 +368,8 @@ export function RequestState({
   retry: () => void
   children: ReactNode
 }) {
+  useAppTranslation()
+
   if (pending)
     return (
       <div
@@ -343,7 +377,7 @@ export function RequestState({
         className="panel flex min-h-64 items-center justify-center gap-3 text-sm text-muted"
       >
         <Loader2 size={20} className="animate-spin" />
-        Loading records…
+        {t(' Loading records… ')}
       </div>
     )
   if (error)
@@ -353,10 +387,10 @@ export function RequestState({
         className="panel flex min-h-48 flex-col items-center justify-center gap-3 p-6 text-center"
       >
         <AlertCircle size={24} className="text-danger" />
-        <p className="text-sm">Unable to load records.</p>
-        <p className="text-xs text-muted">{apiErrorMessage(error)}</p>
+        <p className="text-sm">{t('Unable to load records.')}</p>
+        <p className="text-xs text-muted">{t(apiErrorMessage(error))}</p>
         <Button variant="outline" onPress={retry}>
-          Try again
+          {t(' Try again ')}
         </Button>
       </div>
     )
@@ -364,27 +398,31 @@ export function RequestState({
 }
 
 export function RecordName({ name, subtitle }: { name: string; subtitle?: string }) {
+  useAppTranslation()
+
   return (
     <div className="flex min-w-40 items-center gap-2.5">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-avatar-bg text-[11px] font-bold text-avatar-text">
-        {getInitials(name)}
+        {t(getInitials(name))}
       </span>
       <span>
         <span className="block text-xs font-semibold">{name}</span>
-        {subtitle && <span className="mt-0.5 block text-[11px] text-muted">{subtitle}</span>}
+        {subtitle && <span className="mt-0.5 block text-[11px] text-muted">{t(subtitle)}</span>}
       </span>
     </div>
   )
 }
 
 export function StatusPill({ status }: { status?: string }) {
+  useAppTranslation()
+
   const active = status?.toLowerCase() === 'active'
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-semibold capitalize ${active ? 'bg-success-bg text-success' : 'bg-surface-muted text-muted'}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-success' : 'bg-muted'}`} />
-      {status || 'Unknown'}
+      {status || t('Unknown')}
     </span>
   )
 }
@@ -402,6 +440,8 @@ export function CheckField({
   disabled?: boolean
   onChange: (value: boolean) => void
 }) {
+  useAppTranslation()
+
   return (
     <Checkbox
       isSelected={selected}
@@ -413,7 +453,7 @@ export function CheckField({
         <Checkbox.Control>
           <Checkbox.Indicator />
         </Checkbox.Control>
-        <Label className="text-xs">{label}</Label>
+        <Label className="text-xs">{t(label)}</Label>
       </Checkbox.Content>
     </Checkbox>
   )
@@ -434,6 +474,8 @@ export function ConfirmDelete({
   onConfirm: () => void
   error?: unknown
 }) {
+  useAppTranslation()
+
   const [confirmation, setConfirmation] = useState('')
   return (
     <FormModal
@@ -441,23 +483,30 @@ export function ConfirmDelete({
       dialogClassName="admin-editor-modal"
       headerIcon={<AlertCircle size={25} />}
       scroll="outside"
-      title={`Delete ${entity}`}
-      description={`Permanently delete ${name}? This action cannot be undone.`}
+      title={t('Delete {{value0}}', { value0: t(entity) })}
+      description={t('Permanently delete {{value0}}? This action cannot be undone.', {
+        value0: name,
+      })}
       pending={pending}
       onClose={onClose}
       footer={
         <Button variant="danger" isDisabled={pending || confirmation !== name} onPress={onConfirm}>
-          {pending && <Loader2 size={15} className="animate-spin" />}Delete {entity}
+          {pending && <Loader2 size={15} className="animate-spin" />}
+          {t('Delete ')}
+          {t(entity)}
         </Button>
       }
     >
       <TextField value={confirmation} onChange={setConfirmation}>
-        <Label>Type {name} to confirm</Label>
+        <Label>
+          {t('Type ')}
+          {name} {t(' to confirm')}
+        </Label>
         <Input autoComplete="off" className="w-full" placeholder={name} />
       </TextField>
       {!!error && (
         <p role="alert" className="text-sm text-danger">
-          {apiErrorMessage(error)}
+          {t(apiErrorMessage(error))}
         </p>
       )}
     </FormModal>

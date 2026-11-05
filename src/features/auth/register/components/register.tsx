@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { useCallback } from 'react'
 import { Button } from '@heroui/react/button'
 import { Input } from '@heroui/react/input'
@@ -37,6 +38,8 @@ const RegisterSchema = Yup.object({
 })
 
 export const Register = () => {
+  useAppTranslation()
+
   const router = useRouter()
 
   const handleRegister = useCallback(
@@ -85,26 +88,27 @@ export const Register = () => {
             <HeartPulse size={25} strokeWidth={2.2} />
           </div>
           <div>
-            <p className="text-lg font-bold tracking-tight">Remote Patient Monitoring</p>
-            <p className="text-xs text-[var(--auth-muted)]">Connected care workspace</p>
+            <p className="text-lg font-bold tracking-tight">{t('Remote Patient Monitoring')}</p>
+            <p className="text-xs text-[var(--auth-muted)]">{t('Connected care workspace')}</p>
           </div>
         </Link>
 
         <div className="relative z-10 my-8 max-w-xl">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--auth-decoration)] bg-[var(--auth-decoration)] px-3 py-1.5 text-sm text-[var(--auth-accent)]">
             <Activity size={15} />
-            Join the future of connected care
+            {t(' Join the future of connected care ')}
           </div>
 
           <h1 className="text-4xl font-semibold leading-tight tracking-tight xl:text-5xl">
-            Empower your team.
+            {t(' Empower your team. ')}
             <br />
-            <span className="text-[var(--auth-accent)]">Improve patient care.</span>
+            <span className="text-[var(--auth-accent)]">{t('Improve patient care.')}</span>
           </h1>
 
           <p className="mt-6 max-w-md text-base leading-7 text-[var(--auth-muted)]">
-            Bring patient monitoring, vital sign tracking, and care team workflows together in one
-            organized workspace.
+            {t(
+              ' Bring patient monitoring, vital sign tracking, and care team workflows together in one organized workspace. ',
+            )}
           </p>
 
           <div className="mt-8 space-y-4">
@@ -113,9 +117,9 @@ export const Register = () => {
                 <Activity size={20} />
               </div>
               <div>
-                <p className="font-medium">Monitor with confidence</p>
+                <p className="font-medium">{t('Monitor with confidence')}</p>
                 <p className="mt-1 text-sm leading-6 text-[var(--auth-muted)]">
-                  Keep patient health information organized and accessible.
+                  {t(' Keep patient health information organized and accessible. ')}
                 </p>
               </div>
             </div>
@@ -125,9 +129,9 @@ export const Register = () => {
                 <ShieldCheck size={20} />
               </div>
               <div>
-                <p className="font-medium">Designed for care teams</p>
+                <p className="font-medium">{t('Designed for care teams')}</p>
                 <p className="mt-1 text-sm leading-6 text-[var(--auth-muted)]">
-                  Give authorized staff a shared operational workspace.
+                  {t(' Give authorized staff a shared operational workspace. ')}
                 </p>
               </div>
             </div>
@@ -137,9 +141,9 @@ export const Register = () => {
                 <Stethoscope size={20} />
               </div>
               <div>
-                <p className="font-medium">Stay focused on patients</p>
+                <p className="font-medium">{t('Stay focused on patients')}</p>
                 <p className="mt-1 text-sm leading-6 text-[var(--auth-muted)]">
-                  Simplify day-to-day remote monitoring workflows.
+                  {t(' Simplify day-to-day remote monitoring workflows. ')}
                 </p>
               </div>
             </div>
@@ -147,7 +151,7 @@ export const Register = () => {
         </div>
 
         <p className="relative z-10 text-xs text-[var(--auth-muted)]">
-          Secure access for authorized healthcare professionals.
+          {t(' Secure access for authorized healthcare professionals. ')}
         </p>
       </section>
 
@@ -159,18 +163,18 @@ export const Register = () => {
               <HeartPulse size={23} />
             </div>
             <div>
-              <p className="font-bold text-foreground">Remote Patient Monitoring</p>
-              <p className="text-xs text-muted">Connected care workspace</p>
+              <p className="font-bold text-foreground">{t('Remote Patient Monitoring')}</p>
+              <p className="text-xs text-muted">{t('Connected care workspace')}</p>
             </div>
           </Link>
 
           <div className="mb-6">
-            <p className="mb-3 text-sm font-semibold text-primary">GET STARTED</p>
+            <p className="mb-3 text-sm font-semibold text-primary">{t('GET STARTED')}</p>
             <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Create your account
+              {t(' Create your account ')}
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted">
-              Set up your account to access your healthcare workspace.
+              {t(' Set up your account to access your healthcare workspace. ')}
             </p>
           </div>
 
@@ -200,11 +204,15 @@ export const Register = () => {
                   isRequired
                 >
                   <Label className="mb-2 block text-sm font-medium text-foreground">
-                    Full name
+                    {t(' Full name ')}
                   </Label>
-                  <Input placeholder="e.g. Alex Morgan" autoComplete="name" className="w-full" />
+                  <Input
+                    placeholder={t('e.g. Alex Morgan')}
+                    autoComplete="name"
+                    className="w-full"
+                  />
                   {touched.fullName && errors.fullName && (
-                    <p className="mt-1 text-sm text-danger">{errors.fullName}</p>
+                    <p className="mt-1 text-sm text-danger">{t(errors.fullName)}</p>
                   )}
                 </TextField>
 
@@ -218,11 +226,15 @@ export const Register = () => {
                   isRequired
                 >
                   <Label className="mb-2 block text-sm font-medium text-foreground">
-                    Work email
+                    {t(' Work email ')}
                   </Label>
-                  <Input placeholder="you@clinic.com" autoComplete="email" className="w-full" />
+                  <Input
+                    placeholder={t('you@clinic.com')}
+                    autoComplete="email"
+                    className="w-full"
+                  />
                   {touched.email && errors.email && (
-                    <p className="mt-1 text-sm text-danger">{errors.email}</p>
+                    <p className="mt-1 text-sm text-danger">{t(errors.email)}</p>
                   )}
                 </TextField>
 
@@ -235,14 +247,16 @@ export const Register = () => {
                   isInvalid={Boolean(touched.password && errors.password)}
                   isRequired
                 >
-                  <Label className="mb-2 block text-sm font-medium text-foreground">Password</Label>
+                  <Label className="mb-2 block text-sm font-medium text-foreground">
+                    {t('Password')}
+                  </Label>
                   <Input
-                    placeholder="At least 8 characters"
+                    placeholder={t('At least 8 characters')}
                     autoComplete="new-password"
                     className="w-full"
                   />
                   {touched.password && errors.password && (
-                    <p className="mt-1 text-sm text-danger">{errors.password}</p>
+                    <p className="mt-1 text-sm text-danger">{t(errors.password)}</p>
                   )}
                 </TextField>
 
@@ -256,15 +270,15 @@ export const Register = () => {
                   isRequired
                 >
                   <Label className="mb-2 block text-sm font-medium text-foreground">
-                    Confirm password
+                    {t(' Confirm password ')}
                   </Label>
                   <Input
-                    placeholder="Re-enter your password"
+                    placeholder={t('Re-enter your password')}
                     autoComplete="new-password"
                     className="w-full"
                   />
                   {touched.confirmPassword && errors.confirmPassword && (
-                    <p className="mt-1 text-sm text-danger">{errors.confirmPassword}</p>
+                    <p className="mt-1 text-sm text-danger">{t(errors.confirmPassword)}</p>
                   )}
                 </TextField>
 
@@ -273,7 +287,7 @@ export const Register = () => {
                     role="alert"
                     className="rounded-xl border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger"
                   >
-                    {status.error}
+                    {t(status.error)}
                   </div>
                 )}
 
@@ -283,13 +297,14 @@ export const Register = () => {
                   isDisabled={isSubmitting}
                   className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-semibold text-primary-foreground transition hover:bg-primary-hover disabled:opacity-60"
                 >
-                  {isSubmitting ? 'Creating account...' : 'Create account'}
+                  {isSubmitting ? t('Creating account...') : t('Create account')}
                   {!isSubmitting && <ArrowRight size={17} />}
                 </Button>
 
                 <p className="mt-1 text-center text-xs leading-5 text-muted">
-                  By creating an account, you agree to your organization&apos;s applicable access
-                  and privacy policies.
+                  {t(
+                    " By creating an account, you agree to your organization's applicable access and privacy policies. ",
+                  )}
                 </p>
               </form>
             )}
@@ -297,22 +312,22 @@ export const Register = () => {
 
           <div className="my-6 flex items-center gap-4">
             <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted">ALREADY REGISTERED?</span>
+            <span className="text-xs text-muted">{t('ALREADY REGISTERED?')}</span>
             <div className="h-px flex-1 bg-border" />
           </div>
 
           <p className="text-center text-sm text-muted">
-            Already have an account?{' '}
+            {t(' Already have an account?')}{' '}
             <Link
               to="/login"
               className="font-semibold text-primary transition hover:text-primary-hover"
             >
-              Sign in
+              {t(' Sign in ')}
             </Link>
           </p>
 
           <p className="mt-6 text-center text-xs text-muted">
-            © {new Date().getFullYear()} Remote Patient Monitoring. All rights reserved.
+            © {t(new Date().getFullYear())} {t(' Remote Patient Monitoring. All rights reserved. ')}
           </p>
         </div>
       </section>

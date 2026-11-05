@@ -60,7 +60,9 @@ it.each([
       else expect(link).not.toBeInTheDocument()
     }
     expect(navigation.getByRole('link', { name: 'Device Readings' })).toHaveAttribute('href', '/')
-    for (const label of ['Overview', 'Patients', 'Devices', 'Reports']) {
+    expect(navigation.getByRole('link', { name: 'Patients' })).toHaveAttribute('href', '/patients')
+    expect(navigation.getByRole('link', { name: 'Devices' })).toHaveAttribute('href', '/devices')
+    for (const label of ['Overview', 'Reports']) {
       expect(navigation.queryByRole('link', { name: label })).not.toBeInTheDocument()
     }
   }

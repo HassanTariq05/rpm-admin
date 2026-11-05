@@ -1,3 +1,5 @@
+import { translate as t, useAppTranslation } from '@/i18n'
+import { LanguagePicker } from '@/i18n/language-provider'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import {
   Activity,
@@ -13,9 +15,9 @@ import {
   LogOut,
   Menu,
   Moon,
-  // MonitorSmartphone,
+  MonitorSmartphone,
   Sun,
-  // UsersRound,
+  UsersRound,
   // ChartNoAxesCombined,
   type LucideIcon,
 } from 'lucide-react'
@@ -49,8 +51,8 @@ const navItems: {
   administration?: boolean
 }[] = [
   // { label: 'Overview', to: '/', icon: LayoutDashboard },
-  // { label: 'Patients', to: '/patients', icon: UsersRound },
-  // { label: 'Devices', to: '/devices', icon: MonitorSmartphone },
+  { label: 'Patients', to: '/patients', icon: UsersRound },
+  { label: 'Devices', to: '/devices', icon: MonitorSmartphone },
   { label: 'Device Readings', to: '/', icon: Activity },
   // { label: 'Reports', to: '/reports', icon: ChartNoAxesCombined },
   { label: 'Users', to: '/users', administration: true, icon: UserRoundCog },
@@ -62,7 +64,7 @@ const navItems: {
 const pageTitles: Record<AppPath, string> = {
   '/': 'Device Readings',
   '/patients': 'Patients',
-  '/devices': 'Device fleet',
+  '/devices': 'Devices',
   '/device-readings': 'Device Readings',
   '/reports': 'Reports',
   '/users': 'Users',
@@ -79,6 +81,8 @@ const navActiveClass = 'bg-primary/10 text-foreground'
 const navInactiveClass = 'text-muted hover:bg-surface-muted hover:text-foreground'
 
 export function AppShell({ children }: { children: ReactNode }) {
+  useAppTranslation()
+
   const location = useLocation()
   const navigate = useNavigate()
   const pathname = location.pathname as AppPath
@@ -127,12 +131,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           {!sidebarCollapsed && (
             <div className="min-w-0">
               <div className="text-xs font-bold leading-tight tracking-tight">
-                {env.appName}
+                {t(env.appName)}
                 <span className="text-primary">.</span>
               </div>
 
               <div className="muted mt-0.5 text-[8px] font-medium uppercase tracking-wide">
-                Care operations
+                {t(' Care operations ')}
               </div>
             </div>
           )}
@@ -140,9 +144,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Main navigation */}
         <div className={`px-2 pt-4 ${sidebarCollapsed ? 'px-2' : ''}`}>
-          {!sidebarCollapsed && <p className="eyebrow mb-2 px-2.5">Workspace</p>}
+          {!sidebarCollapsed && <p className="eyebrow mb-2 px-2.5">{t('Workspace')}</p>}
 
-          <nav className="space-y-0.5" aria-label="Main navigation">
+          <nav className="space-y-0.5" aria-label={t('Main navigation')}>
             {visibleNavItems.map(({ label, to, icon: Icon, count }) => {
               const active = isActive(to)
 
@@ -150,23 +154,25 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Fragment key={to}>
                   {to === '/users' && (
                     <div className="my-2 border-t border-border pt-3">
-                      {!sidebarCollapsed && <p className="eyebrow px-2.5 pb-1">Administration</p>}
+                      {!sidebarCollapsed && (
+                        <p className="eyebrow px-2.5 pb-1">{t('Administration')}</p>
+                      )}
                     </div>
                   )}
                   <Link
                     to={to}
-                    title={sidebarCollapsed ? label : undefined}
+                    title={sidebarCollapsed ? t(label) : t(undefined)}
                     className={getNavClass(active)}
                   >
                     <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
 
                     {!sidebarCollapsed && (
                       <>
-                        <span className="flex-1">{label}</span>
+                        <span className="flex-1">{t(label)}</span>
 
                         {count && (
                           <span className="rounded-md bg-danger-bg px-1.5 py-0.5 text-[10px] font-bold text-danger">
-                            {count}
+                            {t(count)}
                           </span>
                         )}
                       </>
@@ -183,14 +189,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="mb-2 border-t border-border pt-2">
             <button
               type="button"
-              onClick={() => toast.info('Add your team help center URL here.')}
+              onClick={() => toast.info(t('Add your team help center URL here.'))}
               className={`mt-0.5 flex h-9 w-full items-center rounded-lg text-[13px] font-semibold text-muted transition-colors hover:bg-surface-muted hover:text-foreground ${
                 sidebarCollapsed ? 'justify-center px-2' : 'gap-2 px-2.5'
               }`}
             >
               <CircleHelp size={16} />
 
-              {!sidebarCollapsed && 'Help & support'}
+              {!sidebarCollapsed && t('Help & support')}
             </button>
           </div>
 
@@ -198,7 +204,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             type="button"
             onClick={toggleSidebar}
             className="mt-2 hidden h-8 w-full items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-foreground lg:flex"
-            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={sidebarCollapsed ? t('Expand sidebar') : t('Collapse sidebar')}
           >
             <Menu size={16} />
           </button>
@@ -217,32 +223,34 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div
               className="organization-identity"
               role="group"
-              aria-label="Current organization"
-              title={organizationName}
+              aria-label={t('Current organization')}
+              title={t(organizationName)}
             >
               <span className="organization-emblem" aria-hidden="true">
                 <Building2 size={19} strokeWidth={1.8} />
               </span>
               <div className="organization-copy">
                 <span className="organization-label">
-                  Organization<span className="md:hidden"> · {pageTitle}</span>
+                  {t(' Organization')}
+                  <span className="md:hidden"> · {t(pageTitle)}</span>
                 </span>
-                <span className="organization-name">{organizationName}</span>
+                <span className="organization-name">{t(organizationName)}</span>
               </div>
             </div>
             <div className="header-page-context">
               <ChevronRight size={14} aria-hidden="true" />
-              <span>{pageTitle}</span>
+              <span>{t(pageTitle)}</span>
             </div>
           </div>
 
           {/* Header actions */}
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <LanguagePicker />
             <ThemePicker />
             {/* Theme toggle */}
             <Button
               isIconOnly
-              aria-label="Toggle color theme"
+              aria-label={t('Toggle color theme')}
               variant="ghost"
               size="md"
               onPress={toggleColorMode}
@@ -256,11 +264,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             {/* User profile */}
             <Dropdown>
               <Dropdown.Trigger
-                aria-label="User menu"
+                aria-label={t('User menu')}
                 className="flex items-center gap-1.5 rounded-lg p-1 pr-0 text-left transition-colors hover:bg-surface-muted"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-avatar-bg text-xs font-bold text-avatar-text">
-                  {getInitials(auth.user?.name)}
+                  {t(getInitials(auth.user?.name))}
                 </span>
 
                 <span className="hidden min-w-0 lg:block">
@@ -274,7 +282,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <ChevronDown size={14} className="hidden text-muted lg:block" />
               </Dropdown.Trigger>
               <Dropdown.Popover placement="bottom end">
-                <Dropdown.Menu aria-label="User account">
+                <Dropdown.Menu aria-label={t('User account')}>
                   <Dropdown.Item
                     id="logout"
                     onAction={() => {
@@ -284,7 +292,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     }}
                   >
                     <LogOut size={16} aria-hidden="true" />
-                    Logout
+                    {t(' Logout ')}
                   </Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown.Popover>
@@ -295,7 +303,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Mobile navigation */}
         <nav
           className="flex gap-1 overflow-x-auto border-b border-border bg-surface px-2 py-1.5 lg:hidden"
-          aria-label="Mobile navigation"
+          aria-label={t('Mobile navigation')}
         >
           {visibleNavItems.map(({ label, to, icon: Icon }) => {
             const active = isActive(to)
@@ -303,7 +311,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             return (
               <Link key={to} to={to} className={getNavClass(active, true)}>
                 <Icon size={15} />
-                {label}
+                {t(label)}
               </Link>
             )
           })}
@@ -315,7 +323,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           {/* Footer */}
           <footer className="mt-10 flex flex-col justify-center gap-2 border-t border-border text-[11px] muted sm:flex-row">
-            <span className="mt-4">© 2026 Remote Patient Monitoring</span>
+            <span className="mt-4">{t('© 2026 Remote Patient Monitoring')}</span>
           </footer>
         </main>
       </div>

@@ -21,7 +21,10 @@ describe('administration API contracts', () => {
     const service = createUserService(client)
     expect(await service.getAll()).toEqual([{ id: 'user-1', name: 'Alex' }])
     await service.getByOrgId('org/1')
-    expect(requests.map((request) => request.url)).toEqual(['/users', '/users/org/org%2F1'])
+    expect(requests.map((request) => request.url)).toEqual([
+      '/auth/users',
+      '/auth/users/org/org%2F1',
+    ])
   })
   it('creates users through register and updates through users', async () => {
     const { client, requests } = clientWithResponse({})
@@ -38,8 +41,8 @@ describe('administration API contracts', () => {
     await service.create(payload)
     await service.update('user-1', payload)
     expect(requests.map((request) => [request.method, request.url])).toEqual([
-      ['post', '/register'],
-      ['put', '/users/user-1'],
+      ['post', '/auth/register'],
+      ['put', '/auth/users/user-1'],
     ])
     expect(JSON.parse(requests[0]!.data)).toEqual(payload)
   })
@@ -56,10 +59,10 @@ describe('administration API contracts', () => {
     })
     await service.remove('org-1')
     expect(requests.map((request) => [request.method, request.url])).toEqual([
-      ['get', '/organizations'],
-      ['get', '/organizations/org-1'],
-      ['put', '/organizations/org-1'],
-      ['delete', '/organizations/org-1'],
+      ['get', '/auth/organizations'],
+      ['get', '/auth/organizations/org-1'],
+      ['put', '/auth/organizations/org-1'],
+      ['delete', '/auth/organizations/org-1'],
     ])
   })
   it('loads roles by organization and sends only the requested permission update', async () => {
@@ -69,9 +72,9 @@ describe('administration API contracts', () => {
     await service.getById('role-1')
     await service.update('role-1', { permissions: ['patients.read'], organisationId: 'org-1' })
     expect(requests.map((request) => request.url)).toEqual([
-      '/roles/org/org-1',
-      '/roles/role-1',
-      '/roles/role-1',
+      '/auth/roles/org/org-1',
+      '/auth/roles/role-1',
+      '/auth/roles/role-1',
     ])
     expect(JSON.parse(requests[2]!.data)).toEqual({
       permissions: ['patients.read'],

@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { useRef, useState } from 'react'
 import { ComboBox, Input, Label, ListBox } from '@heroui/react'
 import {
@@ -13,6 +14,8 @@ export function CountryCodeField({
   value: string
   onChange: (value: string) => void
 }) {
+  useAppTranslation()
+
   const reverting = useRef(false)
   const [draft, setDraft] = useState({ value, query: value })
   const inputValue = draft.value === value ? draft.query : value
@@ -44,33 +47,33 @@ export function CountryCodeField({
       defaultFilter={matchesCountryCode}
       allowsEmptyCollection
     >
-      <Label className="text-xs font-semibold">Country code</Label>
+      <Label className="text-xs font-semibold">{t('Country code')}</Label>
       <ComboBox.InputGroup>
         <Input
           className="w-full"
-          placeholder="Search…"
+          placeholder={t('Search…')}
           autoComplete="off"
           onKeyDownCapture={(event) => {
             if (event.key === 'Escape') reverting.current = inputValue !== value
           }}
           onFocus={(event) => event.target.select()}
         />
-        <ComboBox.Trigger aria-label="Show country codes" />
+        <ComboBox.Trigger aria-label={t('Show country codes')} />
       </ComboBox.InputGroup>
       <ComboBox.Popover
         placement="bottom start"
         className="country-code-popover w-80 max-w-[calc(100vw-2rem)]"
       >
         <ListBox
-          aria-label="Country codes"
+          aria-label={t('Country codes')}
           renderEmptyState={() => (
-            <p className="px-3 py-5 text-center text-sm text-muted">No countries found.</p>
+            <p className="px-3 py-5 text-center text-sm text-muted">{t('No countries found.')}</p>
           )}
         >
           {(option: (typeof countryCodeOptions)[number]) => (
-            <ListBox.Item id={option.id} textValue={option.id} aria-label={option.label}>
+            <ListBox.Item id={option.id} textValue={option.id} aria-label={t(option.label)}>
               <span className="min-w-0 flex-1 truncate">
-                {option.label.replace(/ \(\+\d+\)$/, '')}
+                {t(option.label.replace(/ \(\+\d+\)$/, ''))}
               </span>
               <span className="shrink-0 text-muted tabular-nums">{option.id}</span>
               <ListBox.ItemIndicator />

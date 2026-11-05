@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import {
   Area,
   AreaChart,
@@ -10,11 +11,13 @@ import {
 import type { ReadingPoint } from '@/types/domain'
 
 export function EngagementChart({ data }: { data: ReadingPoint[] }) {
+  useAppTranslation()
+
   return (
     <div
       className="h-[250px] w-full pt-3"
       role="img"
-      aria-label="Daily patient engagement trend for the last seven days"
+      aria-label={t('Daily patient engagement trend for the last seven days')}
     >
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 8, right: 5, left: -22, bottom: 0 }}>

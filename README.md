@@ -94,15 +94,25 @@ Use **React Context** for genuinely app-wide client state (current user/session 
 
 ### Device Readings
 
-`/` opens Device Readings (`/device-readings` redirects there) and connects to the EMR readings API through `src/services/reading-services/reading-services.ts` and `src/hooks/useReadings.ts`. Configure `VITE_EMR_API_BASE_URL` for a different environment; the default is the supplied `/api/emr` endpoint. The service forwards the signed-in session bearer token using the existing API client, validates responses, applies a 20-second timeout, and supports cancellation.
+`/` opens Device Readings (`/device-readings` redirects there) and connects to the EMR readings API through `src/services/reading-services/reading-services.ts` and `src/hooks/useReadings.ts`. Configure `VITE_API_BASE_URL` for a different environment; the readings service appends `/emr/readings` to this shared `/api` root. The service forwards the signed-in session bearer token using the existing API client, validates responses, applies a 20-second timeout, and supports cancellation.
 
 While Device Readings is mounted, `use-readings-realtime.ts` requests a short-lived ticket using the signed-in session bearer token and connects to the readings WebSocket. `vitals.refresh` events invalidate readings in the current account/organization and refetch the active page without changing its filters. Concurrent refreshes are deduplicated. Connections retry with exponential backoff (up to 30 seconds), obtain a fresh ticket each time, and refresh on connection to catch missed events. Leaving the page, signing out, or changing sessions closes the connection and cancels pending ticket requests/retries. Ticket responses with 401/403 stop retries until the session changes. Manual refresh remains available.
 
-Override `VITE_REALTIME_TICKET_URL` and `VITE_READINGS_WEBSOCKET_URL` for other environments; defaults use the supplied backend endpoints. Tokens and tickets are obtained at runtime and are never stored in frontend configuration.
+Realtime tickets use `/auth/realtime-ticket` on `VITE_API_BASE_URL`. Override `VITE_READINGS_WEBSOCKET_URL` for the separate WebSocket environment. Tokens and tickets are obtained at runtime and are never stored in frontend configuration.
 
 The API must allow the deployed frontend origin (and `http://localhost:5173` during development) through CORS, including GET/POST requests and the Authorization header. Browser requests cannot succeed without those response headers.
 
 Pagination and source filtering run on the server. The verified API does not apply the `readingType` parameter; search, type filtering, and sorting explicitly apply to the current server page. The page never silently downloads the entire collection. Opening Details exposes every returned metadata field and the full source payload. Missing patient IDs are shown as unassigned. Local timestamps use the device offset when canonical UTC timestamps are unavailable; displayed times identify the viewer's timezone. Unspecified measurement units are not inferred.
+
+### API configuration
+
+All HTTP services use `VITE_API_BASE_URL`, which defaults to
+`https://rl9otvtzf6.execute-api.eu-north-1.amazonaws.com/api`.
+Authentication, users, roles, and organizations define their `/auth/...` paths
+in their service files; readings use `/emr/readings`, patients use `/patients/...`,
+and devices use `/devices/...`. The same root powers account initialization and
+realtime tickets. `VITE_READINGS_WEBSOCKET_URL` remains separate because it uses a
+different host and the WebSocket protocol.
 
 ### Adding API access
 
@@ -140,3 +150,75 @@ Fixture data is intentionally fake and localized in `src/features/dashboard/data
 `index.html` includes the favicon, touch icons, web manifest, Open Graph metadata, and X/Twitter large-image card metadata. Sharing URLs use `https://rpm.inforcodes.com/`; update the canonical URL and absolute image URLs if the public domain changes.
 
 The share image is `public/social-preview.png` (1200 × 630), with editable artwork in `public/social-preview.svg`. Icon artwork is in `public/favicon.svg`. These static assets must remain publicly accessible so sharing services can fetch them before sign-in. Changes become available after deploying the build; sharing platforms may cache previous previews.
+
+## Languages
+
+The interface supports English (default) and Spanish through `i18next` and
+`react-i18next`. The language picker is available in the app header and on sign-in
+and account recovery screens. The choice is stored under `rpm-language`; storage
+failures fall back to a session-only choice. The root `lang` attribute and React
+Aria locale follow the selected language.
+
+Translations live in `src/i18n/locales/en.json` and `es.json`. English source text
+is the translation key (`keySeparator` and `nsSeparator` are disabled). Add each
+new UI message to both catalogs. Use interpolation for dynamic values and
+`_one`/`_other` keys with `count` for plural messages. Components subscribe through
+`useAppTranslation`; `translate` is also available for notifications and display
+labels outside React. Unknown server messages fall back to their original text.
+
+Translate display labels only: keep API enum values, permission codes, identifiers,
+patient names, and user-entered content intact. Date and number helpers resolve the
+current locale at formatting time; changing language does not change timezones.
+Patient CSV/Excel exports use the selected language for headings and status labels.
+
+Run localization/export checks with:
+
+```sh
+npm test -- src/i18n/i18n.test.ts src/features/patients/patients-export.test.ts --environment node
+```
+
+## Patient service
+
+The patient service appends `/patients/`, `/patients/org/{orgId}`, and
+`/patients/{id}` to the shared `VITE_API_BASE_URL`. Patient queries and mutations use the
+signed-in bearer token, scoped React Query keys, cancellation, and response
+validation. Super Admin can list all patients; other users use their organization's
+listing. The API returns the complete matching list, so search and pagination are
+performed locally.
+
+Patient forms save the documented demographic fields and `isActive`. Clinician,
+clinical-risk status and last-reading values are not supplied by this API; the UI
+uses Active/Inactive and does not invent missing clinical data. CSV and Excel export
+the filtered API records.
+
+For browser access, the patient gateway/service must answer unauthenticated CORS
+`OPTIONS` preflight requests successfully **before** bearer-token authentication.
+Allow the frontend origin,
+Authorization and Content-Type headers, and the documented methods; actual CRUD
+requests should continue to require authentication.
+
+## Device inventory service
+
+The device service appends `/devices/` and `/devices/{id}` to the shared
+`VITE_API_BASE_URL`, preserving the gateway endpoints `/api/devices/` and
+`/api/devices/{id}`.
+The device service uses the existing authenticated Axios client, cancellation,
+response validation, account/organization-scoped React Query keys, and mutation
+toasts. Saving invalidates both inventory and detail queries. The API returns the
+complete matching list, so catalog filters, text search, and pagination run locally.
+
+Forms send `deviceModel`, `imei`, `externalDeviceId`, `vendor`, `deviceType`, and
+`isActive`; clearing optional text fields sends null. They preserve existing vendor
+and type values, including values outside the suggested choices. Device names use
+the model, with the type as a fallback. The service does not supply patient
+assignments, names, serial numbers, or notes; the UI does not fabricate them.
+Device cards retain a patient row labeled “Not provided” pending an assignment API.
+
+The gateway must allow browser CORS preflight for this service mount, including the
+Authorization and Content-Type headers and GET/POST/PUT methods, before requiring
+bearer authentication on the actual requests.
+Device integration checks:
+
+```bash
+npm test -- src/features/devices src/services/device-services src/hooks/use-devices.test.tsx
+```

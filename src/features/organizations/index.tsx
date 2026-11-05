@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { useState } from 'react'
 import { Button, Dropdown } from '@heroui/react'
 import { Building2, Mail, Phone, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
@@ -70,6 +71,8 @@ const columns: EntityColumn<Organization>[] = [
   },
 ]
 export function OrganizationsPage() {
+  useAppTranslation()
+
   const query = useOrganizations()
   const remove = useDeleteOrganization()
   const scope = useAdminScope()
@@ -79,20 +82,20 @@ export function OrganizationsPage() {
     <div className="admin-page">
       <AdminPageHeader
         icon={Building2}
-        title="Organizations"
-        description="Manage the organizations and contact details in your workspace."
+        title={t('Organizations')}
+        description={t('Manage the organizations and contact details in your workspace.')}
         actions={
           scope.isSuperAdmin && (
             <Button onPress={() => setEditor({})}>
               <Plus size={16} />
-              Add organization
+              {t(' Add organization ')}
             </Button>
           )
         }
       />
       <AdminDirectory
-        title="Organization directory"
-        description="Use Edit to manage organization details"
+        title={t('Organization directory')}
+        description={t('Use Edit to manage organization details')}
         icon={Building2}
       >
         <RequestState
@@ -101,7 +104,7 @@ export function OrganizationsPage() {
           retry={() => void query.refetch()}
         >
           <EntityTable
-            label="organizations"
+            label={t('organizations')}
             data={query.data ?? []}
             columns={columns}
             filter={{
@@ -115,16 +118,16 @@ export function OrganizationsPage() {
             actions={(record) => (
               <Dropdown>
                 <Dropdown.Trigger
-                  aria-label={`Actions for ${record.name}`}
+                  aria-label={t('Actions for {{value0}}', { value0: record.name })}
                   className="rounded-lg p-2 hover:bg-surface-muted"
                 >
                   <MoreHorizontal size={16} />
                 </Dropdown.Trigger>
                 <Dropdown.Popover>
-                  <Dropdown.Menu aria-label="Organization actions">
+                  <Dropdown.Menu aria-label={t('Organization actions')}>
                     <Dropdown.Item id="edit" onAction={() => setEditor({ record })}>
                       <Pencil size={14} />
-                      Edit
+                      {t(' Edit ')}
                     </Dropdown.Item>
                     {scope.isSuperAdmin && (
                       <Dropdown.Item
@@ -136,7 +139,7 @@ export function OrganizationsPage() {
                         }}
                       >
                         <Trash2 size={14} />
-                        Delete
+                        {t(' Delete ')}
                       </Dropdown.Item>
                     )}
                   </Dropdown.Menu>

@@ -1,32 +1,417 @@
-import { useQuery } from '@tanstack/react-query'
-import { Button } from '@heroui/react'
-import { Battery, Bluetooth, Download, MonitorSmartphone, Plus, RefreshCw, Wifi, WifiOff } from 'lucide-react'
-import { toast } from 'sonner'
-import { PageHeader } from '@/app/components/page-header'
-import { StatusBadge } from '@/app/components/status-badge'
-import { dashboardApi } from '@/features/dashboard/data/dashboard.api'
+import { useState, type ReactNode } from 'react'
+import { Button, Input, Tabs, TextField } from '@heroui/react'
+import {
+  Barcode,
+  ChevronLeft,
+  ChevronRight,
+  Droplets,
+  HeartPulse,
+  LayoutGrid,
+  MonitorSmartphone,
+  Package,
+  RefreshCw,
+  Plus,
+  Scale,
+  Search,
+  Thermometer,
+  Wind,
+  UserRound,
+  X,
+} from 'lucide-react'
+import { AdminPageHeader } from '@/app/components/administration/admin-page'
+import { translate as t, useAppTranslation } from '@/i18n'
+import {
+  companies,
+  deviceTypes,
+  filterDevices,
+  deviceView,
+  deviceErrorMessage,
+  type DeviceRecord,
+  type DeviceType,
+} from '../devices'
+import { DevicePicture } from '../components/device-picture'
+import { DeviceEditor } from '../components/device-editor'
+import { DeviceDetails } from '../components/device-details'
+import { DevicesSkeleton } from '../components/devices-skeleton'
+import { useDevices } from '@/hooks/use-devices'
+import type { ApiDevice } from '@/services/device-services/device-services'
+import './devices-page.css'
 
+const typeIcons = {
+  'Blood pressure': HeartPulse,
+  'Blood glucose': Droplets,
+  Weight: Scale,
+  Oximeter: Wind,
+  Temperature: Thermometer,
+}
+const typeTones = {
+  'Blood pressure': 'violet',
+  'Blood glucose': 'amber',
+  Weight: 'blue',
+  Oximeter: 'teal',
+  Temperature: 'rose',
+}
+function DeviceLogo({ company }: { company: string }) {
+  if (!companies.some((known) => known === company))
+    return <span className="text-xs font-semibold text-muted">{t(company)}</span>
+  return (
+    <span className={`device-brand-logo ${company === 'Pylo' ? 'device-brand-pylo' : ''}`}>
+      <img src={`/brands/${company === 'Pylo' ? 'pylo.png' : 'smart-meter.png'}`} alt={company} />
+    </span>
+  )
+}
+const pageSize = 8
+function InventoryStatus({ status }: { status: DeviceRecord['status'] }) {
+  return (
+    <span className={`device-status device-status-${status.toLowerCase()}`}>
+      <span />
+      {t(status)}
+    </span>
+  )
+}
+function FilterTabs({
+  label,
+  value,
+  onChange,
+  options,
+  children,
+  className = '',
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  options: {
+    id: string
+    label: string
+    icon?: ReactNode
+    count?: number
+    tone?: string
+    company?: string
+  }[]
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <Tabs
+      selectedKey={value}
+      onSelectionChange={(key) => onChange(String(key))}
+      className={className}
+    >
+      <Tabs.List aria-label={t(label)}>
+        {options.map((option) => (
+          <Tabs.Tab
+            key={option.id}
+            id={option.id}
+            className={`admin-tone-${option.tone ?? 'blue'}`}
+            aria-label={`${t(option.label)}${option.count !== undefined ? ` ${option.count}` : ''}`}
+          >
+            {option.icon}
+            {option.company ? <DeviceLogo company={option.company} /> : t(option.label)}
+            {option.count !== undefined && <span className="device-tab-count">{option.count}</span>}
+          </Tabs.Tab>
+        ))}
+      </Tabs.List>
+      <Tabs.Panel key={value} id={value}>
+        {children}
+      </Tabs.Panel>
+    </Tabs>
+  )
+}
 export function DevicesPage() {
-  const { data: devices = [], isPending } = useQuery({ queryKey: ['devices'], queryFn: dashboardApi.getDevices })
-  const connected = devices.filter((device) => device.status === 'Connected').length
-  const delayed = devices.filter((device) => device.status === 'Sync delayed').length
-  const offline = devices.filter((device) => device.status === 'Offline').length
+  useAppTranslation()
+  const query = useDevices()
+  const devices = (query.data ?? []).map(deviceView)
+  const companyOptions = [...new Set([...companies, ...devices.map((device) => device.company)])]
+  const typeOptions = [...new Set([...deviceTypes, ...devices.map((device) => device.type)])]
+  const [company, setCompany] = useState('all')
+  const [type, setType] = useState('all')
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [details, setDetails] = useState<string | null>(null)
+  const [editor, setEditor] = useState<ApiDevice | 'new' | null>(null)
+  const filtered = filterDevices(devices, company, type, search)
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = Math.min(page, pageCount)
+  const start = (currentPage - 1) * pageSize
+  const visible = filtered.slice(start, start + pageSize)
+  const companyDevices = devices.filter((device) => company === 'all' || device.company === company)
+  const resetFilters = () => {
+    setCompany('all')
+    setType('all')
+    setSearch('')
+    setPage(1)
+  }
+  return (
+    <div className="admin-page devices-page">
+      <AdminPageHeader
+        icon={MonitorSmartphone}
+        eyebrow={t('Device data')}
+        title={t('Devices')}
+        description={t('Browse monitoring devices, company details, and inventory status.')}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              isPending={query.isFetching}
+              isDisabled={query.isFetching}
+              aria-label={t('Refresh devices')}
+              onPress={() => void query.refetch()}
+            >
+              <RefreshCw size={16} className={query.isFetching ? 'animate-spin' : ''} />
+              {t('Refresh')}
+            </Button>
+            <Button onPress={() => setEditor('new')}>
+              <Plus size={17} />
+              {t('Add Device')}
+            </Button>
+          </>
+        }
+      />
 
-  return <>
-    <PageHeader eyebrow="Connected care" title="Device fleet" description="Track connected monitoring equipment, battery health, and device sync reliability." actions={<><Button variant="outline" onPress={() => toast.info('Connect device inventory export.')}><Download size={16} /> Export</Button><Button onPress={() => toast.info('Device pairing workflow is ready for integration.')}><Plus size={16} /> Pair device</Button></>} />
-    <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-      {[{ label: 'Connected', value: connected, icon: Wifi, className: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40' }, { label: 'Sync delayed', value: delayed, icon: RefreshCw, className: 'text-amber-600 bg-amber-50 dark:bg-amber-950/40' }, { label: 'Offline', value: offline, icon: WifiOff, className: 'text-slate-500 bg-slate-100 dark:bg-slate-800' }].map(({ label, value, icon: Icon, className }) => <div key={label} className="panel flex items-center gap-4 p-5"><span className={`flex h-11 w-11 items-center justify-center rounded-xl ${className}`}><Icon size={19} /></span><div><p className="text-2xl font-bold">{isPending ? '—' : value}</p><p className="text-xs muted">{label}</p></div></div>)}
+      <FilterTabs
+        label="Device company"
+        value={company}
+        onChange={(value) => {
+          setCompany(value)
+          setPage(1)
+        }}
+        className="device-company-tabs"
+        options={[
+          {
+            id: 'all',
+            label: 'All companies',
+            count: query.data && !query.isError ? devices.length : undefined,
+          },
+          ...companyOptions.map((id) => ({
+            id,
+            label: id,
+            company: id,
+            tone: id === 'Pylo' ? 'violet' : 'blue',
+            count:
+              query.data && !query.isError
+                ? devices.filter((device) => device.company === id).length
+                : undefined,
+          })),
+        ]}
+      >
+        <div className="device-catalog-toolbar">
+          <div>
+            <h2>{t('Device catalog')}</h2>
+            <p>{t('Find the right device, down to the last digit.')}</p>
+          </div>
+          <TextField
+            aria-label={t('Search devices')}
+            value={search}
+            onChange={(value) => {
+              setSearch(value)
+              setPage(1)
+            }}
+            className="device-search"
+          >
+            <Search size={17} aria-hidden="true" />
+            <Input placeholder={t('Search IMEI, name, company…')} />
+            {search && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('')
+                  setPage(1)
+                }}
+                aria-label={t('Clear device search')}
+              >
+                <X size={15} />
+              </button>
+            )}
+          </TextField>
+        </div>
+        <FilterTabs
+          label="Device type"
+          value={type}
+          onChange={(value) => {
+            setType(value)
+            setPage(1)
+          }}
+          className="device-type-tabs"
+          options={[
+            {
+              id: 'all',
+              label: 'All devices',
+              icon: <LayoutGrid size={16} />,
+              count: query.data && !query.isError ? companyDevices.length : undefined,
+            },
+            ...typeOptions.map((id) => {
+              const Icon = typeIcons[id as DeviceType] ?? Package
+              return {
+                id,
+                label: id,
+                tone: typeTones[id as DeviceType] ?? 'blue',
+                icon: <Icon size={16} />,
+                count:
+                  query.data && !query.isError
+                    ? companyDevices.filter((device) => device.type === id).length
+                    : undefined,
+              }
+            }),
+          ]}
+        >
+          <div className="device-result-caption" role="status" aria-live="polite">
+            <span>
+              {query.isPending
+                ? t('Loading devices…')
+                : query.isError
+                  ? t('Unable to load devices')
+                  : t('{{value0}} devices', { value0: filtered.length })}
+              <span className="device-result-separator">/</span>
+              {t(company === 'all' ? 'All companies' : company)}
+              {type !== 'all' && <> · {t(type)}</>}
+            </span>
+            {(company !== 'all' || type !== 'all' || search) && (
+              <button onClick={resetFilters}>
+                {t('Clear filters')}
+                <X size={13} />
+              </button>
+            )}
+          </div>
+          {query.isPending ? (
+            <DevicesSkeleton />
+          ) : query.isError ? (
+            <div role="alert" className="device-empty">
+              <h3>{t('Unable to load devices')}</h3>
+              <p>{t(deviceErrorMessage(query.error))}</p>
+              <Button
+                variant="outline"
+                isPending={query.isFetching}
+                isDisabled={query.isFetching}
+                onPress={() => void query.refetch()}
+              >
+                <RefreshCw size={16} className={query.isFetching ? 'animate-spin' : ''} />
+                {t('Try again')}
+              </Button>
+            </div>
+          ) : visible.length ? (
+            <div className="device-grid">
+              {visible.map((device) => (
+                <article className="device-card" key={device.id}>
+                  <button
+                    className="device-card-open"
+                    onClick={() => setDetails(device.id)}
+                    aria-label={t('View {{value0}}, IMEI {{value1}}', {
+                      value0: device.name,
+                      value1: device.imei || t('Not provided'),
+                    })}
+                  >
+                    <div className="device-card-image">
+                      <div className="device-card-image-top">
+                        <DeviceLogo company={device.company} />
+                        <InventoryStatus status={device.status} />
+                      </div>
+                      <DevicePicture type={device.type} />
+                    </div>
+                    <div className="device-card-body">
+                      <p className="device-category">{t(device.type)}</p>
+                      <h3>{device.name}</h3>
+                      <p className="device-card-model">
+                        {t('Model')} {device.model}
+                      </p>
+                      <div className="device-imei">
+                        <span>
+                          <Barcode size={15} />
+                          {t('IMEI')}
+                        </span>
+                        <strong>{device.imei || '—'}</strong>
+                      </div>
+                    </div>
+                    <div className="device-card-patient">
+                      <span
+                        className="device-patient-avatar device-patient-unassigned"
+                        aria-hidden="true"
+                      >
+                        <UserRound size={16} />
+                      </span>
+                      <span className="device-patient-info">
+                        <span className="device-patient-label">{t('Assigned patient')}</span>
+                        <span className="device-patient-name">{t('Not provided')}</span>
+                      </span>
+                    </div>
+                  </button>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="device-empty">
+              <Search size={30} />
+              <h3>{t('No devices found')}</h3>
+              <p>{t('Try another name or IMEI, or clear the filters to see every device.')}</p>
+              <Button variant="outline" onPress={resetFilters}>
+                {t('Clear filters')}
+              </Button>
+            </div>
+          )}
+          {!query.isPending && !query.isError && filtered.length > 0 && (
+            <nav className="device-pagination" aria-label={t('Device pagination')}>
+              <p>
+                {t('Showing {{value0}}–{{value1}} of {{value2}} devices', {
+                  value0: start + 1,
+                  value1: Math.min(start + pageSize, filtered.length),
+                  value2: filtered.length,
+                })}
+              </p>
+              <div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  isIconOnly
+                  isDisabled={currentPage === 1}
+                  onPress={() => setPage(currentPage - 1)}
+                  aria-label={t('Previous devices page')}
+                >
+                  <ChevronLeft size={16} aria-hidden="true" />
+                </Button>
+                {Array.from({ length: pageCount }, (_, index) => (
+                  <button
+                    key={index}
+                    className="device-page-number"
+                    aria-label={t('Devices page {{value0}}', { value0: index + 1 })}
+                    aria-current={currentPage === index + 1 ? 'page' : undefined}
+                    onClick={() => setPage(index + 1)}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  isIconOnly
+                  isDisabled={currentPage === pageCount}
+                  onPress={() => setPage(currentPage + 1)}
+                  aria-label={t('Next devices page')}
+                >
+                  <ChevronRight size={16} aria-hidden="true" />
+                </Button>
+              </div>
+            </nav>
+          )}
+        </FilterTabs>
+      </FilterTabs>
+      {details && (
+        <DeviceDetails
+          id={details}
+          onClose={() => setDetails(null)}
+          onEdit={(record) => {
+            setEditor(record)
+            setDetails(null)
+          }}
+        />
+      )}
+      {editor && (
+        <DeviceEditor
+          record={editor === 'new' ? undefined : editor}
+          onClose={() => setEditor(null)}
+          onSaved={() => {
+            if (editor === 'new') resetFilters()
+          }}
+        />
+      )}
     </div>
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {devices.map((device) => <article key={device.id} className="panel p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-        <div className="flex items-start justify-between gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300"><MonitorSmartphone size={20} /></span><StatusBadge status={device.status} /></div>
-        <h2 className="mt-4 text-sm font-bold">{device.name}</h2><p className="mt-1 text-xs muted">{device.category} · {device.id}</p>
-        <div className="mt-4 rounded-xl bg-slate-50 p-3 dark:bg-slate-900/50"><p className="text-[10px] muted">Assigned patient</p><p className="mt-1 text-xs font-semibold">{device.patient}</p></div>
-        <div className="mt-4 flex items-center justify-between text-xs"><span className="flex items-center gap-1.5 muted"><Bluetooth size={14} /> Last sync</span><span className="font-medium">{device.lastSync}</span></div>
-        <div className="mt-3"><div className="mb-1.5 flex items-center justify-between text-xs"><span className="flex items-center gap-1.5 muted"><Battery size={14} /> Battery</span><span className={`font-bold ${device.battery < 20 ? 'text-rose-600' : ''}`}>{device.battery}%</span></div><div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div className={`h-full rounded-full ${device.battery < 20 ? 'bg-rose-500' : device.battery < 40 ? 'bg-amber-500' : 'bg-teal-500'}`} style={{ width: `${device.battery}%` }} /></div></div>
-        <div className="mt-5 border-t border-[var(--border)] pt-4"><p className="text-[10px] muted">Serial: <span className="font-mono">{device.serial}</span></p><div className="mt-3 flex gap-2"><Button variant="outline" size="sm" className="flex-1" onPress={() => toast.info(`Connect diagnostic history for ${device.id}.`)}>Diagnostics</Button><Button variant="ghost" size="sm" className="flex-1" onPress={() => toast.info(`Connect device management for ${device.id}.`)}>Manage</Button></div></div>
-      </article>)}
-    </div>
-    {!isPending && devices.length === 0 ? <div className="panel p-12 text-center"><p className="font-semibold">No devices enrolled</p><p className="mt-1 text-sm muted">Pair the first device to start receiving readings.</p></div> : null}
-  </>
+  )
 }

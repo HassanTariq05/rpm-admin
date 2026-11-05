@@ -1,3 +1,4 @@
+import { locale, translate as t, useAppTranslation } from '@/i18n'
 import { Link } from '@tanstack/react-router'
 import { useAuthStore } from '@/stores/auth-store'
 import { useEffect, useMemo, useState } from 'react'
@@ -33,7 +34,6 @@ import {
   readingTimestamp,
   readingsErrorMessage,
   readingsAccessDenied,
-  sourceLabel,
   timeFormat,
   viewerTimeZone,
 } from './readings'
@@ -43,6 +43,8 @@ import { DeviceBrand, ReadingTime, UnassignedPatient } from './components/readin
 import './readings.css'
 
 function ReadingValue({ reading }: { reading: DeviceReading }) {
+  useAppTranslation()
+
   const result = measurement(reading)
   const Icon =
     reading.readingType === 'weight'
@@ -60,19 +62,21 @@ function ReadingValue({ reading }: { reading: DeviceReading }) {
         <Icon size={18} />
       </span>
       <div className="min-w-0">
-        <span className="reading-type-label">{readingLabel(reading.readingType)}</span>
+        <span className="reading-type-label">{t(readingLabel(reading.readingType))}</span>
         <p className="mt-1 whitespace-nowrap reading-measurement font-semibold tabular-nums text-foreground">
-          {result.value}{' '}
-          {result.unit && <span className="text-[11px] font-normal text-muted">{result.unit}</span>}
+          {t(result.value)}{' '}
+          {result.unit && (
+            <span className="text-[11px] font-normal text-muted">{t(result.unit)}</span>
+          )}
         </p>
-        {result.secondary && <p className="mt-1 text-[11px] text-muted">{result.secondary}</p>}
+        {result.secondary && <p className="mt-1 text-[11px] text-muted">{t(result.secondary)}</p>}
         {!result.unit &&
           ['blood_pressure', 'blood_glucose', 'weight', 'thermometer'].includes(
             reading.readingType,
-          ) && <p className="mt-1 text-[10px] text-muted">Unit not supplied</p>}
+          ) && <p className="mt-1 text-[10px] text-muted">{t('Unit not supplied')}</p>}
         {irregularFlag(reading) === true && (
           <span className="mt-1 inline-block rounded bg-warning-bg px-1.5 py-0.5 text-[10px] font-medium text-warning">
-            Irregular flag
+            {t(' Irregular flag ')}
           </span>
         )}
       </div>
@@ -81,6 +85,8 @@ function ReadingValue({ reading }: { reading: DeviceReading }) {
 }
 
 export function DeviceReadingsPage() {
+  useAppTranslation()
+
   const scope = useAdminScope()
   const token = useAuthStore((state) => state.auth.accessToken)
   const [page, setPage] = useState(1)
@@ -143,9 +149,9 @@ export function DeviceReadingsPage() {
       type="button"
       className="inline-flex items-center gap-1.5"
       onClick={() => toggleSort(field)}
-      aria-label={`Sort this page by ${label.toLowerCase()}`}
+      aria-label={t('Sort this page by {{value0}}', { value0: t(label).toLowerCase() })}
     >
-      {label}
+      {t(label)}
       {sort.field === field ? (
         sort.desc ? (
           <ArrowDown size={13} />
@@ -161,22 +167,22 @@ export function DeviceReadingsPage() {
     <div className="admin-page device-readings-page">
       <AdminPageHeader
         icon={Activity}
-        title="Device Readings"
-        eyebrow="Device data"
-        description="Review device measurements, source details, and patient assignments."
+        title={t('Device Readings')}
+        eyebrow={t('Device data')}
+        description={t('Review device measurements, source details, and patient assignments.')}
         actions={
           <Button
             variant="outline"
             isDisabled={!scope.ready || !token || query.isFetching}
             onPress={() => void query.refetch()}
-            aria-label="Refresh readings"
+            aria-label={t('Refresh readings')}
           >
             <RefreshCw
               size={16}
               className={query.isFetching ? 'animate-spin motion-reduce:animate-none' : ''}
               aria-hidden="true"
             />
-            {query.isFetching && !query.isPending ? 'Refreshing…' : 'Refresh'}
+            {query.isFetching && !query.isPending ? t('Refreshing…') : t('Refresh')}
           </Button>
         }
       />
@@ -186,7 +192,7 @@ export function DeviceReadingsPage() {
         className="readings-workspace"
       >
         <div className="readings-tabs-scroll">
-          <Tabs.List className="readings-tabs" aria-label="Reading types on this page">
+          <Tabs.List className="readings-tabs" aria-label={t('Reading types on this page')}>
             {[
               ...readingTypes,
               ...unknownTypes.map((id) => ({
@@ -202,9 +208,9 @@ export function DeviceReadingsPage() {
               return (
                 <Tabs.Tab key={id} id={id} className={`reading-tab admin-tone-${tone}`}>
                   <Icon size={17} aria-hidden="true" />
-                  <span>{label}</span>
+                  <span>{t(label)}</span>
                   <span className="reading-tab-count">
-                    {count == null ? '—' : count.toLocaleString()}
+                    {count == null ? '—' : count.toLocaleString(locale())}
                   </span>
                 </Tabs.Tab>
               )
@@ -222,13 +228,13 @@ export function DeviceReadingsPage() {
           >
             <AdminDirectory
               icon={MonitorSmartphone}
-              title="Measurement feed"
-              description={`Times shown in ${viewerTimeZone}`}
+              title={t('Measurement feed')}
+              description={t('Times shown in {{value0}}', { value0: viewerTimeZone })}
             >
               <div className="readings-toolbar">
                 <SlidersHorizontal size={17} className="readings-filter-icon" aria-hidden="true" />
                 <TextField
-                  aria-label="Search readings on this page"
+                  aria-label={t('Search readings on this page')}
                   value={search}
                   onChange={setSearch}
                   className="min-w-48 flex-1 sm:max-w-sm"
@@ -239,24 +245,31 @@ export function DeviceReadingsPage() {
                       className="pointer-events-none absolute top-3 left-3 z-10 text-muted"
                       aria-hidden="true"
                     />
-                    <Input className="w-full pl-9" placeholder="Search device or reading ID…" />
+                    <Input
+                      className="w-full pl-9"
+                      placeholder={t('Search device or reading ID…')}
+                    />
                   </div>
                 </TextField>
                 <Tabs.List
                   className="readings-tabs readings-source-tabs"
-                  aria-label="Reading sources"
+                  aria-label={t('Reading sources')}
                 >
                   <Tabs.Tab id="all" className="reading-tab admin-tone-blue">
                     <MonitorSmartphone size={16} aria-hidden="true" />
-                    <span>All sources</span>
+                    <span>{t('All sources')}</span>
                   </Tabs.Tab>
-                  <Tabs.Tab id="pylo" className="reading-tab admin-tone-violet" aria-label="Pylo">
+                  <Tabs.Tab
+                    id="pylo"
+                    className="reading-tab admin-tone-violet"
+                    aria-label={t('Pylo')}
+                  >
                     <DeviceBrand source="pylo" />
                   </Tabs.Tab>
                   <Tabs.Tab
                     id="smart_meter"
                     className="reading-tab admin-tone-blue"
-                    aria-label="Smart Meter"
+                    aria-label={t('Smart Meter')}
                   >
                     <DeviceBrand source="smart_meter" />
                   </Tabs.Tab>
@@ -271,33 +284,20 @@ export function DeviceReadingsPage() {
                     }}
                   >
                     <X size={14} />
-                    Clear
+                    {t(' Clear ')}
                   </Button>
                 )}
               </div>
               <Tabs.Panel key={source} id={source} className="readings-tab-panel">
-                <div className="readings-context">
-                  <p>
-                    <span className="readings-context-dot" aria-hidden="true" />
-                    Search, type filters, and sorting apply to this page.
-                  </p>
-                  <p role="status" aria-live="polite">
-                    {query.isFetching
-                      ? 'Updating readings…'
-                      : data
-                        ? `${data.total.toLocaleString()} ${source === 'all' ? 'total readings' : `${sourceLabel(source)} readings`}`
-                        : 'Readings directory'}
-                  </p>
-                </div>
                 {query.isError && (
                   <div role="alert" className="readings-error">
                     <div>
                       <p className="font-semibold">
-                        {data ? 'Refresh failed' : 'Readings could not be loaded'}
+                        {data ? t('Refresh failed') : t('Readings could not be loaded')}
                       </p>
                       <p className="mt-1">
-                        {readingsErrorMessage(query.error)}
-                        {data ? ' Previously loaded readings remain visible.' : ''}
+                        {t(readingsErrorMessage(query.error))}
+                        {data ? t(' Previously loaded readings remain visible.') : ''}
                       </p>
                     </div>
                     <Button
@@ -306,15 +306,17 @@ export function DeviceReadingsPage() {
                       isDisabled={query.isFetching}
                       onPress={() => void query.refetch()}
                     >
-                      Try again
+                      {t(' Try again ')}
                     </Button>
                   </div>
                 )}
                 {!scope.ready || !token ? (
                   <div className="readings-empty">
-                    <p className="font-semibold text-foreground">Sign in to view device readings</p>
+                    <p className="font-semibold text-foreground">
+                      {t('Sign in to view device readings')}
+                    </p>
                     <Link to="/login" className="mt-3 inline-block text-sm text-primary underline">
-                      Sign in again
+                      {t(' Sign in again ')}
                     </Link>
                   </div>
                 ) : query.isPending && !data ? (
@@ -322,12 +324,12 @@ export function DeviceReadingsPage() {
                 ) : data ? (
                   <>
                     <div className="overflow-x-auto" aria-busy={query.isFetching}>
-                      <table className="readings-table" aria-label="Device readings">
+                      <table className="readings-table" aria-label={t('Device readings')}>
                         <thead>
                           <tr>
-                            <th scope="col">Reading</th>
-                            <th scope="col">Device</th>
-                            <th scope="col">Patient</th>
+                            <th scope="col">{t('Reading')}</th>
+                            <th scope="col">{t('Device')}</th>
+                            <th scope="col">{t('Patient')}</th>
                             <th
                               scope="col"
                               aria-sort={
@@ -338,7 +340,7 @@ export function DeviceReadingsPage() {
                                   : 'none'
                               }
                             >
-                              {sortButton('recorded', 'Recorded')}
+                              {t(sortButton('recorded', 'Recorded'))}
                             </th>
                             <th
                               scope="col"
@@ -350,10 +352,10 @@ export function DeviceReadingsPage() {
                                   : 'none'
                               }
                             >
-                              {sortButton('received', 'Received')}
+                              {t(sortButton('received', 'Received'))}
                             </th>
                             <th scope="col">
-                              <span className="sr-only">Details</span>
+                              <span className="sr-only">{t('Details')}</span>
                             </th>
                           </tr>
                         </thead>
@@ -364,16 +366,17 @@ export function DeviceReadingsPage() {
                                 <th scope="row">
                                   <ReadingValue reading={reading} />
                                   <span className="mt-2 block text-[10px] font-normal text-muted">
-                                    Reading #{reading.id}
+                                    {t(' Reading #')}
+                                    {reading.id}
                                   </span>
                                 </th>
                                 <td>
                                   <DeviceBrand source={reading.source} />
                                   <p className="reading-device-model">
-                                    {displayText(reading.deviceModel) ?? 'Unknown model'}
+                                    {displayText(reading.deviceModel) ?? t('Unknown model')}
                                   </p>
                                   <p className="mt-1 font-mono text-[11px] text-muted">
-                                    {displayText(reading.deviceId) ?? 'No device ID'}
+                                    {displayText(reading.deviceId) ?? t('No device ID')}
                                   </p>
                                 </td>
                                 <td>
@@ -390,11 +393,13 @@ export function DeviceReadingsPage() {
                                     size="sm"
                                     variant="ghost"
                                     className="admin-edit-button reading-details-button"
-                                    aria-label={`View reading ${reading.id}`}
+                                    aria-label={t('View reading {{value0}}', {
+                                      value0: reading.id,
+                                    })}
                                     onPress={() => setSelected({ reading, userId: scope.user?.id })}
                                   >
                                     <Eye size={15} />
-                                    Details
+                                    {t(' Details ')}
                                   </Button>
                                 </td>
                               </tr>
@@ -406,15 +411,21 @@ export function DeviceReadingsPage() {
                                   <Activity size={28} aria-hidden="true" />
                                   <p className="mt-3 font-semibold text-foreground">
                                     {hasLocalFilters
-                                      ? 'No readings match on this page'
-                                      : 'No readings found'}
+                                      ? t('No readings match on this page')
+                                      : t('No readings found')}
                                   </p>
                                   <p className="mt-1 text-sm">
                                     {hasLocalFilters
-                                      ? 'Clear the search or type filter, or move to another page.'
+                                      ? t(
+                                          'Clear the search or type filter, or move to another page.',
+                                        )
                                       : source !== 'all'
-                                        ? 'Choose another source or refresh to check for new readings.'
-                                        : 'New device measurements will appear here when they are received.'}
+                                        ? t(
+                                            'Choose another source or refresh to check for new readings.',
+                                          )
+                                        : t(
+                                            'New device measurements will appear here when they are received.',
+                                          )}
                                   </p>
                                   {hasLocalFilters && (
                                     <Button
@@ -426,7 +437,7 @@ export function DeviceReadingsPage() {
                                         setType('all')
                                       }}
                                     >
-                                      Clear page filters
+                                      {t(' Clear page filters ')}
                                     </Button>
                                   )}
                                 </div>
@@ -439,19 +450,23 @@ export function DeviceReadingsPage() {
                     <div className="readings-pagination">
                       <div>
                         <p>
-                          {first}–{last} of {data.total.toLocaleString()} readings
-                          {hasLocalFilters ? ` · ${rows.length} match on this page` : ''}
+                          {t(first)}–{t(last)} {t(' of ')}
+                          {t(data.total.toLocaleString(locale()))} {t(' readings ')}
+                          {hasLocalFilters
+                            ? t(' · {{value0}} match on this page', { value0: rows.length })
+                            : ''}
                         </p>
                         {query.dataUpdatedAt > 0 && (
                           <p className="mt-1 text-[10px]">
-                            Last updated {timeFormat.format(query.dataUpdatedAt)}
+                            {t(' Last updated ')}
+                            {t(timeFormat.format(query.dataUpdatedAt))}
                           </p>
                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-3">
                         <div className="w-24">
                           <ChoiceField
-                            label="Rows"
+                            label={t('Rows')}
                             value={String(pageSize)}
                             disabled={paging}
                             options={[10, 25, 50].map((value) => ({
@@ -465,13 +480,15 @@ export function DeviceReadingsPage() {
                           />
                         </div>
                         <span>
-                          Page {currentPage} of {totalPages}
+                          {t(' Page ')}
+                          {t(currentPage)} {t(' of ')}
+                          {t(totalPages)}
                         </span>
                         <Button
                           size="sm"
                           isIconOnly
                           variant="outline"
-                          aria-label="Previous readings page"
+                          aria-label={t('Previous readings page')}
                           isDisabled={paging || currentPage <= 1}
                           onPress={() => setPage(currentPage - 1)}
                         >
@@ -481,7 +498,7 @@ export function DeviceReadingsPage() {
                           size="sm"
                           isIconOnly
                           variant="outline"
-                          aria-label="Next readings page"
+                          aria-label={t('Next readings page')}
                           isDisabled={paging || currentPage >= totalPages}
                           onPress={() => setPage(currentPage + 1)}
                         >

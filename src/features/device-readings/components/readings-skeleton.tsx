@@ -1,8 +1,13 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 function Block({ shape = '' }: { shape?: string }) {
+  useAppTranslation()
+
   return <span className={`readings-skeleton-block ${shape}`} />
 }
 
 function DatePlaceholder() {
+  useAppTranslation()
+
   return (
     <div className="readings-skeleton-group">
       <Block shape="readings-skeleton-calendar" />
@@ -15,16 +20,18 @@ function DatePlaceholder() {
 }
 
 export function ReadingsSkeleton() {
+  useAppTranslation()
+
   return (
-    <div role="status" aria-label="Loading device readings" className="readings-skeleton">
-      <span className="sr-only">Loading device readings…</span>
+    <div role="status" aria-label={t('Loading device readings')} className="readings-skeleton">
+      <span className="sr-only">{t('Loading device readings…')}</span>
       <div className="overflow-x-auto" aria-hidden="true">
         <table className="readings-table readings-skeleton-table">
           <thead>
             <tr>
               {['Reading', 'Device', 'Patient', 'Recorded', 'Received', 'Details'].map((label) => (
                 <th key={label} scope="col">
-                  {label}
+                  {t(label)}
                 </th>
               ))}
             </tr>

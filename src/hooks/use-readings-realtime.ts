@@ -3,6 +3,7 @@ import axios from 'axios'
 import { useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import { env } from '@/lib/env'
+import { requestRealtimeTicket } from '@/services/auth-services/auth-services'
 import { useAuthStore } from '@/stores/auth-store'
 import { useAdminScope } from '@/hooks/use-administration'
 
@@ -61,14 +62,9 @@ export function useReadingsRealtime() {
     const connect = async () => {
       try {
         // Tickets expire after 60 seconds; never reuse one on reconnection.
-        const response = await axios.post<unknown>(env.realtimeTicketUrl, undefined, {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: false,
-          signal: controller.signal,
-          timeout: 20_000,
-        })
+        const data = await requestRealtimeTicket(token, controller.signal)
         if (disposed) return
-        const { ticket } = ticketSchema.parse(response.data)
+        const { ticket } = ticketSchema.parse(data)
         const url = new URL(env.readingsWebsocketUrl)
         url.searchParams.set('ticket', ticket)
         const connection = new WebSocket(url.toString())

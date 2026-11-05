@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { useRef } from 'react'
 
 interface OtpInputProps {
@@ -8,6 +9,8 @@ interface OtpInputProps {
 }
 
 export const OtpInput = ({ value, onChange, onBlur, hasError }: OtpInputProps) => {
+  useAppTranslation()
+
   const inputRefs = useRef<Array<HTMLInputElement | null>>([])
 
   const digits = Array.from({ length: 6 }, (_, index) => value[index] ?? '')
@@ -64,7 +67,7 @@ export const OtpInput = ({ value, onChange, onBlur, hasError }: OtpInputProps) =
     <div
       className="flex justify-between gap-2 sm:gap-3"
       role="group"
-      aria-label="Six-digit verification code"
+      aria-label={t('Six-digit verification code')}
     >
       {digits.map((digit, index) => (
         <input
@@ -75,7 +78,7 @@ export const OtpInput = ({ value, onChange, onBlur, hasError }: OtpInputProps) =
           type="text"
           inputMode="numeric"
           autoComplete={index === 0 ? 'one-time-code' : 'off'}
-          aria-label={`Digit ${index + 1}`}
+          aria-label={t('Digit {{value0}}', { value0: index + 1 })}
           aria-invalid={hasError}
           value={digit}
           maxLength={1}

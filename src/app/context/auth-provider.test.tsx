@@ -3,6 +3,7 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import axios from 'axios'
+import { env } from '@/lib/env'
 import { AuthProvider } from '@/app/context/auth-provider'
 import { useAuthStore, type AuthUser } from '@/stores/auth-store'
 import { router } from '@/router'
@@ -55,7 +56,8 @@ describe('account initialization', () => {
 
     renderProvider()
     expect(axios.get).toHaveBeenCalledTimes(1)
-    expect(axios.get).toHaveBeenCalledWith(expect.stringMatching(/\/me$/), {
+    expect(axios.get).toHaveBeenCalledWith('/auth/me', {
+      baseURL: env.apiBaseUrl,
       headers: { Authorization: 'Bearer test-token' },
       withCredentials: false,
     })

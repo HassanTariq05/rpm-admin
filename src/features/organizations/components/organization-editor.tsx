@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { Building2, FileText, Mail, Phone } from 'lucide-react'
 import { CountryCodeField } from '@/features/users/components/country-code-field'
 import { joinPhoneNumber, splitPhoneNumber } from '@/features/users/phone-number'
@@ -23,6 +24,8 @@ export function OrganizationEditor({
   record?: Organization
   onClose: () => void
 }) {
+  useAppTranslation()
+
   const create = useCreateOrganization()
   const update = useUpdateOrganization()
   const pending = create.isPending || update.isPending
@@ -61,29 +64,29 @@ export function OrganizationEditor({
           className="sm:w-full sm:max-w-5xl sm:p-6"
           dialogClassName="admin-editor-modal max-w-4xl"
           headerIcon={<Building2 size={25} strokeWidth={1.8} />}
-          title={record ? 'Edit organization' : 'Add organization'}
-          description="Manage organization contact details and account status."
+          title={record ? t('Edit organization') : t('Add organization')}
+          description={t('Manage organization contact details and account status.')}
           onClose={onClose}
           pending={pending || isSubmitting}
           footer={
             <SubmitButton pending={pending || isSubmitting} form="organization-form">
               <Building2 size={16} aria-hidden="true" />
-              {record ? 'Save changes' : 'Create organization'}
+              {record ? t('Save changes') : t('Create organization')}
             </SubmitButton>
           }
         >
           <Form id="organization-form" className="grid items-start gap-x-6 gap-y-4 md:grid-cols-2">
             <FormTextField
               name="name"
-              label="Organization name"
-              placeholder="Enter organization name"
+              label={t('Organization name')}
+              placeholder={t('Enter organization name')}
               icon={<Building2 size={17} className="admin-icon-amber" />}
             />
             <FormTextField
               name="email"
-              label="Email"
+              label={t('Email')}
               type="email"
-              placeholder="contact@example.com"
+              placeholder={t('contact@example.com')}
               icon={<Mail size={17} className="admin-icon-blue" />}
             />
             <div className="grid min-w-0 grid-cols-[minmax(0,7rem)_minmax(0,1fr)] gap-2">
@@ -93,9 +96,9 @@ export function OrganizationEditor({
               />
               <FormTextField
                 name="phoneNumber"
-                label="Phone number"
+                label={t('Phone number')}
                 type="tel"
-                placeholder="Enter phone number"
+                placeholder={t('Enter phone number')}
                 icon={<Phone size={17} className="admin-icon-teal" />}
               />
             </div>
@@ -103,15 +106,15 @@ export function OrganizationEditor({
             <div className="md:col-span-2">
               <FormTextField
                 name="description"
-                label="Description"
-                placeholder="Describe this organization"
+                label={t('Description')}
+                placeholder={t('Describe this organization')}
                 multiline
                 icon={<FileText size={17} className="admin-icon-violet" />}
               />
             </div>
             {status && (
               <p role="alert" className="text-sm text-danger md:col-span-2">
-                {status}
+                {t(status)}
               </p>
             )}
           </Form>

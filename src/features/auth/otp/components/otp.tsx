@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { useCallback } from 'react'
 import { Button } from '@heroui/react/button'
 import { Label } from '@heroui/react/label'
@@ -18,6 +19,8 @@ const OtpSchema = Yup.object({
 })
 
 export const OTP = () => {
+  useAppTranslation()
+
   const router = useRouter()
 
   // Configure the /otp route's search validation to allow an optional email.
@@ -90,8 +93,8 @@ export const OTP = () => {
             <HeartPulse size={25} />
           </div>
           <div>
-            <p className="text-lg font-bold">Remote Patient Monitoring</p>
-            <p className="text-xs text-[var(--auth-muted)]">Connected care workspace</p>
+            <p className="text-lg font-bold">{t('Remote Patient Monitoring')}</p>
+            <p className="text-xs text-[var(--auth-muted)]">{t('Connected care workspace')}</p>
           </div>
         </Link>
 
@@ -100,15 +103,17 @@ export const OTP = () => {
             <ShieldCheck size={30} />
           </div>
           <h1 className="text-4xl font-semibold leading-tight xl:text-5xl">
-            One more step to secure access.
+            {t(' One more step to secure access. ')}
           </h1>
           <p className="mt-6 max-w-md leading-7 text-[var(--auth-muted)]">
-            Verify your identity to help protect your account and your healthcare workspace.
+            {t(
+              ' Verify your identity to help protect your account and your healthcare workspace. ',
+            )}
           </p>
         </div>
 
         <p className="relative z-10 text-xs text-[var(--auth-muted)]">
-          Secure access for authorized healthcare professionals.
+          {t(' Secure access for authorized healthcare professionals. ')}
         </p>
       </section>
 
@@ -119,7 +124,7 @@ export const OTP = () => {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--auth-bg)] text-[var(--auth-accent)]">
               <HeartPulse size={23} />
             </div>
-            <span className="font-bold text-foreground">Remote Patient Monitoring</span>
+            <span className="font-bold text-foreground">{t('Remote Patient Monitoring')}</span>
           </Link>
 
           <Link
@@ -127,7 +132,7 @@ export const OTP = () => {
             className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-muted transition-colors hover:text-primary"
           >
             <ArrowLeft size={16} />
-            Back
+            {t(' Back ')}
           </Link>
 
           <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-surface text-primary">
@@ -135,14 +140,14 @@ export const OTP = () => {
           </div>
 
           <p className="mb-3 text-sm font-semibold tracking-wide text-primary">
-            EMAIL VERIFICATION
+            {t(' EMAIL VERIFICATION ')}
           </p>
           <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            Check your email
+            {t(' Check your email ')}
           </h2>
           <p className="mt-4 text-sm leading-6 text-muted">
-            Enter the 6-digit verification code we sent to{' '}
-            <span className="font-semibold text-foreground">{email || 'your email address'}</span>.
+            {t(' Enter the 6-digit verification code we sent to')}{' '}
+            <span className="font-semibold text-foreground">{email || t("your email address")}</span>.
           </p>
 
           <Formik initialValues={{ otp: '' }} validationSchema={OtpSchema} onSubmit={handleVerify}>
@@ -159,7 +164,7 @@ export const OTP = () => {
               <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
                 <div>
                   <Label className="mb-3 block text-sm font-medium text-foreground">
-                    Verification code
+                    {t(' Verification code ')}
                   </Label>
 
                   <OtpInput
@@ -172,7 +177,7 @@ export const OTP = () => {
                   />
 
                   {touched.otp && errors.otp && (
-                    <p className="mt-2 text-sm text-danger">{errors.otp}</p>
+                    <p className="mt-2 text-sm text-danger">{t(errors.otp)}</p>
                   )}
                 </div>
 
@@ -182,18 +187,18 @@ export const OTP = () => {
                   isDisabled={isSubmitting}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--auth-bg)] py-3.5 font-semibold text-[var(--auth-text)] transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
-                  {isSubmitting ? 'Verifying...' : 'Verify code'}
+                  {isSubmitting ? t('Verifying...') : t('Verify code')}
                   {!isSubmitting && <ArrowRight size={17} />}
                 </Button>
 
                 <div className="pt-2 text-center">
-                  <p className="text-sm text-muted">Didn&apos;t receive the code?</p>
+                  <p className="text-sm text-muted">{t("Didn't receive the code?")}</p>
                   <button
                     type="button"
                     onClick={() => handleResend(setStatus)}
                     className="mt-2 text-sm font-semibold text-primary transition-colors hover:text-primary-hover"
                   >
-                    Resend verification code
+                    {t(' Resend verification code ')}
                   </button>
                 </div>
               </form>
@@ -201,17 +206,17 @@ export const OTP = () => {
           </Formik>
 
           <p className="mt-6 text-center text-sm text-muted">
-            Remember your password?{' '}
+            {t(' Remember your password?')}{' '}
             <Link
               to="/login"
               className="font-semibold text-primary transition-colors hover:text-primary-hover"
             >
-              Sign in
+              {t(' Sign in ')}
             </Link>
           </p>
 
           <p className="mt-6 text-center text-xs text-muted">
-            © {new Date().getFullYear()} Remote Patient Monitoring. All rights reserved.
+            © {t(new Date().getFullYear())} {t(' Remote Patient Monitoring. All rights reserved. ')}
           </p>
         </div>
       </section>

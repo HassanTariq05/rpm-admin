@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { useCallback } from 'react'
 import { Button } from '@heroui/react/button'
 import { Input } from '@heroui/react/input'
@@ -28,6 +29,8 @@ const PasswordResetSchema = Yup.object({
 })
 
 export const PasswordReset = () => {
+  useAppTranslation()
+
   const router = useRouter()
 
   const handleSubmit = useCallback(
@@ -75,8 +78,8 @@ export const PasswordReset = () => {
             <HeartPulse size={25} />
           </div>
           <div>
-            <p className="text-lg font-bold">Remote Patient Monitoring</p>
-            <p className="text-xs text-[var(--auth-muted)]">Connected care workspace</p>
+            <p className="text-lg font-bold">{t('Remote Patient Monitoring')}</p>
+            <p className="text-xs text-[var(--auth-muted)]">{t('Connected care workspace')}</p>
           </div>
         </Link>
 
@@ -85,16 +88,17 @@ export const PasswordReset = () => {
             <ShieldCheck size={30} />
           </div>
           <h1 className="text-4xl font-semibold leading-tight xl:text-5xl">
-            Secure your account with a new password.
+            {t(' Secure your account with a new password. ')}
           </h1>
           <p className="mt-6 max-w-md leading-7 text-[var(--auth-muted)]">
-            Choose a strong password to protect your healthcare workspace and keep your account
-            secure.
+            {t(
+              ' Choose a strong password to protect your healthcare workspace and keep your account secure. ',
+            )}
           </p>
         </div>
 
         <p className="relative z-10 text-xs text-[var(--auth-muted)]">
-          Secure access for authorized healthcare professionals.
+          {t(' Secure access for authorized healthcare professionals. ')}
         </p>
       </section>
 
@@ -105,7 +109,7 @@ export const PasswordReset = () => {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--auth-bg)] text-[var(--auth-accent)]">
               <HeartPulse size={23} />
             </div>
-            <span className="font-bold text-foreground">Remote Patient Monitoring</span>
+            <span className="font-bold text-foreground">{t('Remote Patient Monitoring')}</span>
           </Link>
 
           <Link
@@ -113,20 +117,21 @@ export const PasswordReset = () => {
             className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-muted transition hover:text-primary"
           >
             <ArrowLeft size={16} />
-            Back to sign in
+            {t(' Back to sign in ')}
           </Link>
 
           <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-surface text-primary">
             <LockKeyhole size={26} />
           </div>
 
-          <p className="mb-3 text-sm font-semibold text-primary">ACCOUNT RECOVERY</p>
+          <p className="mb-3 text-sm font-semibold text-primary">{t('ACCOUNT RECOVERY')}</p>
           <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            Reset your password
+            {t(' Reset your password ')}
           </h2>
           <p className="mt-4 text-sm leading-6 text-muted">
-            Create a new password with at least 8 characters, then confirm it to finish resetting
-            your account.
+            {t(
+              ' Create a new password with at least 8 characters, then confirm it to finish resetting your account. ',
+            )}
           </p>
 
           <Formik
@@ -155,15 +160,15 @@ export const PasswordReset = () => {
                   isRequired
                 >
                   <Label className="mb-2 block text-sm font-medium text-foreground">
-                    New password
+                    {t(' New password ')}
                   </Label>
                   <Input
-                    placeholder="At least 8 characters"
+                    placeholder={t('At least 8 characters')}
                     autoComplete="new-password"
                     className="w-full"
                   />
                   {touched.password && errors.password && (
-                    <p className="mt-1 text-sm text-danger">{errors.password}</p>
+                    <p className="mt-1 text-sm text-danger">{t(errors.password)}</p>
                   )}
                 </TextField>
 
@@ -177,15 +182,15 @@ export const PasswordReset = () => {
                   isRequired
                 >
                   <Label className="mb-2 block text-sm font-medium text-foreground">
-                    Confirm new password
+                    {t(' Confirm new password ')}
                   </Label>
                   <Input
-                    placeholder="Re-enter your new password"
+                    placeholder={t('Re-enter your new password')}
                     autoComplete="new-password"
                     className="w-full"
                   />
                   {touched.confirmPassword && errors.confirmPassword && (
-                    <p className="mt-1 text-sm text-danger">{errors.confirmPassword}</p>
+                    <p className="mt-1 text-sm text-danger">{t(errors.confirmPassword)}</p>
                   )}
                 </TextField>
 
@@ -194,7 +199,7 @@ export const PasswordReset = () => {
                     role="alert"
                     className="rounded-xl border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger"
                   >
-                    {status.error}
+                    {t(status.error)}
                   </div>
                 )}
 
@@ -204,7 +209,7 @@ export const PasswordReset = () => {
                   isDisabled={isSubmitting}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-semibold text-primary-foreground transition hover:bg-primary-hover disabled:opacity-60"
                 >
-                  {isSubmitting ? 'Resetting password...' : 'Reset password'}
+                  {isSubmitting ? t('Resetting password...') : t('Reset password')}
                   {!isSubmitting && <ArrowRight size={17} />}
                 </Button>
               </form>
@@ -212,17 +217,17 @@ export const PasswordReset = () => {
           </Formik>
 
           <p className="mt-6 text-center text-sm text-muted">
-            Remember your password?{' '}
+            {t(' Remember your password?')}{' '}
             <Link
               to="/login"
               className="font-semibold text-primary transition hover:text-primary-hover"
             >
-              Sign in
+              {t(' Sign in ')}
             </Link>
           </p>
 
           <p className="mt-6 text-center text-xs text-muted">
-            © {new Date().getFullYear()} Remote Patient Monitoring. All rights reserved.
+            © {t(new Date().getFullYear())} {t(' Remote Patient Monitoring. All rights reserved. ')}
           </p>
         </div>
       </section>

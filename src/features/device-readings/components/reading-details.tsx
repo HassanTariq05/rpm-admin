@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import {
   Activity,
   Clock3,
@@ -60,7 +61,9 @@ function MetadataValue({
   field: string
   value: unknown
 }) {
-  if (field === 'patientId') return <>Unassigned</>
+  useAppTranslation()
+
+  if (field === 'patientId') return <>{t('Unassigned')}</>
   if (dateFields.has(field)) {
     const kind = field === 'recordedAt' || field === 'dateRecorded' ? 'recorded' : 'received'
     return (
@@ -76,20 +79,22 @@ function MetadataValue({
       />
     )
   }
-  if (field === 'readingType') return <>{readingLabel(reading.readingType)}</>
-  if (field === 'source') return <>{sourceLabel(reading.source)}</>
+  if (field === 'readingType') return <>{t(readingLabel(reading.readingType))}</>
+  if (field === 'source') return <>{t(sourceLabel(reading.source))}</>
   if (field === 'timeZoneOffset' && typeof value === 'number') {
     const minutes = Math.abs(Math.round(value * 60))
     return (
       <>
-        UTC{value < 0 ? '−' : '+'}
-        {String(Math.floor(minutes / 60)).padStart(2, '0')}:{String(minutes % 60).padStart(2, '0')}
+        {t(' UTC')}
+        {value < 0 ? '−' : '+'}
+        {t(String(Math.floor(minutes / 60)).padStart(2, '0'))}:
+        {t(String(minutes % 60).padStart(2, '0'))}
       </>
     )
   }
   if (value == null || displayText(value) == null)
-    return <span className="text-muted">Not provided</span>
-  if (typeof value === 'boolean') return <>{value ? 'Yes' : 'No'}</>
+    return <span className="text-muted">{t('Not provided')}</span>
+  if (typeof value === 'boolean') return <>{value ? t('Yes') : t('No')}</>
   return <>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</>
 }
 
@@ -100,6 +105,8 @@ export function ReadingDetails({
   reading: DeviceReading
   onClose: () => void
 }) {
+  useAppTranslation()
+
   const result = measurement(reading)
   const Icon =
     reading.readingType === 'blood_pressure'
@@ -135,13 +142,16 @@ export function ReadingDetails({
   return (
     <FormModal
       open
-      title="Reading details"
-      description={`${readingLabel(reading.readingType)} · Reading #${reading.id}`}
+      title={t('Reading details')}
+      description={t('{{value0}} · Reading #{{value1}}', {
+        value0: t(readingLabel(reading.readingType)),
+        value1: reading.id,
+      })}
       headerIcon={<Icon size={25} />}
       pending={false}
       onClose={onClose}
       footer={null}
-      cancelLabel="Close"
+      cancelLabel={t('Close')}
       scroll="inside"
       className="w-full sm:w-full sm:max-w-[1248px] sm:p-6"
       dialogClassName="admin-editor-modal reading-details-modal"
@@ -152,39 +162,40 @@ export function ReadingDetails({
             <Icon size={26} aria-hidden="true" />
           </span>
           <div>
-            <p className="reading-detail-label">{readingLabel(reading.readingType)}</p>
+            <p className="reading-detail-label">{t(readingLabel(reading.readingType))}</p>
             <p className="reading-detail-number">
-              {result.value} <span>{result.unit ?? 'Unit not supplied'}</span>
+              {t(result.value)} <span>{result.unit ?? t("Unit not supplied")}</span>
             </p>
-            {result.secondary && <p className="reading-detail-secondary">{result.secondary}</p>}
+            {result.secondary && <p className="reading-detail-secondary">{t(result.secondary)}</p>}
             {irregularFlag(reading) === true && (
-              <p className="reading-detail-flag">Device reported an irregular-rhythm flag</p>
+              <p className="reading-detail-flag">{t('Device reported an irregular-rhythm flag')}</p>
             )}
           </div>
         </div>
         <div className="reading-detail-source">
-          <span className="reading-detail-label">Device provider</span>
+          <span className="reading-detail-label">{t('Device provider')}</span>
           <DeviceBrand source={reading.source} />
         </div>
         <div className="reading-detail-patient">
-          <span className="reading-detail-label">Patient assignment</span>
+          <span className="reading-detail-label">{t('Patient assignment')}</span>
           <UnassignedPatient />
         </div>
       </div>
-      <div className="reading-detail-columns" aria-label="Reading metadata">
+      <div className="reading-detail-columns" aria-label={t('Reading metadata')}>
         {groups.map(({ title, icon: SectionIcon, tone, entries: fields }) => (
           <section
             key={title}
             className={`reading-detail-section reading-detail-section-${tone} admin-tone-${tone}`}
-            aria-label={title}
+            aria-label={t(title)}
           >
             <h3>
               <SectionIcon size={16} aria-hidden="true" />
-              {title}
+              {t(title)}
             </h3>
             {title === 'Timeline' && (
               <p className="reading-detail-timezone">
-                Times in {viewerTimeZone.replaceAll('_', ' ')}
+                {t(' Times in ')}
+                {t(viewerTimeZone.replaceAll('_', ' '))}
               </p>
             )}
             <dl>
@@ -198,8 +209,8 @@ export function ReadingDetails({
               ))}
               {!fields.length && (
                 <div className="reading-detail-field">
-                  <dt>No information supplied</dt>
-                  <dd className="text-muted">Not provided</dd>
+                  <dt>{t('No information supplied')}</dt>
+                  <dd className="text-muted">{t('Not provided')}</dd>
                 </div>
               )}
             </dl>

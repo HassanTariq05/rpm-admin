@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { Button } from '@heroui/react/button'
 import { Moon, Sun } from 'lucide-react'
 import { useTheme } from '@/contexts/theme-context'
@@ -7,6 +8,8 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ className }: ThemeToggleProps) {
+  useAppTranslation()
+
   const { theme, toggleTheme } = useTheme()
 
   const isDark = theme === 'dark'
@@ -15,12 +18,12 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
     <Button
       type="button"
       variant="outline"
-      aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+      aria-label={t('Switch to {{value0}} mode', { value0: t(isDark ? 'light' : 'dark') })}
       onPress={toggleTheme}
       className={className}
     >
       {isDark ? <Sun size={18} /> : <Moon size={18} />}
-      <span>{isDark ? 'Light mode' : 'Dark mode'}</span>
+      <span>{isDark ? t('Light mode') : t('Dark mode')}</span>
     </Button>
   )
 }

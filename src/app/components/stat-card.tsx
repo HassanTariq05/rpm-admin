@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import type { LucideIcon } from 'lucide-react'
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 
@@ -27,12 +28,14 @@ export function StatCard({
   trend,
   trendIsAlert,
 }: StatCardProps) {
+  useAppTranslation()
+
   const negative = trendIsAlert
 
   return (
     <section className="panel min-w-0 p-5 transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-medium muted">{label}</p>
+        <p className="text-sm font-medium muted">{t(label)}</p>
 
         <span
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tones[tone]}`}
@@ -42,7 +45,9 @@ export function StatCard({
       </div>
 
       <div className="mt-4 flex items-baseline gap-2">
-        <p className="text-[30px] font-bold tracking-tight tabular-nums text-foreground">{value}</p>
+        <p className="text-[30px] font-bold tracking-tight tabular-nums text-foreground">
+          {t(value)}
+        </p>
 
         {trend ? (
           <span
@@ -51,12 +56,12 @@ export function StatCard({
             }`}
           >
             {negative ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />}
-            {trend}
+            {t(trend)}
           </span>
         ) : null}
       </div>
 
-      <p className="muted mt-1 text-xs">{caption}</p>
+      <p className="muted mt-1 text-xs">{t(caption)}</p>
     </section>
   )
 }

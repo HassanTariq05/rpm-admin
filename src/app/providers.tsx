@@ -1,3 +1,4 @@
+import { useAppTranslation, translate as t } from '@/i18n'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { Toaster } from 'sonner'
@@ -8,6 +9,7 @@ import { useTheme } from '@/contexts/theme-context'
 import { AuthProvider } from '@/app/context/auth-provider'
 
 export function AppProviders({ children }: { children: ReactNode }) {
+  useAppTranslation()
   const { theme } = useTheme()
 
   return (
@@ -17,6 +19,8 @@ export function AppProviders({ children }: { children: ReactNode }) {
           {children}
           <Toaster
             theme={theme}
+            containerAriaLabel={t('Notifications')}
+            toastOptions={{ closeButtonAriaLabel: t('Close') }}
             className="app-toaster"
             position="bottom-right"
             richColors

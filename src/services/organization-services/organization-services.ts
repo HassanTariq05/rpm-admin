@@ -20,15 +20,16 @@ export type OrganizationPayload = Pick<
 
 export function createOrganizationService(client: AxiosInstance) {
   return {
-    getAll: async () => (await client.get<Organization[]>('/organizations')).data,
+    getAll: async () => (await client.get<Organization[]>('/auth/organizations')).data,
     getById: async (id: string) =>
-      (await client.get<Organization>(`/organizations/${encodeURIComponent(id)}`)).data,
+      (await client.get<Organization>(`/auth/organizations/${encodeURIComponent(id)}`)).data,
     create: async (payload: OrganizationPayload) =>
-      (await client.post<Organization>('/organizations', payload)).data,
+      (await client.post<Organization>('/auth/organizations', payload)).data,
     update: async (id: string, payload: OrganizationPayload) =>
-      (await client.put<Organization>(`/organizations/${encodeURIComponent(id)}`, payload)).data,
+      (await client.put<Organization>(`/auth/organizations/${encodeURIComponent(id)}`, payload))
+        .data,
     remove: async (id: string) => {
-      await client.delete(`/organizations/${encodeURIComponent(id)}`)
+      await client.delete(`/auth/organizations/${encodeURIComponent(id)}`)
     },
   }
 }

@@ -5,14 +5,14 @@ import {
 } from '@/services/organization-services/organization-services'
 import { useAdminMutation, useAdminScope } from '@/hooks/use-administration'
 
-export function useOrganizations() {
+export function useOrganizations(enabled = true) {
   const service = useOrganizationService()
   const scope = useAdminScope()
   return useQuery({
     queryKey: ['organizations', 'list', scope.isSuperAdmin ? 'all' : scope.orgId, scope.user?.id],
     queryFn: async () =>
       scope.isSuperAdmin ? service.getAll() : [await service.getById(scope.orgId!)],
-    enabled: scope.ready && (scope.isSuperAdmin || !!scope.orgId),
+    enabled: enabled && scope.ready && (scope.isSuperAdmin || !!scope.orgId),
   })
 }
 export function useCreateOrganization() {

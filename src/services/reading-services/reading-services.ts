@@ -49,13 +49,13 @@ export class ReadingsResponseError extends Error {
   }
 }
 
-export function createReadingService(client: AxiosInstance, baseURL = env.emrApiBaseUrl) {
+export function createReadingService(client: AxiosInstance, baseURL = env.apiBaseUrl) {
   return {
     getReadings: async (
       { page, pageSize, source }: ReadingsParams,
       signal?: AbortSignal,
     ): Promise<ReadingsResponse> => {
-      const response = await client.get<unknown>('/readings', {
+      const response = await client.get<unknown>('/emr/readings', {
         baseURL,
         withCredentials: false,
         params: { page, pageSize, ...(source ? { source } : {}) },

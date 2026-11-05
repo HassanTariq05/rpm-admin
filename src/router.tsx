@@ -1,3 +1,4 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import {
   createRootRoute,
   createRoute,
@@ -26,16 +27,20 @@ import OtpPage from '@/features/auth/otp/page'
 import PasswordResetPage from '@/features/auth/password-reset/page'
 
 function NotFoundPage() {
+  useAppTranslation()
+
   return (
     <div className="panel mx-auto max-w-xl p-10 text-center">
-      <p className="eyebrow">404 · Not found</p>
-      <h1 className="mt-2 text-2xl font-bold">This page isn’t on the care plan.</h1>
-      <p className="muted mt-2 text-sm">The route may have moved, or the URL may be incorrect.</p>
+      <p className="eyebrow">{t('404 · Not found')}</p>
+      <h1 className="mt-2 text-2xl font-bold">{t('This page isn’t on the care plan.')}</h1>
+      <p className="muted mt-2 text-sm">
+        {t('The route may have moved, or the URL may be incorrect.')}
+      </p>
       <Link
         to="/"
         className="mt-6 inline-flex rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700"
       >
-        Back to Device Readings
+        {t(' Back to Device Readings ')}
       </Link>
     </div>
   )

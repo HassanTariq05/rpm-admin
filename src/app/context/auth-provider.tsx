@@ -1,8 +1,9 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { type ReactNode, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import axios from 'axios'
+import { getAuthenticatedUser } from '@/services/auth-services/auth-services'
 import { Loader2 } from 'lucide-react'
-import { useAuthStore, type AuthUser } from '@/stores/auth-store'
+import { useAuthStore } from '@/stores/auth-store'
 import { router } from '@/router'
 
 const publicPaths = new Set(['/login', '/signup', '/forgot-password', '/otp', '/reset-password'])
@@ -14,6 +15,8 @@ function redirectToLogin() {
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  useAppTranslation()
+
   const queryClient = useQueryClient()
   const token = useAuthStore((state) => state.auth.accessToken)
   const [loading, setLoading] = useState(true)
@@ -36,16 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         queryKey: ['authentications', 'me', auth.accessToken],
         staleTime: 30_000,
         retry: false,
-        queryFn: async () => {
-          const { data } = await axios.get<{ user: AuthUser }>(
-            `${import.meta.env.VITE_AUTH_BASE_URL}/me`,
-            {
-              headers: { Authorization: `Bearer ${auth.accessToken}` },
-              withCredentials: false,
-            },
-          )
-          return data.user
-        },
+        queryFn: () => getAuthenticatedUser(auth.accessToken),
       })
       .then((user) => {
         if (active && useAuthStore.getState().auth.accessToken === auth.accessToken) {
@@ -70,7 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 aria-label="Loading account" className="h-10 w-10 animate-spin text-muted" />
+        <Loader2 aria-label={t('Loading account')} className="h-10 w-10 animate-spin text-muted" />
       </div>
     )
   }

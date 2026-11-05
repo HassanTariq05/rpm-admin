@@ -23,18 +23,22 @@ export interface RolePayload {
 }
 export function createRoleService(client: AxiosInstance) {
   return {
-    getAll: async () => (await client.get<Role[]>('/roles')).data,
+    getAll: async () => (await client.get<Role[]>('/auth/roles')).data,
     getById: async (id: string) =>
-      (await client.get<Role>(`/roles/${encodeURIComponent(id)}`)).data,
+      (await client.get<Role>(`/auth/roles/${encodeURIComponent(id)}`)).data,
     getByOrgId: async (id: string) =>
-      (await client.get<Role[]>(`/roles/org/${encodeURIComponent(id)}`)).data,
+      (await client.get<Role[]>(`/auth/roles/org/${encodeURIComponent(id)}`)).data,
     create: async (payload: RolePayload) =>
-      (await client.post<Role>('/roles', normalizeRolePayload(payload))).data,
+      (await client.post<Role>('/auth/roles', normalizeRolePayload(payload))).data,
     update: async (id: string, payload: RolePayload) =>
-      (await client.put<Role>(`/roles/${encodeURIComponent(id)}`, normalizeRolePayload(payload)))
-        .data,
+      (
+        await client.put<Role>(
+          `/auth/roles/${encodeURIComponent(id)}`,
+          normalizeRolePayload(payload),
+        )
+      ).data,
     remove: async (id: string) => {
-      await client.delete(`/roles/${encodeURIComponent(id)}`)
+      await client.delete(`/auth/roles/${encodeURIComponent(id)}`)
     },
   }
 }

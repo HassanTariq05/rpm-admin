@@ -1,5 +1,5 @@
 import type { AxiosInstance } from 'axios'
-import { useAuthApiClient } from '@/lib/axios'
+import { useApiClient } from '@/lib/axios'
 import type { Role } from '@/services/role-services/role-services'
 import type { Organization } from '@/services/organization-services/organization-services'
 
@@ -29,14 +29,15 @@ export interface UserPayload {
 }
 export function createUserService(client: AxiosInstance) {
   return {
-    getAll: async () => (await client.get<{ users: User[] }>('/users')).data.users,
+    getAll: async () => (await client.get<{ users: User[] }>('/auth/users')).data.users,
     getByOrgId: async (id: string) =>
-      (await client.get<{ users: User[] }>(`/users/org/${encodeURIComponent(id)}`)).data.users,
-    create: async (payload: UserPayload) => (await client.post<User>('/register', payload)).data,
+      (await client.get<{ users: User[] }>(`/auth/users/org/${encodeURIComponent(id)}`)).data.users,
+    create: async (payload: UserPayload) =>
+      (await client.post<User>('/auth/register', payload)).data,
     update: async (id: string, payload: UserPayload) =>
-      (await client.put<User>(`/users/${encodeURIComponent(id)}`, payload)).data,
+      (await client.put<User>(`/auth/users/${encodeURIComponent(id)}`, payload)).data,
   }
 }
 export function useUserService() {
-  return createUserService(useAuthApiClient())
+  return createUserService(useApiClient())
 }
