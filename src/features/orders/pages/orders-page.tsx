@@ -162,17 +162,6 @@ export function OrdersPage() {
             <span className="orders-result-count">{query.data ? filtered.length : '—'}</span>
           </div>
           <div className="orders-directory-tools">
-            <span
-              className="orders-refresh-note"
-              title={t('Provider updates refresh every 30 seconds')}
-            >
-              <RefreshCw
-                size={12}
-                className={query.isFetching ? 'animate-spin motion-reduce:animate-none' : ''}
-                aria-hidden="true"
-              />
-              {t(query.isFetching ? 'Refreshing…' : 'Auto-refresh · 30s')}
-            </span>
             {(status !== 'all' || source !== 'all') && (
               <Button
                 size="sm"

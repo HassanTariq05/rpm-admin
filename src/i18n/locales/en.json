@@ -718,7 +718,6 @@
   "Provider order number": "Provider order number",
   "Shipping method": "Shipping method",
   "Signature requirement": "Signature requirement",
-  "Tracking appears when the provider sends an update. Details refresh every 15 seconds.": "Tracking appears when the provider sends an update. Details refresh every 15 seconds.",
   "Recipient": "Recipient",
   "Company": "Company",
   "Shipping address": "Shipping address",
@@ -747,7 +746,6 @@
   "Orders": "Orders",
   "Manage device orders from draft to delivery, with provider updates in one place.": "Manage device orders from draft to delivery, with provider updates in one place.",
   "Create order": "Create order",
-  "Provider updates refresh every 30 seconds": "Provider updates refresh every 30 seconds",
   "An organization is required to manage orders. Contact your administrator.": "An organization is required to manage orders. Contact your administrator.",
   "Loading orders": "Loading orders",
   "View order {{value0}}": "View order {{value0}}",
@@ -1175,9 +1173,9 @@
   "Order directory": "Order directory",
   "Order status filters": "Order status filters",
   "Order provider filters": "Order provider filters",
-  "Auto-refresh · 30s": "Auto-refresh · 30s",
   "Billing information is sent to Pylo when this order is submitted.": "Billing information is sent to Pylo when this order is submitted.",
   "Enter Pylo billing information": "Enter Pylo billing information",
   "Billing information is required for Pylo.": "Billing information is required for Pylo.",
-  "Temporary sample billing details are prefilled and can be edited.": "Temporary sample billing details are prefilled and can be edited."
+  "Temporary sample billing details are prefilled and can be edited.": "Temporary sample billing details are prefilled and can be edited.",
+  "Tracking appears when the provider sends an update. Use Refresh to see the latest status.": "Tracking appears when the provider sends an update. Use Refresh to see the latest status."
 }

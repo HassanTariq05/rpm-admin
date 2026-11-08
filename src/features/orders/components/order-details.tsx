@@ -341,7 +341,7 @@ export function OrderDetails({
                   </dl>
                   <p className="mt-5 text-xs text-muted">
                     {t(
-                      'Tracking appears when the provider sends an update. Details refresh every 15 seconds.',
+                      'Tracking appears when the provider sends an update. Use Refresh to see the latest status.',
                     )}
                   </p>
                 </section>

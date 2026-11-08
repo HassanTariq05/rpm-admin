@@ -104,3 +104,43 @@ it('never retries placing an order, and invalidates the changed order after prov
   expect(state.success).not.toHaveBeenCalled()
   expect(state.error).toHaveBeenCalled()
 })
+
+it('does not poll orders, details or activity over time and still supports manual refresh', async () => {
+  vi.useFakeTimers()
+  const config = setup()
+  const { result, unmount } = renderHook(
+    () => ({ list: useOrders(), detail: useOrder('order-a'), events: useOrderEvents('order-a') }),
+    config,
+  )
+  try {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10)
+    })
+    expect(
+      result.current.list.isSuccess &&
+        result.current.detail.isSuccess &&
+        result.current.events.isSuccess,
+    ).toBe(true)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(120_000)
+    })
+    expect(state.getAll).toHaveBeenCalledTimes(1)
+    expect(state.getById).toHaveBeenCalledTimes(1)
+    expect(state.getEvents).toHaveBeenCalledTimes(1)
+    await act(async () => {
+      await Promise.all([
+        result.current.list.refetch(),
+        result.current.detail.refetch(),
+        result.current.events.refetch(),
+      ])
+      await vi.advanceTimersByTimeAsync(10)
+    })
+    expect(state.getAll).toHaveBeenCalledTimes(2)
+    expect(state.getById).toHaveBeenCalledTimes(2)
+    expect(state.getEvents).toHaveBeenCalledTimes(2)
+  } finally {
+    unmount()
+    config.client.clear()
+    vi.useRealTimers()
+  }
+})

@@ -718,7 +718,6 @@
   "Provider order number": "Número de pedido del proveedor",
   "Shipping method": "Método de envío",
   "Signature requirement": "Requisito de firma",
-  "Tracking appears when the provider sends an update. Details refresh every 15 seconds.": "El seguimiento aparecerá cuando el proveedor envíe una actualización. Los detalles se actualizan cada 15 segundos.",
   "Recipient": "Destinatario",
   "Company": "Empresa",
   "Shipping address": "Dirección de envío",
@@ -747,7 +746,6 @@
   "Orders": "Pedidos",
   "Manage device orders from draft to delivery, with provider updates in one place.": "Gestione los pedidos de dispositivos desde el borrador hasta la entrega, con las actualizaciones del proveedor en un solo lugar.",
   "Create order": "Crear pedido",
-  "Provider updates refresh every 30 seconds": "Las actualizaciones del proveedor se consultan cada 30 segundos",
   "An organization is required to manage orders. Contact your administrator.": "Se requiere una organización para gestionar pedidos. Contacte a su administrador.",
   "Loading orders": "Cargando pedidos",
   "View order {{value0}}": "Ver pedido {{value0}}",
@@ -1175,9 +1173,9 @@
   "Order directory": "Directorio de pedidos",
   "Order status filters": "Filtros de estado de pedidos",
   "Order provider filters": "Filtros de proveedores de pedidos",
-  "Auto-refresh · 30s": "Actualización automática · 30 s",
   "Billing information is sent to Pylo when this order is submitted.": "La información de facturación se envía a Pylo al enviar este pedido.",
   "Enter Pylo billing information": "Ingrese la información de facturación de Pylo",
   "Billing information is required for Pylo.": "La información de facturación es obligatoria para Pylo.",
-  "Temporary sample billing details are prefilled and can be edited.": "Se han completado datos de facturación de ejemplo temporales que puede editar."
+  "Temporary sample billing details are prefilled and can be edited.": "Se han completado datos de facturación de ejemplo temporales que puede editar.",
+  "Tracking appears when the provider sends an update. Use Refresh to see the latest status.": "El seguimiento aparece cuando el proveedor envía una actualización. Use Actualizar para ver el estado más reciente."
 }

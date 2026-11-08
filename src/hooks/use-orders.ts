@@ -30,7 +30,7 @@ export function useOrders(filters: OrderFilters = {}) {
     queryFn: ({ signal }) => service.getAll(scopedFilters, signal),
     enabled: scope.ready && !!token && (scope.isSuperAdmin || !!scope.orgId),
     retry,
-    refetchInterval: 30_000,
+    refetchInterval: false,
   })
 }
 export function useOrder(id?: string) {
@@ -42,7 +42,7 @@ export function useOrder(id?: string) {
     queryFn: ({ signal }) => service.getById(id!, signal),
     enabled: scope.ready && !!token && !!id,
     retry,
-    refetchInterval: 15_000,
+    refetchInterval: false,
   })
 }
 export function useOrderEvents(id?: string) {
@@ -54,7 +54,7 @@ export function useOrderEvents(id?: string) {
     queryFn: ({ signal }) => service.getEvents(id!, signal),
     enabled: scope.ready && !!token && !!id,
     retry,
-    refetchInterval: 15_000,
+    refetchInterval: false,
   })
 }
 function useOrderMutation<T>(fn: (variables: T) => Promise<Order>, message: string) {
