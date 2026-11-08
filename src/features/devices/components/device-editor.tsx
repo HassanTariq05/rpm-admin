@@ -10,7 +10,7 @@ import {
   SubmitButton,
 } from '@/app/components/administration/admin-ui'
 import { useCreateDevice, useUpdateDevice } from '@/hooks/use-devices'
-import { translate as t } from '@/i18n'
+import { translate as t, useAppTranslation } from '@/i18n'
 import {
   companies,
   deviceTypes,
@@ -108,6 +108,7 @@ export function DeviceEditor({
   onClose: () => void
   onSaved: () => void
 }) {
+  useAppTranslation()
   const create = useCreateDevice()
   const update = useUpdateDevice()
   const pending = create.isPending || update.isPending

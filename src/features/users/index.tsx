@@ -82,7 +82,7 @@ const columns: EntityColumn<User>[] = [
       row.role?.name ? (
         <span className="admin-role">
           <ShieldCheck size={13} aria-hidden="true" />
-          {row.role.name}
+          {t(row.role.name)}
         </span>
       ) : (
         '—'

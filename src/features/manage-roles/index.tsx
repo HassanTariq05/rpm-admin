@@ -68,7 +68,7 @@ function PermissionEditor({
             <ShieldCheck size={20} />
           </span>
           <div>
-            <h2 className="text-sm font-bold">{role.name}</h2>
+            <h2 className="text-sm font-bold">{t(role.name)}</h2>
             <p className="mt-1 text-xs text-muted">
               {t(organizationName(role))} · {t(selectedPermissionCount)}{' '}
               {t(' permissions selected ')}
@@ -258,7 +258,7 @@ export function ManageRolesPage() {
             disabled={roles.isPending || roles.isError}
             options={(roles.data ?? []).map((record) => ({
               id: record.id,
-              label: `${record.name}${scope.isSuperAdmin && organizationName(record) !== '—' ? ` · ${organizationName(record)}` : ''}`,
+              label: `${t(record.name)}${scope.isSuperAdmin && organizationName(record) !== '—' ? ` · ${organizationName(record)}` : ''}`,
             }))}
             onChange={(id) =>
               void navigate({ to: '/manage-roles/$roleId', params: { roleId: id } })

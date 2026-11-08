@@ -33,7 +33,7 @@ const columns: EntityColumn<Role>[] = [
     value: (row) => row.name,
     render: (row) => (
       <div className="flex items-center gap-2">
-        <AdminRecordName id={row.id} name={row.name} />
+        <AdminRecordName id={row.id} name={t(row.name)} />
         {isReservedRole(row.name) && (
           <LockKeyhole size={13} className="text-muted" aria-label={t('Reserved role')} />
         )}

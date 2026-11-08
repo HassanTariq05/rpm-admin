@@ -35,14 +35,14 @@ import {
   readingsErrorMessage,
   readingsAccessDenied,
   timeFormat,
-  viewerTimeZone,
 } from './readings'
 import { ReadingDetails } from './components/reading-details'
 import { ReadingsSkeleton } from './components/readings-skeleton'
 import { DeviceBrand, ReadingTime, UnassignedPatient } from './components/reading-presentation'
+import { useReadingFreshness } from './use-reading-freshness'
 import './readings.css'
 
-function ReadingValue({ reading }: { reading: DeviceReading }) {
+function ReadingValue({ reading, isNew }: { reading: DeviceReading; isNew: boolean }) {
   useAppTranslation()
 
   const result = measurement(reading)
@@ -62,7 +62,10 @@ function ReadingValue({ reading }: { reading: DeviceReading }) {
         <Icon size={18} />
       </span>
       <div className="min-w-0">
-        <span className="reading-type-label">{t(readingLabel(reading.readingType))}</span>
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="reading-type-label">{t(readingLabel(reading.readingType))}</span>
+          {isNew ? <span className="reading-new-badge">{t('New')}</span> : null}
+        </span>
         <p className="mt-1 whitespace-nowrap reading-measurement font-semibold tabular-nums text-foreground">
           {t(result.value)}{' '}
           {result.unit && (
@@ -116,6 +119,7 @@ export function DeviceReadingsPage() {
       }),
     [data, search, type, sort],
   )
+  const newReadingIds = useReadingFreshness(rows)
   const readingTypes = [
     { id: 'all', label: 'All readings', icon: Activity, tone: 'blue' },
     { id: 'blood_pressure', label: 'Blood pressure', icon: HeartPulse, tone: 'violet' },
@@ -229,7 +233,7 @@ export function DeviceReadingsPage() {
             <AdminDirectory
               icon={MonitorSmartphone}
               title={t('Measurement feed')}
-              description={t('Times shown in {{value0}}', { value0: viewerTimeZone })}
+              description={t('Device times use their supplied UTC offset')}
             >
               <div className="readings-toolbar">
                 <SlidersHorizontal size={17} className="readings-filter-icon" aria-hidden="true" />
@@ -364,7 +368,10 @@ export function DeviceReadingsPage() {
                             rows.map((reading) => (
                               <tr key={reading.id}>
                                 <th scope="row">
-                                  <ReadingValue reading={reading} />
+                                  <ReadingValue
+                                    reading={reading}
+                                    isNew={newReadingIds.has(reading.id)}
+                                  />
                                   <span className="mt-2 block text-[10px] font-normal text-muted">
                                     {t(' Reading #')}
                                     {reading.id}

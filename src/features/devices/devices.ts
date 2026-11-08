@@ -1,3 +1,4 @@
+import { translate as t } from '@/i18n'
 import axios from 'axios'
 import {
   DeviceResponseError,
@@ -98,7 +99,9 @@ export function filterDevices(
         device.model,
         device.externalDeviceId,
         device.id,
-      ].some((value) => value.toLowerCase().includes(query)),
+      ].some(
+        (value) => value.toLowerCase().includes(query) || t(value).toLowerCase().includes(query),
+      ),
   )
 }
 export type DeviceValues = {

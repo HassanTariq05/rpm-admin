@@ -309,7 +309,7 @@ export function DevicesPage() {
                     </div>
                     <div className="device-card-body">
                       <p className="device-category">{t(device.type)}</p>
-                      <h3>{device.name}</h3>
+                      <h3>{device.model ? device.name : t(device.name)}</h3>
                       <p className="device-card-model">
                         {t('Model')} {device.model}
                       </p>

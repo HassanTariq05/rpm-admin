@@ -1,13 +1,15 @@
+import { translate as t, useAppTranslation } from '@/i18n'
 import { Package } from 'lucide-react'
 import { deviceTypes } from '../devices'
 
 /** Local illustrations keep the design preview independent of remote image services. */
 export function DevicePicture({ type }: { type: string }) {
+  useAppTranslation()
   if (!deviceTypes.some((known) => known === type))
     return (
       <div
         role="img"
-        aria-label={`${type} device`}
+        aria-label={t('{{value0}} device', { value0: t(type) })}
         className="device-picture flex items-center justify-center"
       >
         <Package size={64} className="text-muted" />
@@ -18,7 +20,7 @@ export function DevicePicture({ type }: { type: string }) {
       viewBox="0 0 280 170"
       className="device-picture"
       role="img"
-      aria-label={`${type} device illustration`}
+      aria-label={t('{{value0}} device illustration', { value0: t(type) })}
     >
       <ellipse cx="140" cy="151" rx="78" ry="9" fill="currentColor" opacity=".08" />
       <g stroke="#acb8c7" strokeWidth="1.5" strokeLinejoin="round">

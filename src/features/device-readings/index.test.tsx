@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { DeviceReadingsPage } from './index'
@@ -134,7 +134,7 @@ it('keeps the readings visible during realtime updates and background refetches'
   const view = render(<DeviceReadingsPage />)
   state.fetching = true
   view.rerender(<DeviceReadingsPage />)
-  expect(screen.getByText('Updating readings…')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Refresh readings' })).toHaveTextContent('Refreshing…')
   expect(screen.getByRole('table', { name: 'Device readings' })).toBeInTheDocument()
   expect(screen.getByText('124 / 86')).toBeVisible()
   expect(screen.queryByRole('status', { name: 'Loading device readings' })).not.toBeInTheDocument()
@@ -244,4 +244,40 @@ it('supports keyboard navigation between source tabs', async () => {
   expect(state.hook).toHaveBeenLastCalledWith({ page: 1, pageSize: 25, source: 'pylo' })
   const panel = screen.getByRole('tabpanel', { name: 'Pylo' })
   expect(panel.id).toBe(sources.getByRole('tab', { name: 'Pylo' }).getAttribute('aria-controls'))
+})
+
+it('marks fresh readings New and removes the tag automatically after one minute', () => {
+  vi.useFakeTimers()
+  const now = Date.parse('2026-11-07T12:00:00Z')
+  vi.setSystemTime(now)
+  state.data = {
+    readings: [
+      {
+        ...sampleReadings[0]!,
+        recordedAt: new Date(now + 6 * 60 * 60_000).toISOString(),
+        createdAt: new Date(now - 59_000).toISOString(),
+      },
+      {
+        ...sampleReadings[1]!,
+        recordedAt: new Date(now).toISOString(),
+        receivedAt: new Date(now).toISOString(),
+        createdAt: new Date(now - 120_000).toISOString(),
+      },
+    ],
+    page: 1,
+    pageSize: 25,
+    total: 2,
+  }
+  try {
+    render(<DeviceReadingsPage />)
+    const badge = screen.getByText('New')
+    expect(badge.closest('tr')).toHaveTextContent('Reading #1')
+    expect(screen.getAllByText('New')).toHaveLength(1)
+    act(() => vi.advanceTimersByTime(1_000))
+    expect(screen.queryByText('New')).not.toBeInTheDocument()
+    expect(screen.getByText('124 / 86')).toBeVisible()
+  } finally {
+    cleanup()
+    vi.useRealTimers()
+  }
 })

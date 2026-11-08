@@ -16,6 +16,7 @@ import {
   Menu,
   Moon,
   MonitorSmartphone,
+  Package,
   Sun,
   UsersRound,
   // ChartNoAxesCombined,
@@ -30,12 +31,14 @@ import { Fragment, type ReactNode } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
 import { getInitials } from '@/lib/initials'
 import { ThemePicker } from '@/app/components/theme-picker'
+import { NotificationPanel } from '@/features/notifications/notification-panel'
 import './app-shell.css'
 
 type AppPath =
   | '/'
   | '/patients'
   | '/devices'
+  | '/orders'
   | '/device-readings'
   | '/reports'
   | '/users'
@@ -53,7 +56,9 @@ const navItems: {
   // { label: 'Overview', to: '/', icon: LayoutDashboard },
   { label: 'Patients', to: '/patients', icon: UsersRound },
   { label: 'Devices', to: '/devices', icon: MonitorSmartphone },
+
   { label: 'Device Readings', to: '/', icon: Activity },
+  { label: 'Orders', to: '/orders', icon: Package },
   // { label: 'Reports', to: '/reports', icon: ChartNoAxesCombined },
   { label: 'Users', to: '/users', administration: true, icon: UserRoundCog },
   { label: 'Organizations', to: '/organizations', administration: true, icon: Building2 },
@@ -66,6 +71,7 @@ const pageTitles: Record<AppPath, string> = {
   '/patients': 'Patients',
   '/devices': 'Devices',
   '/device-readings': 'Device Readings',
+  '/orders': 'Orders',
   '/reports': 'Reports',
   '/users': 'Users',
   '/organizations': 'Organizations',
@@ -259,6 +265,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               {colorMode === 'light' ? <Moon size={16} /> : <Sun size={16} />}
             </Button>
 
+            <NotificationPanel />
+
             <div className="mx-1 hidden h-6 w-px bg-border sm:block" />
 
             {/* User profile */}
@@ -276,7 +284,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     {auth?.user?.name}
                   </span>
 
-                  <span className="block text-[10px] muted">{auth?.user?.role?.name}</span>
+                  <span className="block text-[10px] muted">{t(auth?.user?.role?.name)}</span>
                 </span>
 
                 <ChevronDown size={14} className="hidden text-muted lg:block" />

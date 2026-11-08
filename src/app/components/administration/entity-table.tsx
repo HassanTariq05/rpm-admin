@@ -36,11 +36,13 @@ export function EntityTable<T extends { id: string }>({
   label,
   actions,
   filter,
+  toolbarContent,
 }: {
   data: T[]
   columns: EntityColumn<T>[]
   label: string
   actions: (record: T) => ReactNode
+  toolbarContent?: ReactNode
   filter?: {
     label: string
     options: Choice[]
@@ -130,15 +132,13 @@ export function EntityTable<T extends { id: string }>({
           <div className="min-w-36">
             <ChoiceField
               label={t(filter.label)}
-              options={[
-                { id: 'all', label: `All ${filter.label.toLowerCase()}` },
-                ...filter.options,
-              ]}
+              options={[{ id: 'all', label: t('All') }, ...filter.options]}
               value={filterValue}
               onChange={setFilterValue}
             />
           </div>
         )}
+        {toolbarContent}
         <Dropdown>
           <Dropdown.Trigger className="ml-auto flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-xs">
             <Columns3 size={14} />
@@ -195,7 +195,7 @@ export function EntityTable<T extends { id: string }>({
                       className="-ml-2 text-[11px] font-semibold"
                       onPress={() => header.column.toggleSorting()}
                     >
-                      {t(flexRender(header.column.columnDef.header, header.getContext()))}
+                      {t(String(header.column.columnDef.header))}
                       {header.column.getIsSorted() === 'asc' ? (
                         <ArrowUp size={12} />
                       ) : header.column.getIsSorted() === 'desc' ? (
@@ -205,9 +205,7 @@ export function EntityTable<T extends { id: string }>({
                       )}
                     </Button>
                   ) : (
-                    <span className="text-[11px]">
-                      {t(flexRender(header.column.columnDef.header, header.getContext()))}
-                    </span>
+                    <span className="text-[11px]">{t(String(header.column.columnDef.header))}</span>
                   )}
                 </Table.Column>
               ))}

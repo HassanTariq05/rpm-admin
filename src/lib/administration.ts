@@ -1,3 +1,4 @@
+import { locale } from '@/i18n'
 import axios from 'axios'
 
 export function apiErrorMessage(error: unknown): string {
@@ -40,5 +41,5 @@ export function dateLabel(value?: string): string {
   const date = new Date(value)
   return Number.isNaN(date.getTime())
     ? '—'
-    : date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+    : date.toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric' })
 }

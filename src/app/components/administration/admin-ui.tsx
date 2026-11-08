@@ -422,7 +422,7 @@ export function StatusPill({ status }: { status?: string }) {
       className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-semibold capitalize ${active ? 'bg-success-bg text-success' : 'bg-surface-muted text-muted'}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-success' : 'bg-muted'}`} />
-      {status || t('Unknown')}
+      {status ? t(status) : t('Unknown')}
     </span>
   )
 }

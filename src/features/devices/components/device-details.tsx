@@ -19,7 +19,7 @@ import {
 import { ConfirmDelete, FormModal } from '@/app/components/administration/admin-ui'
 import { useDevice, useDeleteDevice } from '@/hooks/use-devices'
 import type { ApiDevice } from '@/services/device-services/device-services'
-import { translate as t } from '@/i18n'
+import { translate as t, useAppTranslation, locale } from '@/i18n'
 import { deviceView, deviceErrorMessage } from '../devices'
 import { DevicePicture } from './device-picture'
 const metadataIcons: Record<string, { icon: LucideIcon; tone: string }> = {
@@ -36,7 +36,7 @@ const metadataIcons: Record<string, { icon: LucideIcon; tone: string }> = {
 }
 function date(value?: string | null) {
   if (!value || Number.isNaN(new Date(value).getTime())) return '—'
-  return new Date(value).toLocaleString()
+  return new Date(value).toLocaleString(locale())
 }
 export function DeviceDetails({
   id,
@@ -47,6 +47,7 @@ export function DeviceDetails({
   onClose: () => void
   onEdit: (record: ApiDevice) => void
 }) {
+  useAppTranslation()
   const [deleting, setDeleting] = useState<ApiDevice | null>(null)
   // Suspend detail fetching while confirming/deleting to avoid refetching a deleted record.
   const query = useDevice(deleting ? undefined : id)
@@ -138,8 +139,8 @@ export function DeviceDetails({
           <div className="device-detail-hero">
             <DevicePicture type={device.type} />
             <div>
-              <p className="eyebrow">{device.company}</p>
-              <h3>{device.name}</h3>
+              <p className="eyebrow">{t(device.company)}</p>
+              <h3>{device.model ? device.name : t(device.name)}</h3>
               <p className="muted">{t(device.type)}</p>
               <span className={`device-status device-status-${device.status.toLowerCase()}`}>
                 <span />

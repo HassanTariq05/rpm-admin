@@ -20,6 +20,7 @@ import {
   readingLabel,
   sourceLabel,
   viewerTimeZone,
+  utcOffsetLabel,
 } from '../readings'
 
 const deviceFields = new Set([
@@ -65,14 +66,21 @@ function MetadataValue({
 
   if (field === 'patientId') return <>{t('Unassigned')}</>
   if (dateFields.has(field)) {
-    const kind = field === 'recordedAt' || field === 'dateRecorded' ? 'recorded' : 'received'
+    const kind =
+      field === 'createdAt'
+        ? 'created'
+        : field === 'recordedAt' || field === 'dateRecorded'
+          ? 'recorded'
+          : 'received'
+    // Raw device fields use the supplied offset; server-created timestamps are UTC instants.
+    const dateField =
+      kind === 'created' ? 'createdAt' : kind === 'recorded' ? 'recordedAt' : 'receivedAt'
     return (
       <ReadingTime
         reading={{
           ...reading,
-          recordedAt: kind === 'recorded' ? displayText(value) : null,
+          [dateField]: displayText(value),
           dateRecorded: null,
-          receivedAt: kind === 'received' ? displayText(value) : null,
           dateReceived: null,
         }}
         kind={kind}
@@ -82,15 +90,7 @@ function MetadataValue({
   if (field === 'readingType') return <>{t(readingLabel(reading.readingType))}</>
   if (field === 'source') return <>{t(sourceLabel(reading.source))}</>
   if (field === 'timeZoneOffset' && typeof value === 'number') {
-    const minutes = Math.abs(Math.round(value * 60))
-    return (
-      <>
-        {t(' UTC')}
-        {value < 0 ? '−' : '+'}
-        {t(String(Math.floor(minutes / 60)).padStart(2, '0'))}:
-        {t(String(minutes % 60).padStart(2, '0'))}
-      </>
-    )
+    return <>{utcOffsetLabel(value)}</>
   }
   if (value == null || displayText(value) == null)
     return <span className="text-muted">{t('Not provided')}</span>
@@ -164,7 +164,7 @@ export function ReadingDetails({
           <div>
             <p className="reading-detail-label">{t(readingLabel(reading.readingType))}</p>
             <p className="reading-detail-number">
-              {t(result.value)} <span>{result.unit ?? t("Unit not supplied")}</span>
+              {t(result.value)} <span>{result.unit ?? t('Unit not supplied')}</span>
             </p>
             {result.secondary && <p className="reading-detail-secondary">{t(result.secondary)}</p>}
             {irregularFlag(reading) === true && (
@@ -194,8 +194,9 @@ export function ReadingDetails({
             </h3>
             {title === 'Timeline' && (
               <p className="reading-detail-timezone">
-                {t(' Times in ')}
-                {t(viewerTimeZone.replaceAll('_', ' '))}
+                {t('Device times use their UTC offset; created time is in {{value0}}.', {
+                  value0: viewerTimeZone.replaceAll('_', ' '),
+                })}
               </p>
             )}
             <dl>

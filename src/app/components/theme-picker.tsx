@@ -13,7 +13,9 @@ export function ThemePicker() {
   return (
     <Dropdown>
       <Dropdown.Trigger
-        aria-label={t('Choose color theme, current: {{value0}}', { value0: t(selectedTheme.label) })}
+        aria-label={t('Choose color theme, current: {{value0}}', {
+          value0: t(selectedTheme.label),
+        })}
         className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-surface-muted"
       >
         <Palette size={16} className="text-muted" />

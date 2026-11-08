@@ -1,19 +1,26 @@
 import { dateFormatter, translate as t, useAppTranslation } from '@/i18n'
 import { Clock3, UserRound } from 'lucide-react'
 import type { DeviceReading } from '@/services/reading-services/reading-services'
-import { readingTimestamp, sourceLabel, timeFormat, viewerTimeZone } from '../readings'
+import { readingTimestamp, sourceLabel, utcOffsetLabel, viewerTimeZone } from '../readings'
 
-const monthFormat = dateFormatter({ month: 'short' })
-const dayFormat = dateFormatter({ day: '2-digit' })
-const weekdayFormat = dateFormatter({ weekday: 'short' })
-const yearFormat = dateFormatter({ year: 'numeric' })
+function timeFormatters(timeZone: string) {
+  return {
+    month: dateFormatter({ month: 'short', timeZone }),
+    day: dateFormatter({ day: '2-digit', timeZone }),
+    weekday: dateFormatter({ weekday: 'short', timeZone }),
+    year: dateFormatter({ year: 'numeric', timeZone }),
+    time: dateFormatter({ hour: 'numeric', minute: '2-digit', hour12: true, timeZone }),
+  }
+}
+const deviceFormats = timeFormatters('UTC')
+const viewerFormats = timeFormatters(viewerTimeZone)
 
 export function ReadingTime({
   reading,
   kind,
 }: {
   reading: DeviceReading
-  kind: 'recorded' | 'received'
+  kind: 'recorded' | 'received' | 'created'
 }) {
   useAppTranslation()
 
@@ -25,27 +32,35 @@ export function ReadingTime({
       </span>
     )
   const date = new Date(value)
+  const offset = kind === 'created' ? null : reading.timeZoneOffset
+  const hasDeviceOffset = offset != null && Number.isFinite(offset)
+  // Format an offset-adjusted display date in UTC to support fractional device offsets
+  // across browsers. Keep the original UTC instant in the machine-readable dateTime.
+  const displayDate = hasDeviceOffset ? new Date(value + Math.round(offset * 60) * 60_000) : date
+  const formats = hasDeviceOffset ? deviceFormats : viewerFormats
+  const zoneLabel = hasDeviceOffset ? utcOffsetLabel(offset) : viewerTimeZone
   return (
     <time
       dateTime={date.toISOString()}
-      title={t('{{value0}} · {{value1}}', { value0: date.toISOString(), value1: viewerTimeZone })}
+      title={t('{{value0}} · {{value1}}', { value0: date.toISOString(), value1: zoneLabel })}
       className={`reading-date reading-date-${kind}`}
     >
       <span className="reading-calendar" aria-hidden="true">
-        <span>{t(monthFormat.format(date))}</span>
-        <strong>{t(dayFormat.format(date))}</strong>
+        <span>{t(formats.month.format(displayDate))}</span>
+        <strong>{t(formats.day.format(displayDate))}</strong>
       </span>
       <span className="reading-date-copy">
         <span>
-          {t(weekdayFormat.format(date))} · {t(yearFormat.format(date))}
+          {t(formats.weekday.format(displayDate))} · {t(formats.year.format(displayDate))}
         </span>
-        <span>
+        <span className="reading-clock">
           <Clock3 size={11} aria-hidden="true" />
-          {t(timeFormat.format(date))}
+          {t(formats.time.format(displayDate))}
         </span>
+        <small className="reading-timezone">{zoneLabel}</small>
       </span>
       <span className="sr-only">
-        {t(monthFormat.format(date))} {t(dayFormat.format(date))}
+        {t(formats.month.format(displayDate))} {t(formats.day.format(displayDate))}
       </span>
     </time>
   )

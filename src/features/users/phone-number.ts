@@ -1,3 +1,5 @@
+import { translate as t } from '@/i18n'
+
 // Shared calling codes are grouped so an existing international number can be
 // split without guessing which country within that numbering plan it belongs to.
 const callingCodes = `1|United States / Canada
@@ -249,7 +251,11 @@ export function matchesCountryCode(code: string, query: string) {
     return code.startsWith(`+${numeric.replace(/^\+/, '')}`)
   }
   const option = countryCodeOptions.find((option) => option.id === code)
-  return !!option && normalizeCountrySearch(option.label).includes(normalized)
+  return (
+    !!option &&
+    (normalizeCountrySearch(option.label).includes(normalized) ||
+      normalizeCountrySearch(t(option.label.replace(/ \(\+\d+\)$/, ''))).includes(normalized))
+  )
 }
 
 export function resolveCountryCode(query: string) {
@@ -265,7 +271,11 @@ export function resolveCountryCode(query: string) {
     option.label
       .replace(/ \(\+\d+\)$/, '')
       .split('/')
-      .some((country) => normalizeCountrySearch(country) === normalized),
+      .some(
+        (country) =>
+          normalizeCountrySearch(country) === normalized ||
+          normalizeCountrySearch(t(country.trim())) === normalized,
+      ),
   )
   return exact?.id ?? (matches.length === 1 ? matches[0]?.id : undefined)
 }

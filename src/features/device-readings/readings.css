@@ -506,7 +506,7 @@
   gap: 5px;
   font-size: 10px;
 }
-.reading-date-copy > span:last-child {
+.reading-clock {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -735,4 +735,26 @@
 .reading-detail-section-teal .reading-calendar strong {
   padding-top: 1px;
   padding-bottom: 1px;
+}
+
+.reading-new-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 999px;
+  padding: 2px 6px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.reading-timezone {
+  display: block;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.4;
 }

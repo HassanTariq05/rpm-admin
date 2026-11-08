@@ -71,7 +71,14 @@ export function CountryCodeField({
           )}
         >
           {(option: (typeof countryCodeOptions)[number]) => (
-            <ListBox.Item id={option.id} textValue={option.id} aria-label={t(option.label)}>
+            <ListBox.Item
+              id={option.id}
+              textValue={option.id}
+              aria-label={t('{{value0}} ({{value1}})', {
+                value0: t(option.label.replace(/ \(\+\d+\)$/, '')),
+                value1: option.id,
+              })}
+            >
               <span className="min-w-0 flex-1 truncate">
                 {t(option.label.replace(/ \(\+\d+\)$/, ''))}
               </span>

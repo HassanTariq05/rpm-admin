@@ -30,6 +30,7 @@ export function EngagementChart({ data }: { data: ReadingPoint[] }) {
           <CartesianGrid stroke="var(--border)" strokeDasharray="4 5" vertical={false} />
           <XAxis
             dataKey="day"
+            tickFormatter={(value: string) => t(value)}
             axisLine={false}
             tickLine={false}
             tick={{ fill: 'var(--muted)', fontSize: 11 }}
@@ -51,7 +52,11 @@ export function EngagementChart({ data }: { data: ReadingPoint[] }) {
               boxShadow: '0 6px 20px rgb(0 0 0 / 6%)',
               fontSize: 12,
             }}
-            formatter={(value) => [`${value}%`, 'Engagement']}
+            formatter={(value, name) => [
+              `${value}%`,
+              t(name === 'target' ? 'Target' : 'Engagement'),
+            ]}
+            labelFormatter={(label) => t(String(label))}
             labelStyle={{ fontWeight: 700, marginBottom: 4 }}
           />
           <Area

@@ -13,6 +13,7 @@ import { AppShell } from '@/app/layout/app-shell'
 // import { DashboardPage } from '@/features/dashboard/pages/dashboard-page'
 import { PatientsPage } from '@/features/patients/pages/patients-page'
 import { DeviceReadingsPage } from '@/features/device-readings'
+import { OrdersPage } from '@/features/orders/pages/orders-page'
 import { DevicesPage } from '@/features/devices/pages/devices-page'
 import { ReportsPage } from '@/features/reports/pages/reports-page'
 import { UsersPage } from '@/features/users'
@@ -84,6 +85,12 @@ const devicesRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/devices',
   component: DevicesPage,
+})
+
+const ordersRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/orders',
+  component: OrdersPage,
 })
 
 const deviceReadingsRoute = createRoute({
@@ -162,6 +169,7 @@ const routeTree = rootRoute.addChildren([
     indexRoute,
     patientsRoute,
     devicesRoute,
+    ordersRoute,
     deviceReadingsRoute,
     reportsRoute,
     usersRoute,

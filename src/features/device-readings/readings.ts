@@ -177,15 +177,21 @@ export function measurement(reading: DeviceReading): ReadingMeasurement {
 }
 export function readingTimestamp(
   reading: DeviceReading,
-  kind: 'recorded' | 'received',
+  kind: 'recorded' | 'received' | 'created',
 ): number | null {
-  const canonical = kind === 'recorded' ? reading.recordedAt : reading.receivedAt
-  const local = kind === 'recorded' ? reading.dateRecorded : reading.dateReceived
+  const canonical =
+    kind === 'created'
+      ? reading.createdAt
+      : kind === 'recorded'
+        ? reading.recordedAt
+        : reading.receivedAt
+  const local =
+    kind === 'created' ? null : kind === 'recorded' ? reading.dateRecorded : reading.dateReceived
   const candidate = canonical || local
   if (!candidate) return null
   let value = candidate
   if (!/(Z|[+-]\d{2}:?\d{2})$/i.test(value)) {
-    if (reading.timeZoneOffset == null) return null
+    if (kind === 'created' || reading.timeZoneOffset == null) return null
     const minutes = Math.round(reading.timeZoneOffset * 60)
     const absolute = Math.abs(minutes)
     value += `${minutes < 0 ? '-' : '+'}${String(Math.floor(absolute / 60)).padStart(2, '0')}:${String(absolute % 60).padStart(2, '0')}`
@@ -193,6 +199,12 @@ export function readingTimestamp(
   const timestamp = Date.parse(value)
   return Number.isFinite(timestamp) ? timestamp : null
 }
+export function utcOffsetLabel(offsetHours: number) {
+  const minutes = Math.round(offsetHours * 60)
+  const absolute = Math.abs(minutes)
+  return `UTC${minutes < 0 ? '−' : '+'}${String(Math.floor(absolute / 60)).padStart(2, '0')}:${String(absolute % 60).padStart(2, '0')}`
+}
+
 export function readingsErrorMessage(error: unknown) {
   if (error instanceof ReadingsResponseError) return error.message
   if (axios.isAxiosError(error)) {
