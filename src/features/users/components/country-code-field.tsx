@@ -10,9 +10,11 @@ import {
 export function CountryCodeField({
   value,
   onChange,
+  disabled = false,
 }: {
   value: string
   onChange: (value: string) => void
+  disabled?: boolean
 }) {
   useAppTranslation()
 
@@ -22,6 +24,7 @@ export function CountryCodeField({
   return (
     <ComboBox
       fullWidth
+      isDisabled={disabled}
       className="min-w-0"
       value={value}
       inputValue={inputValue}

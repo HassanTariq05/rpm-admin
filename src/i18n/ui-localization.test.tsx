@@ -32,6 +32,23 @@ vi.mock('@/hooks/use-orders', () => ({
   useCreateOrder: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useUpdateOrder: () => ({ isPending: false, mutateAsync: vi.fn() }),
 }))
+vi.mock('@/hooks/use-order-lookups', () => {
+  const query = (data: unknown) => ({
+    data,
+    isPending: false,
+    isError: false,
+    isFetching: false,
+    fetchStatus: 'idle',
+    refetch: vi.fn(),
+  })
+  return {
+    usePatientLastShipping: () => query(null),
+    useOrderSkus: () => query([]),
+    useOrderCountries: () => query([{ code: 'US', name: 'United States' }]),
+    useOrderStates: () => query([{ code: 'TX', name: 'Texas', countryCode: 'US' }]),
+    useOrderCities: () => query([{ name: 'Austin', stateCode: 'TX', countryCode: 'US' }]),
+  }
+})
 vi.mock('@/hooks/use-administration', () => ({
   useAdminScope: () => ({
     ready: true,
@@ -124,7 +141,7 @@ it('translates order form validation and preserves entered data during language 
   await user.click(screen.getByRole('button', { name: 'Guardar borrador' }))
   expect(await screen.findByText('Seleccione un paciente.')).toBeInTheDocument()
   await user.click(screen.getByRole('tab', { name: /Artículos del pedido/ }))
-  expect(screen.getByText('Ingrese un código SKU.')).toBeInTheDocument()
+  expect(screen.getByText('Seleccione un SKU.')).toBeInTheDocument()
   await user.click(screen.getByRole('tab', { name: /Información del pedido/ }))
   await language('en')
   expect(screen.getByRole('textbox', { name: 'Order number' })).toHaveValue('MY-ORDER')
@@ -140,4 +157,30 @@ it('finds countries by Spanish names without changing dialing codes', async () =
   expect(resolveCountryCode('Alemania')).toBe('+49')
   expect(matchesCountryCode('+592', '92')).toBe(false)
   expect(resolveCountryCode('+92')).toBe('+92')
+})
+
+it('translates order lookup labels and shipment states while preserving API values', async () => {
+  const user = userEvent.setup()
+  render(<OrderEditor record={orderFixture} onClose={vi.fn()} onSaved={vi.fn()} />)
+  await language('es')
+  expect(
+    screen.queryByRole('heading', { name: 'Último envío del paciente' }),
+  ).not.toBeInTheDocument()
+  await user.click(screen.getByRole('tab', { name: 'Dirección de envío' }))
+  expect(screen.getByRole('heading', { name: 'Último envío del paciente' })).toBeInTheDocument()
+  expect(
+    screen.getByText('No se encontró un envío anterior para este paciente.'),
+  ).toBeInTheDocument()
+  await user.click(screen.getByRole('tab', { name: 'Dirección de envío' }))
+  expect(screen.getByRole('button', { name: /País/ })).toBeEnabled()
+  expect(
+    screen.getByText('Estados Unidos (US)', { selector: '[data-slot="autocomplete-value"]' }),
+  ).toBeInTheDocument()
+  expect(
+    screen.getByText('Austin', { selector: '[data-slot="autocomplete-value"]' }),
+  ).toBeInTheDocument()
+  await language('en')
+  expect(
+    screen.getByText('United States (US)', { selector: '[data-slot="autocomplete-value"]' }),
+  ).toBeInTheDocument()
 })

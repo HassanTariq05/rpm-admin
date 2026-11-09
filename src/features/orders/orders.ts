@@ -1,6 +1,7 @@
 import { locale, translate as t } from '@/i18n'
 import axios from 'axios'
 import { z } from 'zod'
+import { splitPhoneNumber } from '@/features/users/phone-number'
 import {
   orderWriteSchema,
   OrderResponseError,
@@ -80,6 +81,9 @@ export const optionalOrderInputNames = new Set<string>([
   'requireSignature',
   'notes',
 ])
+export const signatureValue = (value?: string | null): 'yes' | 'no' =>
+  ['yes', 'true', '1'].includes(value?.trim().toLowerCase() ?? '') ? 'yes' : 'no'
+
 const requiredText = (message: string) => z.string().trim().min(1, message)
 const jsonField = z.string().transform((value, ctx) => {
   if (!value.trim()) return null
@@ -98,6 +102,7 @@ export const orderFormSchema = z
     organisationId: z.string().trim().uuid('Choose an organization or enter a valid ID.'),
     patientId: z.string().trim().uuid('Choose a patient.'),
     source: z.enum(['smart_meter', 'pylo']),
+    recipientCallingCode: z.string().default('+1'),
     ...(Object.fromEntries(optionalOrderFields.map((field) => [field, z.string()])) as Record<
       (typeof optionalOrderFields)[number],
       z.ZodString
@@ -128,10 +133,11 @@ export const orderFormSchema = z
       )
       .transform((value) => value.toUpperCase()),
     shippingMethod: requiredText('Shipping method is required.'),
+    requireSignature: z.enum(['yes', 'no']),
     lines: z
       .array(
         z.object({
-          sku: z.string().trim().min(1, 'Enter a SKU.'),
+          sku: z.string().trim().min(1, 'Choose a SKU.'),
           quantity: z
             .string()
             .refine(
@@ -165,9 +171,16 @@ export function orderInitialValues(record?: Order, orgId = '', userId = ''): Ord
     ...(Object.fromEntries(
       optionalOrderFields.map((field) => [
         field,
-        record?.[field] ?? (field === 'createdBy' && !record ? userId : ''),
+        record?.[field] ??
+          (!record && field === 'shippingMethod'
+            ? 'MAIL'
+            : field === 'createdBy' && !record
+              ? userId
+              : ''),
       ]),
     ) as Record<(typeof optionalOrderFields)[number], string>),
+    requireSignature: signatureValue(record?.requireSignature),
+    recipientCallingCode: splitPhoneNumber(record?.recipientPhone ?? '').countryCode,
     lines: record?.lines.map((line) => ({ sku: line.sku, quantity: String(line.quantity) })) ?? [
       { sku: '', quantity: '1' },
     ],

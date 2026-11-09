@@ -103,7 +103,6 @@ it('accepts blank optional inputs, international phone formats and country codes
     recipientCompany: '',
     address2: '',
     address3: '',
-    requireSignature: '',
     notes: '',
     countryCode: 'pk',
     recipientPhone: '+92 (300) 123-4567',
@@ -114,7 +113,7 @@ it('accepts blank optional inputs, international phone formats and country codes
     recipientCompany: null,
     address2: null,
     address3: null,
-    requireSignature: null,
+    requireSignature: 'no',
     notes: null,
   })
 })

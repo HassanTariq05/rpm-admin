@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { LoaderCircle } from 'lucide-react'
 import { useField } from 'formik'
 import { Autocomplete, FieldError, Label, ListBox, SearchField } from '@heroui/react'
 import { translate as t, useAppTranslation } from '@/i18n'
@@ -11,6 +12,7 @@ export function OrderChoiceField({
   icon,
   disabled = false,
   required = false,
+  loading = false,
   onChange,
   emptyMessage = 'No matches found.',
 }: {
@@ -20,6 +22,7 @@ export function OrderChoiceField({
   icon: ReactNode
   disabled?: boolean
   required?: boolean
+  loading?: boolean
   emptyMessage?: string
   onChange?: (value: string) => void
 }) {
@@ -29,7 +32,8 @@ export function OrderChoiceField({
     <Autocomplete
       fullWidth
       value={field.value || null}
-      isDisabled={disabled}
+      isDisabled={disabled || loading}
+      aria-busy={loading}
       isRequired={required}
       isInvalid={meta.touched && !!meta.error}
       placeholder={t('Select {{value0}}', { value0: t(label).toLowerCase() })}
@@ -44,8 +48,16 @@ export function OrderChoiceField({
       <Label className="text-xs font-semibold">{t(label)}</Label>
       <Autocomplete.Trigger>
         <span className="order-choice-value">
-          <span aria-hidden="true">{icon}</span>
-          <Autocomplete.Value />
+          <span aria-hidden="true">
+            {loading ? <LoaderCircle size={17} className="animate-spin" /> : icon}
+          </span>
+          {loading ? (
+            <span role="status" className="text-muted">
+              {t('Loading {{label}}…', { label: t(label).toLowerCase() })}
+            </span>
+          ) : (
+            <Autocomplete.Value />
+          )}
         </span>
         <Autocomplete.Indicator />
       </Autocomplete.Trigger>

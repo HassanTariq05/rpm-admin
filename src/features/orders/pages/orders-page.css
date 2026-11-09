@@ -206,18 +206,27 @@
   flex-shrink: 0;
 }
 .order-editor-modal .modal__header {
-  padding: 16px 48px 16px 24px;
+  padding: 10px 48px 10px 20px;
 }
 .order-editor-modal .modal-header-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
 }
 .order-editor-modal .modal__heading {
-  font-size: 19px;
+  font-size: 17px;
+}
+.order-editor-modal .modal__header > div {
+  gap: 12px;
+}
+.order-editor-modal .modal-header-icon svg {
+  width: 20px;
+  height: 20px;
 }
 .order-editor-modal .modal__header p {
-  font-size: 12px;
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.4;
 }
 .order-editor-modal .modal__body {
   display: flex;
@@ -225,7 +234,7 @@
   flex-direction: column;
   min-height: 0;
   max-height: none;
-  margin-top: 16px;
+  margin-top: 10px;
   overflow: hidden;
   color: var(--foreground);
 }
@@ -1414,4 +1423,30 @@
   min-height: 150px;
   font-family: monospace;
   font-size: 12px;
+}
+
+.order-last-shipping-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.order-last-shipping-summary {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  min-width: min(100%, 240px);
+  font-size: 12px;
+}
+.order-last-shipping-summary p {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  overflow-wrap: anywhere;
+}
+.order-last-shipping-summary svg {
+  flex-shrink: 0;
+  align-self: flex-start;
+  color: var(--muted);
 }
