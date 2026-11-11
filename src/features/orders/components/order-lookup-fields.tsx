@@ -65,6 +65,13 @@ function withSavedOption(options: Choice[], value: string): Choice[] {
     : options
 }
 
+// The shared address selector is also used by organisation forms.
+interface LocationValues {
+  countryCode: string
+  state: string
+  city: string
+}
+
 type LocationOptions = {
   countries: ReturnType<typeof useOrderCountries>
   states: ReturnType<typeof useOrderStates>
@@ -82,7 +89,7 @@ export function OrderLocationProvider({
 }: {
   children: (checking: boolean) => ReactNode
 }) {
-  const { values, setValues } = useFormikContext<OrderValues>()
+  const { values, setValues } = useFormikContext<LocationValues>()
   const countries = useOrderCountries()
   const country = countries.data?.find((item) =>
     [item.code, item.name].some((value) => normalized(value) === normalized(values.countryCode)),
@@ -158,9 +165,15 @@ export function OrderLocationProvider({
   )
 }
 
-export function OrderLocationFields({ disabled }: { disabled: boolean }) {
+export function OrderLocationFields({
+  disabled,
+  required = true,
+}: {
+  disabled: boolean
+  required?: boolean
+}) {
   useAppTranslation()
-  const { values, setValues } = useFormikContext<OrderValues>()
+  const { values, setValues } = useFormikContext<LocationValues>()
   const context = useContext(LocationContext)
   if (!context) throw new Error('OrderLocationFields requires OrderLocationProvider')
   const { countries, states, cities, countryCode, stateCode } = context
@@ -171,7 +184,7 @@ export function OrderLocationFields({ disabled }: { disabled: boolean }) {
           name="countryCode"
           label="Country"
           loading={countries.isFetching}
-          required
+          required={required}
           icon={<Globe size={17} className="admin-icon-blue" />}
           disabled={disabled || (countries.isPending && !values.countryCode)}
           options={(countries.data ?? []).map((country) => ({
@@ -191,7 +204,7 @@ export function OrderLocationFields({ disabled }: { disabled: boolean }) {
           name="state"
           label="State / province"
           loading={states.isFetching}
-          required
+          required={required}
           icon={<Navigation size={17} className="admin-icon-blue" />}
           disabled={disabled || !countryCode || (states.isPending && !values.state)}
           options={(countryCode ? (states.data ?? []) : []).map((state) => ({
@@ -216,7 +229,7 @@ export function OrderLocationFields({ disabled }: { disabled: boolean }) {
           name="city"
           label="City"
           loading={cities.isFetching}
-          required
+          required={required}
           icon={<Building2 size={17} className="admin-icon-blue" />}
           disabled={disabled || !countryCode || !stateCode || (cities.isPending && !values.city)}
           options={(stateCode ? (cities.data ?? []) : []).map((city) => ({
@@ -259,7 +272,7 @@ export function OrderSkuField({ index, disabled }: { index: number; disabled: bo
             })),
           value,
         )}
-        emptyMessage="No SKUs available for this provider."
+        emptyMessage="No SKUs available for this vendor."
       />
     </div>
   )
@@ -268,5 +281,5 @@ export function OrderSkuField({ index, disabled }: { index: number; disabled: bo
 export function OrderSkuFeedback() {
   const { values } = useFormikContext<OrderValues>()
   const skus = useOrderSkus(values.source)
-  return <LookupFeedback query={skus} label="SKUs" empty="No SKUs available for this provider." />
+  return <LookupFeedback query={skus} label="SKUs" empty="No SKUs available for this vendor." />
 }

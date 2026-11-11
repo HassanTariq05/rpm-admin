@@ -5,6 +5,8 @@ import { getAuthenticatedUser } from '@/services/auth-services/auth-services'
 import { Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { router } from '@/router'
+import { useIdleLogout } from '@/hooks/use-idle-logout'
+import { SessionTimeoutDialog } from '@/app/components/session-timeout-dialog'
 
 const publicPaths = new Set(['/login', '/signup', '/forgot-password', '/otp', '/reset-password'])
 
@@ -20,6 +22,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient()
   const token = useAuthStore((state) => state.auth.accessToken)
   const [loading, setLoading] = useState(true)
+  useIdleLogout(!loading)
 
   useEffect(() => {
     let active = true
@@ -48,7 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       })
       .catch(() => {
         if (active && useAuthStore.getState().auth.accessToken === auth.accessToken) {
-          auth.reset()
+          auth.expireSession()
           redirectToLogin()
         }
       })
@@ -69,5 +72,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     )
   }
 
-  return <>{children}</>
+  return (
+    <>
+      {children}
+      <SessionTimeoutDialog />
+    </>
+  )
 }

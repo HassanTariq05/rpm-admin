@@ -82,5 +82,5 @@ export function useDeleteOrder() {
   return useOrderMutation(useOrderService().remove, 'Order deleted')
 }
 export function useSubmitOrder() {
-  return useOrderMutation(useOrderService().submit, 'Order submitted to provider')
+  return useOrderMutation(useOrderService().submit, 'Order submitted to vendor')
 }

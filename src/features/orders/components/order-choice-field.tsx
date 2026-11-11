@@ -31,6 +31,7 @@ export function OrderChoiceField({
   return (
     <Autocomplete
       fullWidth
+      data-field={name}
       value={field.value || null}
       isDisabled={disabled || loading}
       aria-busy={loading}

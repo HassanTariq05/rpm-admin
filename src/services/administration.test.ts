@@ -82,3 +82,25 @@ describe('administration API contracts', () => {
     })
   })
 })
+
+it('sends organisation address fields unchanged on both create and update', async () => {
+  const { client, requests } = clientWithResponse({})
+  const service = createOrganizationService(client)
+  const payload = {
+    name: 'Clinic',
+    email: 'clinic@example.com',
+    phoneNumber: '+14155552671',
+    status: 'active' as const,
+    address1: '10 Main St',
+    address2: null,
+    address3: null,
+    city: 'Los Angeles',
+    state: 'CA',
+    postalCode: '90001',
+    countryCode: 'US',
+  }
+  await service.create(payload)
+  await service.update('org-1', payload)
+  expect(requests.map((request) => request.method)).toEqual(['post', 'put'])
+  for (const request of requests) expect(JSON.parse(request.data)).toEqual(payload)
+})

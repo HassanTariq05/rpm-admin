@@ -38,7 +38,7 @@ export function patientErrorMessage(error: unknown) {
       case 404:
         return 'Patient not found. Refresh the directory.'
       case 409:
-        return 'A patient with this MRN, national ID, or external ID already exists.'
+        return "A patient with this MRN, driver's license, or external ID already exists."
       case 503:
         return 'The patient service is unavailable. Please try again.'
     }

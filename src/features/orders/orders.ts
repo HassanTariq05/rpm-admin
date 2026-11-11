@@ -32,9 +32,9 @@ export const statusLabels = {
 export const eventLabels = {
   created: 'Draft created',
   updated: 'Order updated',
-  submitted: 'Submitted to provider',
+  submitted: 'Submitted to vendor',
   submit_failed: 'Submission failed',
-  webhook: 'Provider update',
+  webhook: 'Vendor update',
 }
 export const orderName = (order: Order) =>
   order.orderNumber || order.externalOrderNumber || order.id
@@ -103,6 +103,7 @@ export const orderFormSchema = z
     patientId: z.string().trim().uuid('Choose a patient.'),
     source: z.enum(['smart_meter', 'pylo']),
     recipientCallingCode: z.string().default('+1'),
+    shipThrough: z.enum(['organization', 'patient']).default('patient'),
     ...(Object.fromEntries(optionalOrderFields.map((field) => [field, z.string()])) as Record<
       (typeof optionalOrderFields)[number],
       z.ZodString
@@ -181,6 +182,7 @@ export function orderInitialValues(record?: Order, orgId = '', userId = ''): Ord
     ) as Record<(typeof optionalOrderFields)[number], string>),
     requireSignature: signatureValue(record?.requireSignature),
     recipientCallingCode: splitPhoneNumber(record?.recipientPhone ?? '').countryCode,
+    shipThrough: 'patient',
     lines: record?.lines.map((line) => ({ sku: line.sku, quantity: String(line.quantity) })) ?? [
       { sku: '', quantity: '1' },
     ],
@@ -217,7 +219,7 @@ export function orderErrorMessage(error: unknown): string {
     if (status === 409)
       return 'The order changed or this order number is already in use. Refresh before trying again.'
     if (status === 502)
-      return 'The provider could not accept the order. Review its details before retrying.'
+      return 'The vendor could not accept the order. Review its details before retrying.'
     if (status === 503) return 'The order service is unavailable. Please try again.'
     if (status === 400 && typeof error.response?.data?.error === 'string')
       return error.response.data.error

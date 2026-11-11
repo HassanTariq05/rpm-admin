@@ -46,6 +46,7 @@ import {
 } from './order-lookup-fields'
 import { OrderRecipientPhone } from './order-recipient-phone'
 import { splitPhoneNumber } from '@/features/users/phone-number'
+import { OrderShipThrough, OrderShipThroughSync } from './order-ship-through'
 import { PatientLastShipping } from './patient-last-shipping'
 import '../pages/orders-page.css'
 
@@ -180,7 +181,7 @@ export function OrderEditor({
                 onClose={onClose}
                 title={t(record ? 'Edit order' : 'Create order')}
                 description={t(
-                  'Save a draft, review the details, then submit it to your device provider.',
+                  'Save a draft, review the details, then submit it to your device vendor.',
                 )}
                 headerIcon={<Package size={25} />}
                 scroll="inside"
@@ -217,7 +218,14 @@ export function OrderEditor({
                   </div>
                 }
                 footer={
-                  <SubmitButton pending={pending} disabled={checkingLocation} form="order-form">
+                  <SubmitButton
+                    pending={pending}
+                    disabled={
+                      checkingLocation ||
+                      (values.shipThrough === 'organization' && organizations.isPending)
+                    }
+                    form="order-form"
+                  >
                     <Save size={16} />
                     {t(record ? 'Save changes' : 'Save draft')}
                   </SubmitButton>
@@ -225,6 +233,7 @@ export function OrderEditor({
               >
                 <Form id="order-form" noValidate className="order-editor-form">
                   <OrderTabValidation onSelect={setSelectedTab} />
+                  <OrderShipThroughSync organizations={organizations} />
                   <p className="mb-3 shrink-0 text-xs text-muted">
                     {t('Fields marked * are required. All other fields are optional.')}
                   </p>
@@ -273,42 +282,50 @@ export function OrderEditor({
                               icon={<Building2 size={17} className="admin-icon-amber" />}
                             />
                           )}
-                          <OrderChoiceField
-                            name="patientId"
-                            label="Patient"
-                            options={patientOptions}
-                            required
-                            loading={
-                              !!values.organisationId && (patients.isPending || patients.isFetching)
-                            }
-                            onChange={(patientId) => {
-                              if (patientId === values.patientId) return
-                              const patient = patients.data?.find((item) => item.id === patientId)
-                              if (!patient) return
-                              void setValues((current) => ({
-                                ...current,
-                                patientId,
-                                recipientFirstName: patient.firstName ?? '',
-                                recipientLastName: patient.lastName ?? '',
-                                recipientPhone: patient.phone ?? '',
-                                recipientCallingCode: splitPhoneNumber(patient.phone ?? '')
-                                  .countryCode,
-                                recipientEmail: patient.email ?? '',
-                                recipientCompany:
-                                  typeof patient.company === 'string' ? patient.company : '',
-                              }))
-                            }}
-                            disabled={pending || patients.isPending || !values.organisationId}
-                            emptyMessage={
-                              patients.isError
-                                ? 'Unable to load patient choices.'
-                                : 'No patients found for this organization.'
-                            }
-                            icon={<UserRound size={17} className="admin-icon-violet" />}
-                          />
+                          <div className="min-w-0">
+                            <OrderChoiceField
+                              name="patientId"
+                              label="Patient"
+                              options={patientOptions}
+                              required
+                              loading={
+                                !!values.organisationId &&
+                                (patients.isPending || patients.isFetching)
+                              }
+                              onChange={(patientId) => {
+                                if (patientId === values.patientId) return
+                                const patient = patients.data?.find((item) => item.id === patientId)
+                                if (!patient) return
+                                void setValues((current) => ({
+                                  ...current,
+                                  patientId,
+                                  recipientFirstName: patient.firstName ?? '',
+                                  recipientLastName: patient.lastName ?? '',
+                                  recipientPhone: patient.phone ?? '',
+                                  recipientCallingCode: splitPhoneNumber(patient.phone ?? '')
+                                    .countryCode,
+                                  recipientEmail: patient.email ?? '',
+                                  recipientCompany:
+                                    typeof patient.company === 'string' ? patient.company : '',
+                                }))
+                              }}
+                              disabled={pending || patients.isPending || !values.organisationId}
+                              emptyMessage={
+                                patients.isError
+                                  ? 'Unable to load patient choices.'
+                                  : 'No patients found for this organization.'
+                              }
+                              icon={<UserRound size={17} className="admin-icon-violet" />}
+                            />
+                            {!values.organisationId && (
+                              <p className="mt-2 text-xs leading-relaxed text-muted">
+                                {t('Choose an organization to select a patient.')}
+                              </p>
+                            )}
+                          </div>
                           <OrderChoiceField
                             name="source"
-                            label="Provider"
+                            label="Vendor"
                             options={Object.entries(sourceLabels).map(([id, label]) => ({
                               id,
                               label,
@@ -342,6 +359,7 @@ export function OrderEditor({
                             disabled={pending}
                             icon={<Hash size={17} className="admin-icon-teal" />}
                           />
+                          <OrderShipThrough disabled={pending} organizations={organizations} />
                           {record && (
                             <div className="admin-status-card order-availability">
                               <span className="flex items-center gap-2">
@@ -379,11 +397,6 @@ export function OrderEditor({
                             className="mt-3 text-xs text-muted"
                           >
                             {t('Availability changes are applied when you save changes.')}
-                          </p>
-                        )}
-                        {!values.organisationId && (
-                          <p className="mt-2 text-xs text-muted">
-                            {t('Choose an organization to select a patient.')}
                           </p>
                         )}
                         {!patients.isPending &&
@@ -480,7 +493,9 @@ export function OrderEditor({
                       )}
                     </Tabs.Panel>
                     <Tabs.Panel id="shipping" className="order-editor-panel">
-                      <PatientLastShipping disabled={pending} />
+                      {values.shipThrough === 'patient' && (
+                        <PatientLastShipping disabled={pending} />
+                      )}
                       <section className="order-section">
                         <h3>
                           <Truck size={17} className="admin-icon-teal" />
@@ -504,7 +519,7 @@ export function OrderEditor({
                               name="shippingMethod"
                               label="Shipping method"
                               required
-                              placeholder="Provider shipping method"
+                              placeholder="Vendor shipping method"
                               disabled={pending}
                               icon={<Truck size={17} className="admin-icon-teal" />}
                             />
@@ -555,8 +570,8 @@ export function OrderEditor({
                           {t('Order items')}
                         </h3>
                         <p className="mb-3 text-xs text-muted">
-                          {t('Select a provider SKU and quantity for each device or supply.')}{' '}
-                          {t('Changing provider clears the selected SKUs.')}
+                          {t('Select a vendor SKU and quantity for each device or supply.')}{' '}
+                          {t('Changing vendor clears the selected SKUs.')}
                         </p>
                         <OrderSkuFeedback />
                         <FieldArray name="lines">

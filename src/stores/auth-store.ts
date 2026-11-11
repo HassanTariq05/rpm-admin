@@ -29,6 +29,9 @@ interface Role {
 
 interface AuthState {
   auth: {
+    sessionExpiryReason: 'expired' | 'inactivity' | null
+    expireSession: (reason?: 'expired' | 'inactivity') => void
+    dismissSessionExpiry: () => void
     user: AuthUser | null
     setUser: (user: AuthUser | null) => void
     accessToken: string
@@ -43,13 +46,24 @@ export const useAuthStore = create<AuthState>()((set) => {
   const initToken = cookieState ? JSON.parse(cookieState) : ''
   return {
     auth: {
+      sessionExpiryReason: null,
+      dismissSessionExpiry: () =>
+        set((state) => ({ auth: { ...state.auth, sessionExpiryReason: null } })),
+      expireSession: (reason = 'expired') =>
+        set((state) => {
+          if (!state.auth.accessToken) return state
+          removeCookie(ACCESS_TOKEN)
+          return {
+            auth: { ...state.auth, user: null, accessToken: '', sessionExpiryReason: reason },
+          }
+        }),
       user: null,
       setUser: (user) => set((state) => ({ ...state, auth: { ...state.auth, user } })),
       accessToken: initToken,
       setAccessToken: (accessToken) =>
         set((state) => {
           setCookie(ACCESS_TOKEN, JSON.stringify(accessToken))
-          return { ...state, auth: { ...state.auth, accessToken } }
+          return { ...state, auth: { ...state.auth, accessToken, sessionExpiryReason: null } }
         }),
       resetAccessToken: () =>
         set((state) => {
@@ -61,7 +75,7 @@ export const useAuthStore = create<AuthState>()((set) => {
           removeCookie(ACCESS_TOKEN)
           return {
             ...state,
-            auth: { ...state.auth, user: null, accessToken: '' },
+            auth: { ...state.auth, user: null, accessToken: '', sessionExpiryReason: null },
           }
         }),
     },

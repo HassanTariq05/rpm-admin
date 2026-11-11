@@ -157,7 +157,7 @@ export function PatientDetails({
             <Detail label="Blood group" icon={HeartPulse}>
               {record.bloodGroup === 'unknown' ? t('Unknown') : record.bloodGroup}
             </Detail>
-            <Detail label="National ID" icon={IdCard}>
+            <Detail label="Driver's License #" icon={IdCard}>
               {record.nationalId}
             </Detail>
             <Detail label="MRN" icon={FileText}>

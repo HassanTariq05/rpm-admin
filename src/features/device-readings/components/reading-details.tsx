@@ -173,7 +173,7 @@ export function ReadingDetails({
           </div>
         </div>
         <div className="reading-detail-source">
-          <span className="reading-detail-label">{t('Device provider')}</span>
+          <span className="reading-detail-label">{t('Device vendor')}</span>
           <DeviceBrand source={reading.source} />
         </div>
         <div className="reading-detail-patient">

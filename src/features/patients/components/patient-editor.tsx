@@ -4,7 +4,12 @@ import { useField, Form, Formik } from 'formik'
 import * as Yup from 'yup'
 import { Autocomplete, FieldError, Label, ListBox, SearchField, Tabs } from '@heroui/react'
 import { FileText, Mail, MapPin, Phone, Save, ShieldCheck, UserPlus, UserRound } from 'lucide-react'
-import { FormModal, FormTextField, SubmitButton } from '@/app/components/administration/admin-ui'
+import {
+  FormModal,
+  FormTextField,
+  FormStatusField,
+  SubmitButton,
+} from '@/app/components/administration/admin-ui'
 import { useFormikContext } from 'formik'
 import { CountryCodeField } from '@/features/users/components/country-code-field'
 import { splitPhoneNumber } from '@/features/users/phone-number'
@@ -274,8 +279,8 @@ export function PatientEditor({
               />
               <FormTextField
                 name="nationalId"
-                label={t('National ID')}
-                placeholder={t('Enter National ID')}
+                label={t("Driver's License #")}
+                placeholder={t("Enter Driver's License #")}
                 icon={<ShieldCheck size={17} className="admin-icon-blue" />}
               />
               <FormTextField
@@ -296,14 +301,7 @@ export function PatientEditor({
                 required={false}
                 options={choiceOptions(bloodGroups, record?.bloodGroup)}
               />
-              <PatientChoice
-                name="status"
-                label="Status"
-                options={[
-                  { id: 'active', label: t('Active') },
-                  { id: 'inactive', label: t('Inactive') },
-                ]}
-              />
+              <FormStatusField disabled={pending} />
               {scope.isSuperAdmin ? (
                 <PatientChoice
                   name="organisationId"

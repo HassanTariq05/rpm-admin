@@ -151,3 +151,38 @@ it.each(['creating', 'updating'] as const)('shows a busy saving button while %s'
   expect(button).toHaveAttribute('data-pending', 'true')
   expect(button.querySelector('.animate-spin')).toBeInTheDocument()
 })
+
+it('labels nationalId as Driver License and saves the device-style status toggle through isActive', async () => {
+  const user = userEvent.setup()
+  state.update.mockResolvedValue({})
+  render(
+    <PatientEditor
+      record={{
+        id: '123e4567-e89b-42d3-a456-426614174000',
+        firstName: 'Alex',
+        lastName: 'Rivera',
+        dob: '2000-01-01',
+        gender: 'female',
+        isActive: true,
+        nationalId: 'DL-123',
+        organisationId: '223e4567-e89b-42d3-a456-426614174000',
+      }}
+      onClose={vi.fn()}
+      onSaved={vi.fn()}
+    />,
+  )
+  expect(screen.queryByLabelText('National ID')).not.toBeInTheDocument()
+  expect(screen.getByRole('textbox', { name: "Driver's License #" })).toHaveValue('DL-123')
+  fireEvent.change(screen.getByRole('textbox', { name: "Driver's License #" }), {
+    target: { value: 'DL-456' },
+  })
+  await user.click(screen.getByRole('switch', { name: 'Status' }))
+  await user.click(screen.getByRole('button', { name: 'Save changes' }))
+  await waitFor(() =>
+    expect(state.update).toHaveBeenCalledWith({
+      id: '123e4567-e89b-42d3-a456-426614174000',
+      payload: expect.objectContaining({ nationalId: 'DL-456', isActive: false }),
+    }),
+  )
+  expect(state.update.mock.calls[0]![0].payload).not.toHaveProperty('drivingLicence')
+})

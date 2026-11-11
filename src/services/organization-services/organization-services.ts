@@ -1,7 +1,16 @@
 import type { AxiosInstance } from 'axios'
 import { useApiClient } from '@/lib/axios'
 
-export interface Organization {
+export interface OrganizationAddress {
+  address1?: string | null
+  address2?: string | null
+  address3?: string | null
+  city?: string | null
+  state?: string | null
+  postalCode?: string | null
+  countryCode?: string | null
+}
+export interface Organization extends OrganizationAddress {
   id: string
   name: string
   email: string
@@ -13,10 +22,8 @@ export interface Organization {
   createdAt?: string
   updatedAt?: string
 }
-export type OrganizationPayload = Pick<
-  Organization,
-  'name' | 'email' | 'phoneNumber' | 'description' | 'status'
->
+export type OrganizationPayload = OrganizationAddress &
+  Pick<Organization, 'name' | 'email' | 'phoneNumber' | 'description' | 'status'>
 
 export function createOrganizationService(client: AxiosInstance) {
   return {

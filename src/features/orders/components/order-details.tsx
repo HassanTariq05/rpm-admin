@@ -96,7 +96,7 @@ export function OrderDetails({
       onClose={onClose}
       title={t('Order details')}
       description={
-        order ? orderName(order) : t('Order information, shipping, and provider activity.')
+        order ? orderName(order) : t('Order information, shipping, and vendor activity.')
       }
       headerIcon={<Package size={25} />}
       scroll="inside"
@@ -157,8 +157,8 @@ export function OrderDetails({
                       setAction('submit')
                     }}
                   >
-                    <Send size={16} />
-                    {t(order.internalStatus === 'failed' ? 'Retry submission' : 'Submit order')}
+                    <Send size={16} aria-hidden="true" />
+                    {t('Submit to {{vendor}}', { vendor: sourceLabels[order.source] })}
                   </Button>
                 </>
               )}
@@ -192,13 +192,13 @@ export function OrderDetails({
               {action === 'delete' ? <Trash2 size={32} /> : <Send size={32} />}
             </span>
             <h3>
-              {t(action === 'delete' ? 'Delete this order?' : 'Submit this order to the provider?')}
+              {t(action === 'delete' ? 'Delete this order?' : 'Submit this order to the vendor?')}
             </h3>
             <p>
               {t(
                 action === 'delete'
-                  ? 'This removes the order from the active list. It does not cancel an order already placed with the provider.'
-                  : 'This places the order with the selected provider. Once submitted, its details can no longer be edited.',
+                  ? 'This removes the order from the active list. It does not cancel an order already placed with the vendor.'
+                  : 'This places the order with the selected vendor. Once submitted, its details can no longer be edited.',
               )}
             </p>
             <div className="order-confirm-summary">
@@ -326,10 +326,10 @@ export function OrderDetails({
                     <OrderMetadata label="Tracking number" icon={Hash} tone="teal">
                       {order.trackingNumber || t('Awaiting tracking')}
                     </OrderMetadata>
-                    <OrderMetadata label="Provider status" icon={Activity} tone="violet">
-                      {order.externalStatus ? t(order.externalStatus) : t('No provider update yet')}
+                    <OrderMetadata label="Vendor status" icon={Activity} tone="violet">
+                      {order.externalStatus ? t(order.externalStatus) : t('No vendor update yet')}
                     </OrderMetadata>
-                    <OrderMetadata label="Provider order number" icon={Hash} tone="violet">
+                    <OrderMetadata label="Vendor order number" icon={Hash} tone="violet">
                       {order.externalOrderNumber}
                     </OrderMetadata>
                     <OrderMetadata label="Shipping method" icon={Truck}>
@@ -341,7 +341,7 @@ export function OrderDetails({
                   </dl>
                   <p className="mt-5 text-xs text-muted">
                     {t(
-                      'Tracking appears when the provider sends an update. Use Refresh to see the latest status.',
+                      'Tracking appears when the vendor sends an update. Use Refresh to see the latest status.',
                     )}
                   </p>
                 </section>

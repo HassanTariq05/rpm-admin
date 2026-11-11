@@ -24,8 +24,12 @@ export const useApiClient = (): AxiosInstance => {
   apiClient.interceptors.response.use(
     (response) => response,
     (error: AxiosError) => {
-      if (error.response?.status === 401) {
-        auth.reset()
+      if (
+        error.response?.status === 401 &&
+        token &&
+        useAuthStore.getState().auth.accessToken === token
+      ) {
+        useAuthStore.getState().auth.expireSession()
       }
       return Promise.reject(error)
     },

@@ -198,8 +198,8 @@ export function OrderOverview({
               tone: 'violet',
             },
             {
-              label: 'Provider status',
-              value: order.externalStatus ? t(order.externalStatus) : t('No provider update yet'),
+              label: 'Vendor status',
+              value: order.externalStatus ? t(order.externalStatus) : t('No vendor update yet'),
               caption: sourceLabels[order.source],
               icon: Truck,
               tone: 'teal',

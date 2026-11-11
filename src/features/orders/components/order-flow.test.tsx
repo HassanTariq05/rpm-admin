@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import type { OrganizationAddress } from '@/services/organization-services/organization-services'
 import type { PatientRecord } from '@/services/patient-services/patient-services'
 import type { LastShipping } from '@/services/order-services/order-lookup-services'
 import type { Order } from '@/services/order-services/order-services'
@@ -10,6 +11,7 @@ import { OrderDetails } from './order-details'
 import { OrderEditor } from './order-editor'
 const state = vi.hoisted(() => ({
   order: undefined as Order | undefined,
+  organizationAddress: {} as OrganizationAddress,
   submit: vi.fn(),
   remove: vi.fn(),
   create: vi.fn(),
@@ -141,11 +143,16 @@ vi.mock('@/hooks/use-order-lookups', () => {
   }
 })
 vi.mock('@/hooks/use-organizations', () => ({
-  useOrganizations: () => ({ data: [{ id: orderFixture.organisationId, name: 'Northstar Care' }] }),
+  useOrganizations: () => ({
+    data: [
+      { id: orderFixture.organisationId, name: 'Northstar Care', ...state.organizationAddress },
+    ],
+  }),
 }))
 beforeEach(() => {
   vi.clearAllMocks()
   state.order = orderFixture
+  state.organizationAddress = {}
   state.pending = false
   state.patients = []
   state.patientsPending = false
@@ -165,13 +172,20 @@ beforeEach(() => {
   state.update.mockResolvedValue(orderFixture)
 })
 afterEach(cleanup)
+function patientButton() {
+  return within(document.querySelector('[data-field="patientId"]') as HTMLElement).getByRole(
+    'button',
+  )
+}
 it('shows tracking and webhook activity and requires explicit confirmation before submitting', async () => {
   state.order = { ...orderFixture, trackingNumber: 'TRACK-123', externalStatus: 'shipped' }
   const user = userEvent.setup()
   render(<OrderDetails id={orderFixture.id} onClose={vi.fn()} onEdit={vi.fn()} />)
   expect(screen.getByText('TRACK-123')).toBeInTheDocument()
-  expect(screen.getByText('Provider update · shipped')).toBeInTheDocument()
-  await user.click(screen.getByRole('button', { name: 'Submit order' }))
+  expect(screen.getByText('Vendor update · shipped')).toBeInTheDocument()
+  const submitButton = screen.getByRole('button', { name: 'Submit to SmartMeter' })
+  expect(submitButton.querySelector('img')).toBeNull()
+  await user.click(submitButton)
   expect(state.submit).not.toHaveBeenCalled()
   await user.click(screen.getByRole('button', { name: 'Confirm submission' }))
   await waitFor(() => expect(state.submit).toHaveBeenCalledWith(orderFixture.id))
@@ -180,13 +194,13 @@ it('prevents edit and submission for submitted orders while retaining tracking',
   state.order = { ...orderFixture, internalStatus: 'submitted', trackingNumber: 'TRACK-123' }
   render(<OrderDetails id={orderFixture.id} onClose={vi.fn()} onEdit={vi.fn()} />)
   expect(screen.queryByRole('button', { name: 'Edit order' })).not.toBeInTheDocument()
-  expect(screen.queryByRole('button', { name: 'Submit order' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Submit to SmartMeter' })).not.toBeInTheDocument()
   expect(screen.getByText('TRACK-123')).toBeInTheDocument()
 })
 it('blocks submission until SmartMeter requirements are met', () => {
   state.order = { ...orderFixture, orderNumber: null }
   render(<OrderDetails id={orderFixture.id} onClose={vi.fn()} onEdit={vi.fn()} />)
-  expect(screen.getByRole('button', { name: 'Submit order' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Submit to SmartMeter' })).toBeDisabled()
   expect(
     screen.getByText('Add an order number before submitting to SmartMeter.'),
   ).toBeInTheDocument()
@@ -224,7 +238,7 @@ it('saves edits as a draft without placing an order and opens the saved result',
   expect(onSaved).toHaveBeenCalledWith(orderFixture)
 })
 
-it('preserves inputs across tabs and exposes searchable provider choices', async () => {
+it('preserves inputs across tabs and exposes searchable vendor choices', async () => {
   const user = userEvent.setup()
   render(<OrderEditor record={orderFixture} onClose={vi.fn()} onSaved={vi.fn()} />)
   expect(screen.getByRole('switch', { name: 'Status' })).toBeChecked()
@@ -241,8 +255,8 @@ it('preserves inputs across tabs and exposes searchable provider choices', async
   expect(screen.queryByRole('textbox', { name: 'Notes' })).not.toBeInTheDocument()
   await user.click(screen.getByRole('tab', { name: 'Order information' }))
   expect(screen.getByRole('textbox', { name: 'Notes' })).toHaveValue('Retain these notes')
-  await user.click(screen.getByRole('button', { name: /Provider/ }))
-  fireEvent.change(screen.getByRole('searchbox', { name: 'Search Provider' }), {
+  await user.click(screen.getByRole('button', { name: /Vendor/ }))
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Search Vendor' }), {
     target: { value: 'Pylo' },
   })
   expect(screen.getByRole('option', { name: 'Pylo' })).toBeInTheDocument()
@@ -283,7 +297,7 @@ it('keeps item quantities across the four editor tabs', async () => {
   fireEvent.change(screen.getByRole('spinbutton', { name: 'Quantity 2' }), {
     target: { value: '3' },
   })
-  expect(screen.queryByRole('tab', { name: 'Provider options' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('tab', { name: 'Vendor options' })).not.toBeInTheDocument()
   await user.click(screen.getByRole('tab', { name: 'Order information' }))
   expect(screen.getByText('Step 1 of 4')).toBeInTheDocument()
   await user.click(screen.getByRole('tab', { name: 'Order items' }))
@@ -333,7 +347,7 @@ it('always uses a searchable patient selector and submits the selected patient I
   ]
   render(<OrderEditor record={orderFixture} onClose={vi.fn()} onSaved={vi.fn()} />)
   expect(screen.queryByRole('textbox', { name: /Patient ID/ })).not.toBeInTheDocument()
-  await user.click(screen.getByRole('button', { name: /Patient/ }))
+  await user.click(patientButton())
   expect(screen.queryByRole('option', { name: /Other Organization/ })).not.toBeInTheDocument()
   expect(screen.queryByRole('option', { name: /Inactive Patient/ })).not.toBeInTheDocument()
   fireEvent.change(screen.getByRole('searchbox', { name: 'Search Patient' }), {
@@ -353,11 +367,11 @@ it('retains the patient dropdown with loading, empty and retry states', async ()
   state.patientsPending = true
   const user = userEvent.setup()
   const view = render(<OrderEditor onClose={vi.fn()} onSaved={vi.fn()} />)
-  expect(screen.getByRole('button', { name: /Patient/ })).toBeDisabled()
+  expect(patientButton()).toBeDisabled()
   expect(screen.getByText('Loading patient…')).toBeInTheDocument()
   state.patientsPending = false
   view.rerender(<OrderEditor onClose={vi.fn()} onSaved={vi.fn()} />)
-  await user.click(screen.getByRole('button', { name: /Patient/ }))
+  await user.click(patientButton())
   expect(screen.getByText('No patients found for this organization.')).toBeInTheDocument()
   await user.keyboard('{Escape}')
   state.patientsError = true
@@ -486,10 +500,10 @@ it('groups details into five tabs and keeps edit and submit actions available', 
     'BP-100',
   )
   await user.click(screen.getByRole('tab', { name: 'Order activity' }))
-  expect(screen.getByText('Provider update · shipped')).toBeInTheDocument()
+  expect(screen.getByText('Vendor update · shipped')).toBeInTheDocument()
   expect(screen.queryByText('Event details')).not.toBeInTheDocument()
   expect(screen.queryByText(/tracking_number/)).not.toBeInTheDocument()
-  expect(screen.getByRole('button', { name: 'Submit order' })).toBeEnabled()
+  expect(screen.getByRole('button', { name: 'Submit to SmartMeter' })).toBeEnabled()
   await user.click(screen.getByRole('button', { name: 'Edit order' }))
   expect(onEdit).toHaveBeenCalledWith(orderFixture)
 })
@@ -543,7 +557,7 @@ it('shows the mapped organization name and shortened patient reference without R
   expect(screen.queryByText(orderFixture.patientId)).not.toBeInTheDocument()
 })
 
-it('does not render event payloads or raw provider and billing data in activity', async () => {
+it('does not render event payloads or raw vendor and billing data in activity', async () => {
   state.order = {
     ...orderFixture,
     billingInfo: { account: 'PRIVATE-BILLING' },
@@ -554,15 +568,15 @@ it('does not render event payloads or raw provider and billing data in activity'
   const user = userEvent.setup()
   render(<OrderDetails id={orderFixture.id} onClose={vi.fn()} onEdit={vi.fn()} />)
   await user.click(screen.getByRole('tab', { name: 'Order activity' }))
-  expect(screen.getByText('Provider update · shipped')).toBeInTheDocument()
+  expect(screen.getByText('Vendor update · shipped')).toBeInTheDocument()
   expect(screen.queryByText('Event details')).not.toBeInTheDocument()
   expect(screen.queryByText(/PRIVATE-|tracking_number/)).not.toBeInTheDocument()
   expect(
     screen.getByRole('tabpanel', { name: 'Order activity' }).querySelector('pre'),
   ).not.toBeInTheDocument()
   for (const label of [
-    'Provider request',
-    'Provider response',
+    'Vendor request',
+    'Vendor response',
     'Billing information',
     'SmartMeter extras',
   ])
@@ -605,7 +619,7 @@ it('restores editable Pylo billing inputs in the recipient tab and routes billin
 it('populates generic billing when selecting Pylo and includes it in the saved draft', async () => {
   const user = userEvent.setup()
   render(<OrderEditor record={orderFixture} onClose={vi.fn()} onSaved={vi.fn()} />)
-  await user.click(screen.getByRole('button', { name: /Provider/ }))
+  await user.click(screen.getByRole('button', { name: /Vendor/ }))
   await user.click(screen.getByRole('option', { name: 'Pylo' }))
   await user.click(screen.getByRole('tab', { name: 'Recipient' }))
   expect(screen.getByRole('textbox', { name: 'Billing information (JSON object)' })).toHaveValue(
@@ -665,7 +679,7 @@ it('loads searchable location choices and resets dependent selections when count
   )
 })
 
-it('selects a provider SKU through search and saves its code rather than the display name', async () => {
+it('selects a vendor SKU through search and saves its code rather than the display name', async () => {
   const user = userEvent.setup()
   render(<OrderEditor record={orderFixture} onClose={vi.fn()} onSaved={vi.fn()} />)
   await user.click(screen.getByRole('tab', { name: 'Order items' }))
@@ -744,14 +758,14 @@ it('shows last-shipment loading, empty and retry states without blocking the for
   expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled()
 })
 
-it('clears old provider SKUs and explains an empty catalog', async () => {
+it('clears old vendor SKUs and explains an empty catalog', async () => {
   const user = userEvent.setup()
   render(<OrderEditor record={orderFixture} onClose={vi.fn()} onSaved={vi.fn()} />)
-  await user.click(screen.getByRole('button', { name: /Provider/ }))
+  await user.click(screen.getByRole('button', { name: /Vendor/ }))
   await user.click(screen.getByRole('option', { name: 'Pylo' }))
   state.skusEmpty = true
   await user.click(screen.getByRole('tab', { name: 'Order items' }))
-  expect(screen.getByText('No SKUs available for this provider.')).toBeInTheDocument()
+  expect(screen.getByText('No SKUs available for this vendor.')).toBeInTheDocument()
   expect(
     screen.queryByText('Blood pressure monitor · BP-100', {
       selector: '[data-slot="autocomplete-value"]',
@@ -824,7 +838,7 @@ it('autofills recipient fields on patient selection, preserves edits and clears 
     },
   ]
   render(<OrderEditor record={orderFixture} onClose={vi.fn()} onSaved={vi.fn()} />)
-  await user.click(screen.getByRole('button', { name: /Patient/ }))
+  await user.click(patientButton())
   await user.click(screen.getByRole('option', { name: 'Taylor Lee' }))
   await user.click(screen.getByRole('tab', { name: 'Recipient' }))
   for (const [label, value] of [
@@ -852,7 +866,7 @@ it('autofills recipient fields on patient selection, preserves edits and clears 
     }),
   )
   await user.click(screen.getByRole('tab', { name: 'Order information' }))
-  await user.click(screen.getByRole('button', { name: /Patient/ }))
+  await user.click(patientButton())
   await user.click(screen.getByRole('option', { name: 'Jamie Rivera' }))
   await user.click(screen.getByRole('tab', { name: /Recipient/ }))
   expect(screen.getByRole('textbox', { name: 'First name' })).toHaveValue('Jamie')
@@ -1004,7 +1018,7 @@ it('hides shipping method during creation and always sends MAIL even when copyin
   fireEvent.change(screen.getByRole('textbox', { name: 'Order number' }), {
     target: { value: 'ORD-MAIL' },
   })
-  await user.click(screen.getByRole('button', { name: /Patient/ }))
+  await user.click(patientButton())
   await user.click(screen.getByRole('option', { name: 'Alex Morgan' }))
   await user.click(screen.getByRole('tab', { name: 'Shipping address' }))
   expect(screen.queryByRole('textbox', { name: 'Shipping method' })).not.toBeInTheDocument()
@@ -1016,4 +1030,133 @@ it('hides shipping method during creation and always sends MAIL even when copyin
   await waitFor(() =>
     expect(state.create).toHaveBeenCalledWith(expect.objectContaining({ shippingMethod: 'MAIL' })),
   )
+})
+
+it.each(['create', 'edit'])(
+  'autofills organisation shipping in %s mode and preserves manual address edits',
+  async (mode) => {
+    const user = userEvent.setup()
+    state.organizationAddress = {
+      address1: '10 Clinic Ave',
+      address2: 'Suite 2',
+      address3: null,
+      countryCode: 'US',
+      state: 'CA',
+      city: 'Los Angeles',
+      postalCode: '90001',
+    }
+    state.patients = [
+      {
+        id: orderFixture.patientId,
+        organisationId: orderFixture.organisationId,
+        isActive: true,
+        firstName: 'Alex',
+        lastName: 'Morgan',
+        phone: '+15555550100',
+        email: 'alex@example.test',
+      },
+    ]
+    state.create.mockResolvedValue(orderFixture)
+    render(
+      <OrderEditor
+        record={mode === 'edit' ? orderFixture : undefined}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />,
+    )
+    if (mode === 'create') {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Order number' }), {
+        target: { value: 'ORG-SHIP' },
+      })
+      await user.click(patientButton())
+      await user.click(screen.getByRole('option', { name: 'Alex Morgan' }))
+    }
+    await user.click(screen.getByRole('button', { name: /Ship To/ }))
+    await user.click(screen.getByRole('option', { name: 'Northstar Care' }))
+    await user.click(screen.getByRole('tab', { name: 'Shipping address' }))
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', { name: 'Address line 1' })).toHaveValue('10 Clinic Ave'),
+    )
+    expect(
+      screen.queryByRole('region', { name: 'Last shipment for patient' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByText('Los Angeles', { selector: '[data-slot="autocomplete-value"]' }),
+    ).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Address line 1' }), {
+      target: { value: 'Edited Clinic Ave' },
+    })
+    await user.click(screen.getByRole('tab', { name: 'Order information' }))
+    await user.click(screen.getByRole('tab', { name: 'Shipping address' }))
+    expect(screen.getByRole('textbox', { name: 'Address line 1' })).toHaveValue('Edited Clinic Ave')
+    if (mode === 'create') {
+      await user.click(screen.getByRole('tab', { name: 'Order items' }))
+      await user.click(screen.getByRole('button', { name: /SKU 1/ }))
+      await user.click(screen.getByRole('option', { name: 'Blood pressure monitor · BP-100' }))
+    }
+    await user.click(
+      screen.getByRole('button', { name: mode === 'create' ? 'Save draft' : 'Save changes' }),
+    )
+    const expected = {
+      address1: 'Edited Clinic Ave',
+      address2: 'Suite 2',
+      address3: null,
+      countryCode: 'US',
+      state: 'CA',
+      city: 'Los Angeles',
+      postalCode: '90001',
+    }
+    if (mode === 'create')
+      await waitFor(() =>
+        expect(state.create).toHaveBeenCalledWith(
+          expect.objectContaining({ ...expected, shippingMethod: 'MAIL' }),
+        ),
+      )
+    else
+      await waitFor(() =>
+        expect(state.update).toHaveBeenCalledWith({
+          id: orderFixture.id,
+          payload: expect.objectContaining(expected),
+        }),
+      )
+    const payload =
+      mode === 'create' ? state.create.mock.calls[0]![0] : state.update.mock.calls[0]![0].payload
+    expect(payload).not.toHaveProperty('shipThrough')
+  },
+)
+
+it('restores the patient autofill option after switching away from organisation shipping', async () => {
+  const user = userEvent.setup()
+  state.organizationAddress = {
+    address1: '10 Clinic Ave',
+    countryCode: 'US',
+    state: 'CA',
+    city: 'Los Angeles',
+    postalCode: '90001',
+  }
+  state.lastShipping = { ...orderFixture, address1: '25 Patient St' }
+  render(<OrderEditor record={orderFixture} onClose={vi.fn()} onSaved={vi.fn()} />)
+  await user.click(screen.getByRole('button', { name: /Ship To/ }))
+  await user.click(screen.getByRole('option', { name: 'Northstar Care' }))
+  await user.click(screen.getByRole('button', { name: /Ship To/ }))
+  await user.click(screen.getByRole('option', { name: 'Patient' }))
+  await user.click(screen.getByRole('tab', { name: 'Shipping address' }))
+  expect(screen.getByRole('textbox', { name: 'Address line 1' })).toHaveValue('')
+  await user.click(screen.getByRole('button', { name: 'Use this address' }))
+  expect(screen.getByRole('textbox', { name: 'Address line 1' })).toHaveValue('25 Patient St')
+})
+
+it('clears the previous patient address if the selected organisation has no saved address', async () => {
+  const user = userEvent.setup()
+  render(<OrderEditor record={orderFixture} onClose={vi.fn()} onSaved={vi.fn()} />)
+  await user.click(screen.getByRole('button', { name: /Ship To/ }))
+  await user.click(screen.getByRole('option', { name: 'Northstar Care' }))
+  expect(
+    screen.getByText(
+      'No shipping address is saved for Northstar Care. Enter it in Shipping address.',
+    ),
+  ).toBeInTheDocument()
+  await user.click(screen.getByRole('tab', { name: 'Shipping address' }))
+  expect(screen.getByRole('textbox', { name: 'Address line 1' })).toHaveValue('')
+  expect(screen.queryByRole('button', { name: 'Use this address' })).not.toBeInTheDocument()
 })

@@ -80,7 +80,7 @@ export function OrdersPage() {
         eyebrow={t('Device fulfillment')}
         title={t('Orders')}
         description={t(
-          'Manage device orders from draft to delivery, with provider updates in one place.',
+          'Manage device orders from draft to delivery, with vendor updates in one place.',
         )}
         actions={
           <>
@@ -120,7 +120,7 @@ export function OrdersPage() {
           {
             id: 'submitted',
             label: 'Submitted',
-            caption: 'Sent to the provider',
+            caption: 'Sent to the vendor',
             value: orders.filter((o) => o.internalStatus === 'submitted').length,
             icon: Truck,
             tone: 'teal',
@@ -201,10 +201,10 @@ export function OrdersPage() {
               <div
                 className="orders-provider-filters"
                 role="group"
-                aria-label={t('Order provider filters')}
+                aria-label={t('Order vendor filters')}
               >
                 {[
-                  { id: 'all', label: 'All providers' },
+                  { id: 'all', label: 'All vendors' },
                   ...Object.entries(sourceLabels).map(([id, label]) => ({ id, label })),
                 ].map(({ id, label }) => (
                   <button
@@ -283,7 +283,7 @@ export function OrdersPage() {
               },
               {
                 id: 'source',
-                label: 'Provider',
+                label: 'Vendor',
                 value: (o) => sourceLabels[o.source],
                 render: (o) => (
                   <span className="orders-provider-tag">

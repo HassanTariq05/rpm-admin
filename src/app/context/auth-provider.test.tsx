@@ -98,3 +98,20 @@ describe('account initialization', () => {
     expect(router.navigate).toHaveBeenCalledWith({ to: '/login', replace: true })
   })
 })
+
+it('shows a session-expired dialog after unexpected expiration and allows signing in again', async () => {
+  useAuthStore.getState().auth.setAccessToken('test-token')
+  vi.mocked(axios.get).mockResolvedValueOnce({ data: { user } })
+  renderProvider()
+  await waitFor(() => expect(useAuthStore.getState().auth.user).toEqual(user))
+  act(() => useAuthStore.getState().auth.expireSession('inactivity'))
+  expect(await screen.findByRole('dialog', { name: 'Session expired' })).toHaveTextContent(
+    '2 minutes of inactivity',
+  )
+  expect(useAuthStore.getState().auth.accessToken).toBe('')
+  await act(async () => screen.getByRole('button', { name: 'Sign in again' }).click())
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog', { name: 'Session expired' })).not.toBeInTheDocument(),
+  )
+  expect(router.navigate).toHaveBeenCalledWith({ to: '/login', replace: true })
+})
