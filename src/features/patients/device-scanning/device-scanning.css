@@ -220,7 +220,9 @@
   margin: 0;
   padding: 0;
   overflow: hidden;
+  container-type: size;
 }
+
 .patient-camera-viewfinder video {
   position: absolute;
   inset: 0;
@@ -230,9 +232,8 @@
 }
 .patient-camera-guide {
   position: relative;
-  width: min(84%, 780px);
+  width: min(92cqw, 1100px, calc(78cqh * 4 / 3));
   aspect-ratio: 4 / 3;
-  max-height: 76%;
   border-radius: 18px;
   box-shadow: 0 0 0 100vmax #00000030;
   pointer-events: none;
