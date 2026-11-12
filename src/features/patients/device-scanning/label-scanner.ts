@@ -164,14 +164,30 @@ export function createLabelScanner() {
   }
 }
 
-export function imageCanvas(source: CanvasImageSource, width: number, height: number) {
-  const scale = Math.min(1, 2400 / Math.max(width, height))
+export function imageCanvas(
+  source: CanvasImageSource,
+  width: number,
+  height: number,
+  crop?: { x: number; y: number; width: number; height: number },
+) {
+  const frame = crop ?? { x: 0, y: 0, width, height }
+  const scale = Math.min(1, 2400 / Math.max(frame.width, frame.height))
   const canvas = document.createElement('canvas')
-  canvas.width = Math.max(1, Math.round(width * scale))
-  canvas.height = Math.max(1, Math.round(height * scale))
+  canvas.width = Math.max(1, Math.round(frame.width * scale))
+  canvas.height = Math.max(1, Math.round(frame.height * scale))
   const context = canvas.getContext('2d')
   if (!context) throw new Error('Image processing unavailable')
-  context.drawImage(source, 0, 0, canvas.width, canvas.height)
+  context.drawImage(
+    source,
+    frame.x,
+    frame.y,
+    frame.width,
+    frame.height,
+    0,
+    0,
+    canvas.width,
+    canvas.height,
+  )
   return canvas
 }
 export async function loadLabelImage(file: File) {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Button, FieldError, Input, Label, TextField } from '@heroui/react'
 import {
   Barcode,
@@ -10,8 +10,6 @@ import {
   MonitorSmartphone,
   RotateCcw,
   ScanLine,
-  SwitchCamera,
-  X,
 } from 'lucide-react'
 import { translate as t, useAppTranslation } from '@/i18n'
 import {
@@ -20,8 +18,8 @@ import {
   validImei,
   type DeviceLabelFields,
 } from '../device-scanning/label-parser'
-import { createLabelScanner, imageCanvas, loadLabelImage } from '../device-scanning/label-scanner'
-import { useLabelCamera } from '../device-scanning/use-label-camera'
+import { createLabelScanner, loadLabelImage } from '../device-scanning/label-scanner'
+import { DeviceCameraDialog } from './device-camera-dialog'
 import '../device-scanning/device-scanning.css'
 
 const fields = [
@@ -34,11 +32,15 @@ const fields = [
 export function PatientAssignDevice({
   values,
   onChange,
+  actions,
+  pending = false,
 }: {
   values: DeviceLabelFields
   onChange: (
     values: DeviceLabelFields | ((current: DeviceLabelFields) => DeviceLabelFields),
   ) => void
+  actions?: ReactNode | ((scanning: boolean) => ReactNode)
+  pending?: boolean
 }) {
   useAppTranslation()
   const fileInput = useRef<HTMLInputElement>(null)
@@ -55,8 +57,7 @@ export function PatientAssignDevice({
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<string | null>(null)
-  const [facing, setFacing] = useState<'user' | 'environment'>('environment')
-  const camera = useLabelCamera(true)
+  const [cameraOpen, setCameraOpen] = useState(false)
   useEffect(
     () => () => {
       run.current++
@@ -67,6 +68,7 @@ export function PatientAssignDevice({
   )
 
   async function scan(canvas: HTMLCanvasElement) {
+    if (pending) return
     const request = ++run.current
     setBusy(true)
     setError(null)
@@ -114,7 +116,7 @@ export function PatientAssignDevice({
   }
   async function upload(file?: File) {
     if (!file || busy) return
-    camera.stop()
+    setCameraOpen(false)
     setError(null)
     setResult(null)
     setProgress(0)
@@ -139,19 +141,9 @@ export function PatientAssignDevice({
       }
     }
   }
-  async function capture() {
-    const video = camera.videoRef.current
-    if (!video?.videoWidth || !video.videoHeight) {
-      setError('The camera is still starting. Try capturing again.')
-      return
-    }
-    const canvas = imageCanvas(video, video.videoWidth, video.videoHeight)
-    camera.stop()
-    await scan(canvas)
-  }
   function clear() {
     run.current++
-    camera.stop()
+    setCameraOpen(false)
     image.current = null
     setPreview(null)
     setResult(null)
@@ -186,6 +178,7 @@ export function PatientAssignDevice({
                 name={name}
                 value={values[name]}
                 isInvalid={invalid}
+                isDisabled={pending}
                 onChange={(value) => {
                   edited.current.add(name)
                   onChange((current) => ({
@@ -223,18 +216,17 @@ export function PatientAssignDevice({
           )}
         </p>
         <div className="patient-assignment-actions">
-          <Button isDisabled variant="primary">
-            <MonitorSmartphone size={16} />
-            {t('Assign Device')}
-          </Button>
-          <Button variant="ghost" isDisabled={busy} onPress={clear}>
+          {(typeof actions === 'function' ? actions(busy || cameraOpen) : actions) ?? (
+            <Button isDisabled variant="primary">
+              <MonitorSmartphone size={16} />
+              {t('Assign Device')}
+            </Button>
+          )}
+          <Button variant="ghost" isDisabled={busy || pending} onPress={clear}>
             <RotateCcw size={15} />
             {t('Clear details')}
           </Button>
         </div>
-        <p className="patient-assignment-unavailable">
-          {t('Assignment saving is not available yet. You can scan and review device details.')}
-        </p>
       </section>
       <section className="patient-label-scanner" aria-label={t('Scan device label')}>
         <div className="patient-assignment-heading">
@@ -249,57 +241,27 @@ export function PatientAssignDevice({
         <div className="patient-scanner-controls">
           <Button
             variant="outline"
-            isDisabled={busy || camera.opening}
+            isDisabled={busy || pending || cameraOpen}
             onPress={() => fileInput.current?.click()}
           >
             <ImagePlus size={16} />
             {t('Upload image')}
           </Button>
-          {!camera.active ? (
-            <Button
-              variant="primary"
-              isPending={camera.opening}
-              isDisabled={busy || camera.opening}
-              onPress={() => {
-                setError(null)
-                void camera.start(facing)
-              }}
-            >
-              <Camera size={16} />
-              {t('Open camera')}
-            </Button>
-          ) : (
-            <>
-              <Button variant="primary" isDisabled={busy} onPress={() => void capture()}>
-                <Camera size={16} />
-                {t('Capture label')}
-              </Button>
-              <Button
-                variant="outline"
-                isIconOnly
-                aria-label={t('Switch camera')}
-                onPress={() => {
-                  const next = facing === 'environment' ? 'user' : 'environment'
-                  setFacing(next)
-                  void camera.start(next)
-                }}
-              >
-                <SwitchCamera size={16} />
-              </Button>
-              <Button
-                variant="ghost"
-                isIconOnly
-                aria-label={t('Stop camera')}
-                onPress={camera.stop}
-              >
-                <X size={16} />
-              </Button>
-            </>
-          )}
-          {!camera.active && preview && (
+          <Button
+            variant="primary"
+            isDisabled={busy || pending}
+            onPress={() => {
+              setError(null)
+              setCameraOpen(true)
+            }}
+          >
+            <Camera size={16} />
+            {t('Open camera')}
+          </Button>
+          {preview && (
             <Button
               variant="ghost"
-              isDisabled={busy}
+              isDisabled={busy || pending}
               onPress={() => {
                 if (image.current) void scan(image.current)
               }}
@@ -309,34 +271,19 @@ export function PatientAssignDevice({
             </Button>
           )}
         </div>
-        <div
-          className={`patient-scanner-preview ${camera.active || camera.opening ? 'is-camera' : ''}`}
-        >
-          <video
-            ref={camera.videoRef}
-            autoPlay
-            muted
-            playsInline
-            aria-label={t('Device label camera preview')}
-            className={camera.active || camera.opening ? '' : 'is-hidden'}
-          />
-          {!camera.active &&
-            !camera.opening &&
-            (preview ? (
-              <img src={preview} alt={t('Device label preview')} />
-            ) : (
-              <div className="patient-scanner-empty">
-                <ScanLine size={40} />
-                <strong>{t('Place the device label in view')}</strong>
-                <p>
-                  {t(
-                    'Include the name, Data Matrix code and IMEI barcode. Use good lighting and avoid glare.',
-                  )}
-                </p>
-              </div>
-            ))}
-          {(camera.active || camera.opening) && (
-            <div className="patient-camera-frame" aria-hidden="true" />
+        <div className="patient-scanner-preview">
+          {preview ? (
+            <img src={preview} alt={t('Device label preview')} />
+          ) : (
+            <div className="patient-scanner-empty">
+              <ScanLine size={40} />
+              <strong>{t('Place the device label in view')}</strong>
+              <p>
+                {t(
+                  'Include the name, Data Matrix code and IMEI barcode. Use good lighting and avoid glare.',
+                )}
+              </p>
+            </div>
           )}
           {busy && (
             <div className="patient-scanner-progress" role="status">
@@ -354,15 +301,15 @@ export function PatientAssignDevice({
           type="file"
           accept="image/jpeg,image/png,image/webp"
           aria-label={t('Upload device label')}
-          disabled={busy || camera.opening}
+          disabled={busy || pending || cameraOpen}
           onChange={(event) => {
             void upload(event.target.files?.[0])
             event.target.value = ''
           }}
         />
-        {(error || camera.error) && (
+        {error && (
           <p className="patient-scanner-error" role="alert">
-            {t(error || camera.error)}
+            {t(error)}
           </p>
         )}
         {result && (
@@ -377,6 +324,15 @@ export function PatientAssignDevice({
           )}
         </p>
       </section>
+      {cameraOpen && (
+        <DeviceCameraDialog
+          onClose={() => setCameraOpen(false)}
+          onCapture={(canvas) => {
+            setCameraOpen(false)
+            void scan(canvas)
+          }}
+        />
+      )}
     </div>
   )
 }

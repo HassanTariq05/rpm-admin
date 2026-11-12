@@ -8,6 +8,12 @@ import {
   useCreateDevice,
   useUpdateDevice,
   useDeleteDevice,
+  usePatientDevices,
+  usePatientDeviceAssignments,
+  useDeviceAssignments,
+  useAssignDevice,
+  useUnassignDevice,
+  useDeviceByImei,
 } from './use-devices'
 import { useAuthStore } from '@/stores/auth-store'
 const state = vi.hoisted(() => ({
@@ -19,6 +25,11 @@ const state = vi.hoisted(() => ({
   create: vi.fn(),
   update: vi.fn(),
   remove: vi.fn(),
+  getPatientDevices: vi.fn(),
+  getPatientAssignments: vi.fn(),
+  getDeviceAssignments: vi.fn(),
+  assign: vi.fn(),
+  unassign: vi.fn(),
   success: vi.fn(),
   error: vi.fn(),
 }))
@@ -39,6 +50,11 @@ vi.mock('@/services/device-services/device-services', async (original) => ({
     create: state.create,
     update: state.update,
     remove: state.remove,
+    getPatientDevices: state.getPatientDevices,
+    getPatientAssignments: state.getPatientAssignments,
+    getDeviceAssignments: state.getDeviceAssignments,
+    assign: state.assign,
+    unassign: state.unassign,
   }),
 }))
 function setup() {
@@ -58,6 +74,11 @@ beforeEach(() => {
   state.create.mockResolvedValue({ id: 'created' })
   state.update.mockResolvedValue({ id: 'updated' })
   state.remove.mockResolvedValue({ id: 'deleted' })
+  state.getPatientDevices.mockResolvedValue([])
+  state.getPatientAssignments.mockResolvedValue([])
+  state.getDeviceAssignments.mockResolvedValue({ assignments: [] })
+  state.assign.mockResolvedValue({ device: { id: 'device-1' } })
+  state.unassign.mockResolvedValue({ device: { id: 'device-1' } })
   useAuthStore.getState().auth.setAccessToken('synthetic-test-token')
 })
 afterEach(() => {
@@ -139,4 +160,64 @@ it('deletes using the selected ID, invalidates inventory, and shows a success to
   expect(state.remove).toHaveBeenCalledWith('device-to-delete', expect.anything())
   expect(invalidate).toHaveBeenCalledWith({ queryKey: ['devices'] })
   expect(state.success).toHaveBeenCalledWith('Device deleted')
+})
+
+it('scopes assignment queries by patient/device and passes cancellation to all lookups', async () => {
+  const config = setup()
+  const { result } = renderHook(
+    () => ({
+      devices: usePatientDevices('patient-a'),
+      patient: usePatientDeviceAssignments('patient-a'),
+      device: useDeviceAssignments('device-a'),
+      match: useDeviceByImei('864370061571354'),
+    }),
+    config,
+  )
+  await waitFor(() =>
+    expect(
+      result.current.devices.isSuccess &&
+        result.current.patient.isSuccess &&
+        result.current.device.isSuccess &&
+        result.current.match.isSuccess,
+    ).toBe(true),
+  )
+  expect(state.getPatientDevices).toHaveBeenCalledWith('patient-a', expect.any(AbortSignal))
+  expect(state.getPatientAssignments).toHaveBeenCalledWith('patient-a', expect.any(AbortSignal))
+  expect(state.getDeviceAssignments).toHaveBeenCalledWith('device-a', expect.any(AbortSignal))
+  expect(state.getAll).toHaveBeenCalledWith({ imei: '864370061571354' }, expect.any(AbortSignal))
+  expect(
+    config.client.getQueryData(['devices', 'patient', 'patient-a', 'viewer-a', 'org-a']),
+  ).toEqual([])
+})
+it('refreshes device and assignment caches after assign and unassign', async () => {
+  const config = setup()
+  const invalidate = vi.spyOn(config.client, 'invalidateQueries')
+  const { result } = renderHook(
+    () => ({ assign: useAssignDevice(), unassign: useUnassignDevice() }),
+    config,
+  )
+  await act(async () => {
+    await result.current.assign.mutateAsync({ id: 'device-a', patientId: 'patient-a' })
+  })
+  expect(state.assign).toHaveBeenCalledWith('device-a', { patientId: 'patient-a' })
+  await act(async () => {
+    await result.current.unassign.mutateAsync({ id: 'device-a' })
+  })
+  expect(state.unassign).toHaveBeenCalledWith('device-a', {})
+  expect(invalidate).toHaveBeenCalledTimes(2)
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ['devices'] })
+  expect(state.success).toHaveBeenCalledWith('Device assigned')
+  expect(state.success).toHaveBeenCalledWith('Device unassigned')
+})
+it('keeps patient requests disabled until authentication and a patient are available', async () => {
+  state.ready = false
+  const { rerender } = renderHook(({ id }) => usePatientDevices(id), {
+    ...setup(),
+    initialProps: { id: undefined as string | undefined },
+  })
+  rerender({ id: 'patient-a' })
+  expect(state.getPatientDevices).not.toHaveBeenCalled()
+  state.ready = true
+  rerender({ id: 'patient-a' })
+  await waitFor(() => expect(state.getPatientDevices).toHaveBeenCalledTimes(1))
 })

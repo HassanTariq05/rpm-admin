@@ -12,6 +12,7 @@ export const deviceRecordSchema = z
     imei: text,
     vendor: text,
     deviceType: text,
+    patientId: z.string().uuid().nullish(),
     createdAt: text,
     updatedAt: text,
     isActive: z.boolean(),
@@ -19,6 +20,26 @@ export const deviceRecordSchema = z
   })
   .passthrough()
 export type ApiDevice = z.infer<typeof deviceRecordSchema>
+export const deviceAssignmentSchema = z.object({
+  id: z.string().uuid(),
+  deviceId: z.string().uuid(),
+  patientId: z.string().uuid(),
+  assignedAt: z.string(),
+  unassignedAt: text,
+  assignedBy: text,
+  unassignedBy: text,
+  notes: text,
+})
+export type DeviceAssignment = z.infer<typeof deviceAssignmentSchema>
+const assignmentResultSchema = z.object({
+  device: deviceRecordSchema,
+  assignment: deviceAssignmentSchema.nullable(),
+  noop: z.boolean().optional(),
+})
+export interface AssignDevicePayload {
+  patientId: string
+  notes?: string | null
+}
 export interface DeviceWrite {
   externalDeviceId?: string | null
   deviceModel?: string | null
@@ -29,6 +50,7 @@ export interface DeviceWrite {
   createdBy?: string | null
 }
 export interface DeviceFilters {
+  patientId?: string
   imei?: string
   vendor?: string
   deviceType?: string
@@ -66,6 +88,49 @@ export function createDeviceService(client: AxiosInstance, baseURL = env.apiBase
       parse(
         deviceRecordSchema,
         (await client.put<unknown>(`/devices/${encodeURIComponent(id)}`, payload, config)).data,
+      ),
+    getPatientDevices: async (patientId: string, signal?: AbortSignal) =>
+      parse(
+        z.object({ devices: z.array(deviceRecordSchema) }),
+        (
+          await client.get<unknown>(`/devices/patient/${encodeURIComponent(patientId)}`, {
+            ...config,
+            signal,
+          })
+        ).data,
+      ).devices,
+    getPatientAssignments: async (patientId: string, signal?: AbortSignal) =>
+      parse(
+        z.object({ assignments: z.array(deviceAssignmentSchema) }),
+        (
+          await client.get<unknown>('/devices/assignments', {
+            ...config,
+            params: { patientId },
+            signal,
+          })
+        ).data,
+      ).assignments,
+    getDeviceAssignments: async (id: string, signal?: AbortSignal) =>
+      parse(
+        z.object({ device: deviceRecordSchema, assignments: z.array(deviceAssignmentSchema) }),
+        (
+          await client.get<unknown>(`/devices/${encodeURIComponent(id)}/assignments`, {
+            ...config,
+            signal,
+          })
+        ).data,
+      ),
+    assign: async (id: string, payload: AssignDevicePayload) =>
+      parse(
+        assignmentResultSchema,
+        (await client.post<unknown>(`/devices/${encodeURIComponent(id)}/assign`, payload, config))
+          .data,
+      ),
+    unassign: async (id: string, payload: { notes?: string | null } = {}) =>
+      parse(
+        assignmentResultSchema,
+        (await client.post<unknown>(`/devices/${encodeURIComponent(id)}/unassign`, payload, config))
+          .data,
       ),
     remove: async (id: string) =>
       parse(

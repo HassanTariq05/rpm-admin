@@ -87,12 +87,6 @@
   position: absolute;
   object-fit: contain;
 }
-.patient-scanner-preview.is-camera {
-  background: #10131b;
-}
-.patient-scanner-preview .is-hidden {
-  display: none;
-}
 .patient-scanner-empty {
   max-width: 310px;
   padding: 24px;
@@ -114,14 +108,6 @@
 .patient-scanner-empty p {
   font-size: 12px;
   line-height: 1.6;
-}
-.patient-camera-frame {
-  position: absolute;
-  inset: 10%;
-  pointer-events: none;
-  border: 2px solid #ffffffa8;
-  border-radius: 12px;
-  box-shadow: 0 0 0 100px #00000025;
 }
 .patient-scanner-progress {
   position: absolute;
@@ -173,4 +159,229 @@
 .patient-scanner-controls {
   margin-top: 0;
   margin-bottom: 14px;
+}
+
+.patient-camera-backdrop {
+  background: rgb(0 0 0 / 82%);
+}
+.patient-camera-container {
+  height: 100vh;
+  height: 100dvh;
+  padding: 16px;
+}
+.patient-camera-dialog.modal__dialog {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1200px;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #000;
+  color: #fff;
+}
+.patient-camera-dialog .patient-camera-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 12px;
+  margin: 0;
+  padding: 16px 76px 16px 24px;
+  background: #141414;
+}
+.patient-camera-header .modal__heading {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 650;
+}
+.patient-camera-header p {
+  margin-top: 3px;
+  font-size: 12px;
+  color: #d4d4d4;
+}
+.patient-camera-dialog .patient-camera-close {
+  top: 14px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  color: #fff;
+  background: #ffffff1a;
+}
+.patient-camera-dialog .patient-camera-viewfinder {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.patient-camera-viewfinder video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.patient-camera-guide {
+  position: relative;
+  width: min(84%, 780px);
+  aspect-ratio: 4 / 3;
+  max-height: 76%;
+  border-radius: 18px;
+  box-shadow: 0 0 0 100vmax #00000030;
+  pointer-events: none;
+}
+.patient-camera-guide span {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border: solid #fff;
+  border-width: 0;
+}
+.patient-camera-guide span:nth-child(1) {
+  top: 0;
+  left: 0;
+  border-width: 3px 0 0 3px;
+  border-top-left-radius: 18px;
+}
+.patient-camera-guide span:nth-child(2) {
+  top: 0;
+  right: 0;
+  border-width: 3px 3px 0 0;
+  border-top-right-radius: 18px;
+}
+.patient-camera-guide span:nth-child(3) {
+  bottom: 0;
+  left: 0;
+  border-width: 0 0 3px 3px;
+  border-bottom-left-radius: 18px;
+}
+.patient-camera-guide span:nth-child(4) {
+  bottom: 0;
+  right: 0;
+  border-width: 0 3px 3px 0;
+  border-bottom-right-radius: 18px;
+}
+.patient-camera-message {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: min(100%, 460px);
+  padding: 24px;
+  color: #fff;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.patient-camera-dialog .patient-camera-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex-shrink: 0;
+  gap: 16px;
+  margin: 0;
+  padding: 14px 24px 18px;
+  background: #141414;
+}
+.patient-camera-guidance {
+  text-align: center;
+  color: #d4d4d4;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.patient-camera-capture-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+}
+.patient-camera-dialog .patient-camera-cancel,
+.patient-camera-dialog .patient-camera-switch {
+  min-height: 44px;
+  color: #fff;
+}
+.patient-camera-cancel {
+  justify-self: start;
+}
+.patient-camera-switch {
+  justify-self: end;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #ffffff1a;
+}
+.patient-camera-shutter-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #fff;
+}
+.patient-camera-dialog .patient-camera-shutter {
+  width: 76px;
+  height: 76px;
+  min-width: 76px;
+  border: 4px solid #141414;
+  border-radius: 50%;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  background: #fff;
+  color: #141414;
+}
+.patient-camera-shutter:focus-visible {
+  outline-width: 4px;
+  outline-offset: 5px;
+}
+@media (max-width: 760px) {
+  .patient-camera-container {
+    padding: 0;
+  }
+  .patient-camera-dialog.modal__dialog {
+    border-radius: 0;
+  }
+  .patient-camera-dialog .patient-camera-header {
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-left: max(16px, env(safe-area-inset-left));
+  }
+  .patient-camera-dialog .patient-camera-close {
+    top: max(14px, env(safe-area-inset-top));
+    right: max(16px, env(safe-area-inset-right));
+  }
+  .patient-camera-dialog .patient-camera-footer {
+    padding-right: max(20px, env(safe-area-inset-right));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    padding-left: max(20px, env(safe-area-inset-left));
+  }
+}
+@media (max-height: 480px) and (orientation: landscape) {
+  .patient-camera-dialog .patient-camera-header {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .patient-camera-header p,
+  .patient-camera-guidance {
+    display: none;
+  }
+  .patient-camera-dialog .patient-camera-close {
+    top: 5px;
+  }
+  .patient-camera-dialog .patient-camera-footer {
+    padding-top: 8px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .patient-camera-dialog .patient-camera-shutter {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+  }
 }

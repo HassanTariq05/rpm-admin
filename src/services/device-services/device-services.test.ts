@@ -56,3 +56,55 @@ describe('device API contract', () => {
     ).rejects.toBeInstanceOf(DeviceResponseError)
   })
 })
+
+describe('device assignment API contract', () => {
+  const patientId = '223e4567-e89b-42d3-a456-426614174000'
+  const assignment = {
+    id: '323e4567-e89b-42d3-a456-426614174000',
+    deviceId: deviceFixture.id,
+    patientId,
+    assignedAt: '2026-11-12T10:00:00Z',
+    unassignedAt: null,
+  }
+  it('lists current patient devices and both assignment histories with cancellation', async () => {
+    const current = setup({ devices: [{ ...deviceFixture, patientId }] })
+    const signal = new AbortController().signal
+    expect(await current.service.getPatientDevices(patientId, signal)).toHaveLength(1)
+    expect(current.requests[0]).toMatchObject({ url: `/devices/patient/${patientId}`, signal })
+    const history = setup({ assignments: [assignment] })
+    expect(await history.service.getPatientAssignments(patientId, signal)).toEqual([assignment])
+    expect(history.requests[0]).toMatchObject({
+      url: '/devices/assignments',
+      params: { patientId },
+      signal,
+    })
+    const device = setup({ device: deviceFixture, assignments: [assignment] })
+    expect(
+      (await device.service.getDeviceAssignments('device/a', signal)).assignments,
+    ).toHaveLength(1)
+    expect(device.requests[0]).toMatchObject({ url: '/devices/device%2Fa/assignments', signal })
+  })
+  it('posts only assignment fields and accepts a null assignment on an unassign no-op', async () => {
+    const assigned = setup({ device: { ...deviceFixture, patientId }, assignment, noop: false })
+    await assigned.service.assign(deviceFixture.id, { patientId })
+    expect(assigned.requests[0]?.url).toBe(`/devices/${deviceFixture.id}/assign`)
+    expect(assigned.requests[0]?.method).toBe('post')
+    expect(JSON.parse(assigned.requests[0]!.data)).toEqual({ patientId })
+    const removed = setup({
+      device: { ...deviceFixture, patientId: null },
+      assignment: null,
+      noop: true,
+    })
+    expect((await removed.service.unassign('device/a', { notes: 'Returned' })).noop).toBe(true)
+    expect(removed.requests[0]?.url).toBe('/devices/device%2Fa/unassign')
+    expect(JSON.parse(removed.requests[0]!.data)).toEqual({ notes: 'Returned' })
+  })
+  it('rejects malformed assignment responses', async () => {
+    await expect(
+      setup({ assignments: [{}] }).service.getPatientAssignments(patientId),
+    ).rejects.toBeInstanceOf(DeviceResponseError)
+    await expect(
+      setup({ device: deviceFixture }).service.assign(deviceFixture.id, { patientId }),
+    ).rejects.toBeInstanceOf(DeviceResponseError)
+  })
+})

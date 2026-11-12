@@ -9,6 +9,7 @@ import {
   HeartPulse,
   IdCard,
   Mail,
+  MonitorSmartphone,
   MapPin,
   Phone,
   ShieldCheck,
@@ -21,6 +22,7 @@ import type { PatientRecord } from '@/services/patient-services/patient-services
 import { getInitials } from '@/lib/initials'
 import { dateFormatter, translate as t, useAppTranslation } from '@/i18n'
 import { patientAge, patientName } from '../patients'
+import { PatientDevices } from './patient-devices'
 
 function Detail({
   label,
@@ -128,6 +130,10 @@ export function PatientDetails({
             <ShieldCheck size={16} aria-hidden="true" />
             {t('Record details')}
           </Tabs.Tab>
+          <Tabs.Tab id="devices" className="patient-detail-tone-devices">
+            <MonitorSmartphone size={16} aria-hidden="true" />
+            {t('Devices')}
+          </Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel id="basic" className="patient-details-panel patient-detail-tone-basic">
           <dl className="patient-details-grid">
@@ -206,6 +212,9 @@ export function PatientDetails({
               {timestamp(record.updatedAt)}
             </Detail>
           </dl>
+        </Tabs.Panel>
+        <Tabs.Panel id="devices" className="patient-details-panel patient-detail-tone-devices">
+          <PatientDevices patient={record} />
         </Tabs.Panel>
       </Tabs>
     </FormModal>

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { PatientsPage } from './patients-page'
 import { useAuthStore } from '@/stores/auth-store'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 const state = vi.hoisted(() => ({
   error: null as unknown,
   pending: false,
@@ -36,7 +37,8 @@ vi.mock('@/hooks/use-patients', () => ({
   }),
   useDeletePatient: () => ({ isPending: state.deleting, error: null, reset: vi.fn() }),
 }))
-vi.mock('@/hooks/use-administration', () => ({
+vi.mock('@/hooks/use-administration', async (original) => ({
+  ...(await original<typeof import('@/hooks/use-administration')>()),
   useAdminScope: () => ({
     ready: true,
     isSuperAdmin: state.superAdmin,
@@ -144,7 +146,11 @@ it('opens patient details from the row menu and closes without editing', () => {
 
 it('opens a separate Assign Device dialog from patient actions with the selected patient context', async () => {
   const user = userEvent.setup()
-  render(<PatientsPage />)
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <PatientsPage />
+    </QueryClientProvider>,
+  )
   await user.click(screen.getByRole('button', { name: 'Actions for Alex Rivera' }))
   await user.click(screen.getByRole('menuitem', { name: 'Assign Device' }))
   const dialog = within(await screen.findByRole('dialog', { name: 'Assign Device' }))
