@@ -11,6 +11,7 @@
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--panel);
+  scroll-margin-top: 16px;
 }
 .patient-assignment-heading {
   display: flex;
@@ -74,7 +75,7 @@
   display: grid;
   place-items: center;
   min-height: 240px;
-  aspect-ratio: 4 / 3;
+  /* aspect-ratio: 4 / 4; */
   overflow: hidden;
   border: 1px dashed color-mix(in srgb, var(--accent) 30%, var(--border));
   border-radius: 12px;

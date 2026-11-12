@@ -58,6 +58,15 @@ export function PatientAssignDevice({
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<string | null>(null)
   const [cameraOpen, setCameraOpen] = useState(false)
+
+  const formRef = useRef<HTMLElement>(null)
+  const [missing, setMissing] = useState<Set<keyof DeviceLabelFields>>(new Set())
+
+  function revealForm() {
+    if (!window.matchMedia('(max-width: 767px)').matches) return
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   useEffect(
     () => () => {
       run.current++
@@ -74,6 +83,7 @@ export function PatientAssignDevice({
     setError(null)
     setResult(null)
     setProgress(0)
+    setMissing(new Set())
     image.current = canvas
     setPreview(canvas.toDataURL('image/png'))
     try {
@@ -90,6 +100,11 @@ export function PatientAssignDevice({
         )
         return
       }
+      const nextMissing = fields
+        .map(({ name }) => name)
+        .filter((name) =>
+          edited.current.has(name) ? !values[name] : !(output.fields[name] || values[name]),
+        )
       onChange((current) => ({
         ...current,
         ...Object.fromEntries(
@@ -98,6 +113,8 @@ export function PatientAssignDevice({
           ),
         ),
       }))
+      setMissing(new Set(nextMissing))
+      revealForm()
       setResult(
         !validGtin(output.fields.gtin ?? '') ||
           !output.fields.serialNumber ||
@@ -150,10 +167,11 @@ export function PatientAssignDevice({
     setError(null)
     edited.current.clear()
     onChange({ ...emptyDeviceLabel })
+    setMissing(new Set())
   }
   return (
     <div className="patient-device-assignment">
-      <section className="patient-assignment-form" aria-label={t('Device details')}>
+      <section ref={formRef} className="patient-assignment-form" aria-label={t('Device details')}>
         <div className="patient-assignment-heading">
           <span>
             <MonitorSmartphone size={20} />
@@ -165,12 +183,14 @@ export function PatientAssignDevice({
         </div>
         <div className="patient-assignment-fields">
           {fields.map(({ name, label, placeholder, icon: Icon }) => {
+            const flagged = missing.has(name)
             const invalid =
-              name === 'gtin'
+              flagged ||
+              (name === 'gtin'
                 ? !!values.gtin && !validGtin(values.gtin)
                 : name === 'imei'
                   ? !!values.imei && !validImei(values.imei)
-                  : false
+                  : false)
             return (
               <TextField
                 key={name}
@@ -181,6 +201,12 @@ export function PatientAssignDevice({
                 isDisabled={pending}
                 onChange={(value) => {
                   edited.current.add(name)
+                  setMissing((prev) => {
+                    if (!prev.has(name)) return prev
+                    const next = new Set(prev)
+                    next.delete(name)
+                    return next
+                  })
                   onChange((current) => ({
                     ...current,
                     [name]: name === 'gtin' || name === 'imei' ? value.replace(/\s/g, '') : value,
@@ -200,9 +226,11 @@ export function PatientAssignDevice({
                 {invalid && (
                   <FieldError>
                     {t(
-                      name === 'gtin'
-                        ? 'Check the GTIN length and check digit.'
-                        : 'Check the 15-digit IMEI and its check digit.',
+                      flagged
+                        ? 'Not found on the label. Enter it manually.'
+                        : name === 'gtin'
+                          ? 'Check the GTIN length and check digit.'
+                          : 'Check the 15-digit IMEI and its check digit.',
                     )}
                   </FieldError>
                 )}
@@ -318,11 +346,6 @@ export function PatientAssignDevice({
             {t(result)}
           </p>
         )}
-        <p className="patient-assignment-hint">
-          {t(
-            'Images are processed on this device and are not uploaded. Live camera access needs HTTPS or localhost.',
-          )}
-        </p>
       </section>
       {cameraOpen && (
         <DeviceCameraDialog
