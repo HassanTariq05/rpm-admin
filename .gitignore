@@ -9,3 +9,8 @@ coverage/
 
 # Public images are deployable assets, even if a global Git ignore excludes PNGs.
 !/public/**/*.png
+
+# Generated, self-hosted barcode/OCR runtime assets.
+/public/scanner/
+# Local OCR verification cache.
+/eng.traineddata

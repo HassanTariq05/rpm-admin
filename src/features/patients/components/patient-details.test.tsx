@@ -19,6 +19,7 @@ it('handles missing data and displays stored allergy text without executing HTML
   )
   const dialog = within(screen.getByRole('dialog', { name: 'View patient' }))
   expect(dialog.getByText('Inactive')).toBeInTheDocument()
+  expect(dialog.queryByRole('tab', { name: 'Assign Device' })).not.toBeInTheDocument()
   expect(dialog.getByText("Driver's License #")).toBeInTheDocument()
   expect(dialog.queryByText('National ID')).not.toBeInTheDocument()
   expect(dialog.getByRole('tab', { name: 'Basic Info' })).toHaveAttribute('aria-selected', 'true')

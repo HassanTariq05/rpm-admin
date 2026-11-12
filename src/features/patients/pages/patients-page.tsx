@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  MonitorSmartphone,
   Pencil,
   Search,
   Trash2,
@@ -32,6 +33,7 @@ import { usePatients, useDeletePatient } from '@/hooks/use-patients'
 import { useAdminScope } from '@/hooks/use-administration'
 import { useAuthStore } from '@/stores/auth-store'
 import type { PatientRecord } from '@/services/patient-services/patient-services'
+import { PatientAssignDeviceDialog } from '../components/patient-assign-device-dialog'
 import { PatientDetails } from '../components/patient-details'
 import { PatientEditor } from '../components/patient-editor'
 import { PatientsSkeleton, PatientSkeletonBlock } from '../components/patients-skeleton'
@@ -82,6 +84,7 @@ export function PatientsPage() {
   const [exporting, setExporting] = useState(false)
   const [editor, setEditor] = useState<{ record?: PatientRecord } | null>(null)
   const [viewing, setViewing] = useState<PatientRecord | null>(null)
+  const [assigning, setAssigning] = useState<PatientRecord | null>(null)
   const [confirmation, setConfirmation] = useState('')
   const [deleting, setDeleting] = useState<(typeof patients)[number] | null>(null)
   const filtered = patients
@@ -455,6 +458,17 @@ export function PatientsPage() {
                                   {t('View patient')}
                                 </Dropdown.Item>
                                 <Dropdown.Item
+                                  id="assign-device"
+                                  isDisabled={
+                                    !scope.isSuperAdmin &&
+                                    patient.record.organisationId !== scope.orgId
+                                  }
+                                  onAction={() => setAssigning(patient.record)}
+                                >
+                                  <MonitorSmartphone size={15} />
+                                  {t('Assign Device')}
+                                </Dropdown.Item>
+                                <Dropdown.Item
                                   id="edit"
                                   isDisabled={
                                     !scope.isSuperAdmin &&
@@ -567,6 +581,13 @@ export function PatientsPage() {
           )}
         </section>
       </div>
+      {assigning && (
+        <PatientAssignDeviceDialog
+          key={assigning.id}
+          record={assigning}
+          onClose={() => setAssigning(null)}
+        />
+      )}
       {viewing && (
         <PatientDetails
           record={viewing}

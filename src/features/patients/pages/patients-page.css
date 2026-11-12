@@ -1421,3 +1421,45 @@
   font-size: 13px;
   line-height: 1.8;
 }
+
+.patient-assignment-modal.modal__dialog {
+  height: calc(100vh - 32px);
+  height: calc(100dvh - 32px);
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  padding: 16px;
+}
+.patient-assignment-modal .modal__header {
+  margin: -16px -16px 0;
+  padding: 8px 48px 8px 16px;
+}
+.patient-assignment-modal .modal__header > div {
+  gap: 10px;
+}
+.patient-assignment-modal .modal-header-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+.patient-assignment-modal .modal-header-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.patient-assignment-modal .modal__heading {
+  font-size: 17px;
+}
+.patient-assignment-modal .modal__header p {
+  font-size: 11px;
+}
+.patient-assignment-modal .modal__body {
+  flex: 1 1 auto;
+  margin-top: 12px;
+}
+.patient-assignment-modal .modal__footer {
+  margin-top: 8px;
+  padding-top: 6px;
+}
+.patient-assignment-modal .modal__footer button {
+  height: 36px;
+  min-height: 36px;
+}

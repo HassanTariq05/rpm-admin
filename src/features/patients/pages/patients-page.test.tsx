@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { PatientsPage } from './patients-page'
 import { useAuthStore } from '@/stores/auth-store'
@@ -139,4 +140,18 @@ it('opens patient details from the row menu and closes without editing', () => {
   )
   fireEvent.click(dialog.getAllByRole('button', { name: 'Close' })[0]!)
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+})
+
+it('opens a separate Assign Device dialog from patient actions with the selected patient context', async () => {
+  const user = userEvent.setup()
+  render(<PatientsPage />)
+  await user.click(screen.getByRole('button', { name: 'Actions for Alex Rivera' }))
+  await user.click(screen.getByRole('menuitem', { name: 'Assign Device' }))
+  const dialog = within(await screen.findByRole('dialog', { name: 'Assign Device' }))
+  expect(dialog.getByText('Scan or enter device details for Alex Rivera.')).toBeInTheDocument()
+  expect(await dialog.findByRole('textbox', { name: 'Name' })).toBeInTheDocument()
+  expect(dialog.getByRole('button', { name: 'Open camera' })).toBeInTheDocument()
+  expect(dialog.queryByRole('tab', { name: 'Assign Device' })).not.toBeInTheDocument()
+  await user.click(dialog.getAllByRole('button', { name: 'Close' })[0]!)
+  expect(screen.queryByRole('dialog', { name: 'Assign Device' })).not.toBeInTheDocument()
 })
