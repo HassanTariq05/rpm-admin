@@ -1297,5 +1297,11 @@
   "Include the entire label, barcodes and IMEI. Avoid glare.": "Incluya la etiqueta completa, los códigos de barras y el IMEI. Evite los reflejos.",
   "Unable to capture the image. Please try again.": "No se pudo capturar la imagen. Vuelva a intentarlo.",
   "Camera paused": "Cámara en pausa",
-  "Resume camera": "Reanudar cámara"
+  "Resume camera": "Reanudar cámara",
+  "Device view": "Vista de dispositivos",
+  "Grid view": "Vista de cuadrícula",
+  "List view": "Vista de lista",
+  "Devices list": "Lista de dispositivos",
+  "View device details for {{device}}": "Ver detalles del dispositivo {{device}}",
+  "Not found on the label. Enter it manually.": "No se encontró en la etiqueta. Introdúzcalo manualmente."
 }

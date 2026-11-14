@@ -59,6 +59,7 @@ vi.mock('@/hooks/use-devices', () => ({
 }))
 beforeEach(() => {
   vi.clearAllMocks()
+  localStorage.removeItem('rpm.devices.view.v1')
   Object.assign(state, {
     pending: false,
     fetching: false,
@@ -74,7 +75,10 @@ beforeEach(() => {
   state.update.mockResolvedValue(deviceFixture)
   state.remove.mockResolvedValue(deviceFixture)
 })
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
+})
 it('filters real vendor aliases, types, and IMEI and resets pagination', async () => {
   const user = userEvent.setup()
   render(<DevicesPage />)
@@ -232,4 +236,49 @@ it('searches company and type dropdowns and saves the active toggle as the API b
       expect.objectContaining({ vendor: 'pylo', deviceType: 'scale', isActive: false }),
     ),
   )
+})
+
+it('switches to a list without resetting pagination, opens details and restores the saved view', async () => {
+  const user = userEvent.setup()
+  const first = render(<DevicesPage />)
+  await user.click(screen.getByRole('button', { name: 'Next devices page' }))
+  await user.click(screen.getByRole('button', { name: 'List view' }))
+  let table = within(screen.getByRole('table', { name: 'Devices' }))
+  expect(table.getAllByRole('row')).toHaveLength(5)
+  expect(table.getByText('860000000000008')).toBeInTheDocument()
+  expect(screen.getByText('Showing 9–12 of 12 devices')).toBeInTheDocument()
+  expect(localStorage.getItem('rpm.devices.view.v1')).toBe('list')
+  first.unmount()
+  const second = render(<DevicesPage />)
+  expect(screen.getByRole('button', { name: 'List view' })).toHaveAttribute('aria-pressed', 'true')
+  table = within(screen.getByRole('table', { name: 'Devices' }))
+  await user.click(table.getByRole('button', { name: 'View LS802-GA, IMEI 860000000000000' }))
+  expect(await screen.findByRole('dialog', { name: 'Device details' })).toBeInTheDocument()
+  expect(state.detail).toHaveBeenCalledWith('device-0')
+  second.unmount()
+  render(<DevicesPage />)
+  await user.click(screen.getByRole('button', { name: 'Grid view' }))
+  expect(screen.queryByRole('table', { name: 'Devices' })).not.toBeInTheDocument()
+  expect(screen.getAllByRole('article')).toHaveLength(8)
+  expect(localStorage.getItem('rpm.devices.view.v1')).toBe('grid')
+})
+it('keeps filters and search applied when switching views', async () => {
+  const user = userEvent.setup()
+  render(<DevicesPage />)
+  await user.type(screen.getByRole('textbox', { name: 'Search devices' }), '860000000000007')
+  await user.click(screen.getByRole('button', { name: 'List view' }))
+  expect(within(screen.getByRole('table', { name: 'Devices' })).getAllByRole('row')).toHaveLength(2)
+  expect(screen.getByText('860000000000007')).toBeInTheDocument()
+  expect(screen.getByRole('textbox', { name: 'Search devices' })).toHaveValue('860000000000007')
+})
+it('ignores invalid preferences and allows switching when storage is blocked', async () => {
+  localStorage.setItem('rpm.devices.view.v1', 'invalid')
+  const user = userEvent.setup()
+  render(<DevicesPage />)
+  expect(screen.getByRole('button', { name: 'Grid view' })).toHaveAttribute('aria-pressed', 'true')
+  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    throw new Error('Storage blocked')
+  })
+  await user.click(screen.getByRole('button', { name: 'List view' }))
+  expect(screen.getByRole('table', { name: 'Devices' })).toBeInTheDocument()
 })

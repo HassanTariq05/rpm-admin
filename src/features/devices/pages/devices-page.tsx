@@ -7,6 +7,8 @@ import {
   Droplets,
   HeartPulse,
   LayoutGrid,
+  List,
+  Eye,
   MonitorSmartphone,
   Package,
   RefreshCw,
@@ -35,6 +37,7 @@ import { DeviceDetails } from '../components/device-details'
 import { DevicesSkeleton } from '../components/devices-skeleton'
 import { useDevices } from '@/hooks/use-devices'
 import type { ApiDevice } from '@/services/device-services/device-services'
+import { readDeviceView, saveDeviceView, type DeviceViewMode } from '../device-view-preference'
 import './devices-page.css'
 
 const typeIcons = {
@@ -67,6 +70,105 @@ function InventoryStatus({ status }: { status: DeviceRecord['status'] }) {
       <span />
       {t(status)}
     </span>
+  )
+}
+function DevicePatientInfo() {
+  return (
+    <>
+      <span className="device-patient-avatar device-patient-unassigned" aria-hidden="true">
+        <UserRound size={16} />
+      </span>
+      <span className="device-patient-info">
+        <span className="device-patient-label">{t('Assigned patient')}</span>
+        <span className="device-patient-name">{t('Not provided')}</span>
+      </span>
+    </>
+  )
+}
+function DeviceList({
+  devices,
+  onOpen,
+}: {
+  devices: DeviceRecord[]
+  onOpen: (id: string) => void
+}) {
+  return (
+    <div className="device-list-scroll" role="region" aria-label={t('Devices list')} tabIndex={0}>
+      <table className="device-list-table" aria-label={t('Devices')}>
+        <thead>
+          <tr>
+            <th scope="col">{t('Device')}</th>
+            <th scope="col">{t('Assigned patient')}</th>
+            <th scope="col">{t('Vendor')}</th>
+            <th scope="col">{t('Device type')}</th>
+            <th scope="col">{t('IMEI')}</th>
+            <th scope="col">{t('Status')}</th>
+            <th scope="col">
+              <span className="sr-only">{t('Actions')}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {devices.map((device) => (
+            <tr key={device.id}>
+              <td>
+                <button
+                  type="button"
+                  className="device-list-name"
+                  onClick={() => onOpen(device.id)}
+                  aria-label={t('View {{value0}}, IMEI {{value1}}', {
+                    value0: device.name,
+                    value1: device.imei || t('Not provided'),
+                  })}
+                >
+                  <span className="device-list-picture">
+                    <DevicePicture type={device.type} />
+                  </span>
+                  <span>
+                    <strong>{device.model ? device.name : t(device.name)}</strong>
+                    <small>
+                      {t('Model')} {device.model || '—'}
+                    </small>
+                  </span>
+                </button>
+              </td>
+              <td>
+                <div className="device-list-patient">
+                  <DevicePatientInfo />
+                </div>
+              </td>
+              <td>
+                <DeviceLogo company={device.company} />
+              </td>
+              <td>
+                <span
+                  className={`device-type-label admin-tone-${typeTones[device.type as DeviceType] ?? 'blue'}`}
+                >
+                  {t(device.type)}
+                </span>
+              </td>
+              <td className="device-list-imei">{device.imei || '—'}</td>
+              <td>
+                <InventoryStatus status={device.status} />
+              </td>
+              <td>
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="ghost"
+                  aria-label={t('View device details for {{device}}', {
+                    device: device.imei || device.name,
+                  })}
+                  onPress={() => onOpen(device.id)}
+                >
+                  <Eye size={17} />
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 function FilterTabs({
@@ -127,6 +229,7 @@ export function DevicesPage() {
   const [type, setType] = useState('all')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [view, setView] = useState<DeviceViewMode>(readDeviceView)
   const [details, setDetails] = useState<string | null>(null)
   const [editor, setEditor] = useState<ApiDevice | 'new' | null>(null)
   const filtered = filterDevices(devices, company, type, search)
@@ -199,30 +302,54 @@ export function DevicesPage() {
             <h2>{t('Device catalog')}</h2>
             <p>{t('Find the right device, down to the last digit.')}</p>
           </div>
-          <TextField
-            aria-label={t('Search devices')}
-            value={search}
-            onChange={(value) => {
-              setSearch(value)
-              setPage(1)
-            }}
-            className="device-search"
-          >
-            <Search size={17} aria-hidden="true" />
-            <Input placeholder={t('Search IMEI, name, company…')} />
-            {search && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch('')
-                  setPage(1)
-                }}
-                aria-label={t('Clear device search')}
-              >
-                <X size={15} />
-              </button>
-            )}
-          </TextField>
+          <div className="device-catalog-controls">
+            <TextField
+              aria-label={t('Search devices')}
+              value={search}
+              onChange={(value) => {
+                setSearch(value)
+                setPage(1)
+              }}
+              className="device-search"
+            >
+              <Search size={17} aria-hidden="true" />
+              <Input placeholder={t('Search IMEI, name, company…')} />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch('')
+                    setPage(1)
+                  }}
+                  aria-label={t('Clear device search')}
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </TextField>
+            <div role="group" aria-label={t('Device view')} className="device-view-toggle">
+              {(
+                [
+                  { value: 'grid', label: 'Grid view', icon: LayoutGrid },
+                  { value: 'list', label: 'List view', icon: List },
+                ] as const
+              ).map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-label={t(label)}
+                  title={t(label)}
+                  aria-pressed={view === value}
+                  onClick={() => {
+                    setView(value)
+                    saveDeviceView(value)
+                  }}
+                >
+                  <Icon size={18} aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         <FilterTabs
           label="Device type"
@@ -273,7 +400,7 @@ export function DevicesPage() {
             )}
           </div>
           {query.isPending ? (
-            <DevicesSkeleton />
+            <DevicesSkeleton view={view} />
           ) : query.isError ? (
             <div role="alert" className="device-empty">
               <h3>{t('Unable to load devices')}</h3>
@@ -288,6 +415,8 @@ export function DevicesPage() {
                 {t('Try again')}
               </Button>
             </div>
+          ) : visible.length && view === 'list' ? (
+            <DeviceList devices={visible} onOpen={setDetails} />
           ) : visible.length ? (
             <div className="device-grid">
               {visible.map((device) => (
@@ -322,16 +451,7 @@ export function DevicesPage() {
                       </div>
                     </div>
                     <div className="device-card-patient">
-                      <span
-                        className="device-patient-avatar device-patient-unassigned"
-                        aria-hidden="true"
-                      >
-                        <UserRound size={16} />
-                      </span>
-                      <span className="device-patient-info">
-                        <span className="device-patient-label">{t('Assigned patient')}</span>
-                        <span className="device-patient-name">{t('Not provided')}</span>
-                      </span>
+                      <DevicePatientInfo />
                     </div>
                   </button>
                 </article>

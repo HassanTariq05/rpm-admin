@@ -1,5 +1,18 @@
 import { translate as t } from '@/i18n'
-export function DevicesSkeleton() {
+import type { DeviceViewMode } from '../device-view-preference'
+export function DevicesSkeleton({ view = 'grid' }: { view?: DeviceViewMode }) {
+  if (view === 'list')
+    return (
+      <div role="status" aria-label={t('Loading devices')} className="device-list-skeleton">
+        {Array.from({ length: 8 }, (_, index) => (
+          <div key={index} className="device-list-skeleton-row" aria-hidden="true">
+            <span className="device-skeleton-block h-10 w-14" />
+            <span className="device-skeleton-block h-4 w-1/3" />
+            <span className="device-skeleton-block ml-auto h-4 w-1/4" />
+          </div>
+        ))}
+      </div>
+    )
   return (
     <div
       role="status"
