@@ -1,7 +1,7 @@
 import { today, getLocalTimeZone } from '@internationalized/date'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { PatientEditor } from './patient-editor'
 const state = vi.hoisted(() => ({
   create: vi.fn(),
@@ -9,6 +9,33 @@ const state = vi.hoisted(() => ({
   superAdmin: false,
   creating: false,
   updating: false,
+  assign: vi.fn(),
+  matching: true,
+  assigning: false,
+}))
+vi.mock('@/hooks/use-devices', () => ({
+  useAssignDevice: () => ({ mutateAsync: state.assign, isPending: state.assigning }),
+  useDeviceByImei: (imei: string, enabled: boolean) => ({
+    data:
+      enabled && state.matching && imei === '864370061571354'
+        ? [
+            {
+              id: '423e4567-e89b-42d3-a456-426614174000',
+              imei,
+              deviceModel: 'Home monitor',
+              isActive: true,
+              patientId: null,
+            },
+          ]
+        : [],
+    isFetching: false,
+    isError: false,
+  }),
+}))
+vi.mock('./device-scan-handoff', () => ({
+  DeviceScanHandoff: ({ patientId }: { patientId: string }) => (
+    <div>QR scan ready for {patientId}</div>
+  ),
 }))
 vi.mock('@/hooks/use-patients', () => ({
   useCreatePatient: () => ({ mutateAsync: state.create, isPending: state.creating }),
@@ -32,6 +59,20 @@ vi.mock('@/hooks/use-organizations', () => ({
     isPending: false,
   }),
 }))
+const savedPatient = {
+  id: '123e4567-e89b-42d3-a456-426614174000',
+  firstName: 'Alex',
+  lastName: 'Rivera',
+  isActive: true,
+  organisationId: '223e4567-e89b-42d3-a456-426614174000',
+}
+beforeEach(() => {
+  state.matching = true
+  state.assigning = false
+  state.create.mockResolvedValue(savedPatient)
+  state.update.mockResolvedValue(savedPatient)
+  state.assign.mockResolvedValue({})
+})
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
@@ -93,7 +134,7 @@ it('uses textareas and searchable gender and blood group menus', async () => {
     'true',
   )
   await user.click(screen.getByRole('tab', { name: 'Contact' }))
-  expect(screen.getByLabelText('Address').tagName).toBe('TEXTAREA')
+  expect(screen.getByLabelText('Address').tagName).toBe('INPUT')
   expect(screen.getByRole('combobox', { name: 'Country code' })).toHaveValue('+1')
   await user.click(screen.getByRole('tab', { name: 'Basic Info' }))
   await user.click(screen.getByRole('button', { name: /Gender/ }))
@@ -185,4 +226,57 @@ it('labels nationalId as Driver License and saves the device-style status toggle
     }),
   )
   expect(state.update.mock.calls[0]![0].payload).not.toHaveProperty('drivingLicence')
+})
+
+it('saves the patient before assigning the selected device using the returned patient ID', async () => {
+  const user = userEvent.setup()
+  const close = vi.fn()
+  render(<PatientEditor onSaved={vi.fn()} onClose={close} />)
+  await fillDemographics()
+  await user.click(screen.getByRole('tab', { name: 'Assign Device' }))
+  await user.type(await screen.findByRole('textbox', { name: 'IMEI' }), '864370061571354')
+  await user.click(await screen.findByRole('button', { name: 'Save and Assign Device' }))
+  await waitFor(() =>
+    expect(state.assign).toHaveBeenCalledWith({
+      id: '423e4567-e89b-42d3-a456-426614174000',
+      patientId: savedPatient.id,
+    }),
+  )
+  expect(state.create).toHaveBeenCalledOnce()
+  expect(state.create.mock.invocationCallOrder[0]).toBeLessThan(
+    state.assign.mock.invocationCallOrder[0]!,
+  )
+  expect(close).toHaveBeenCalledOnce()
+})
+it('keeps the saved patient and device draft when assignment fails, then retries without creating a duplicate', async () => {
+  const user = userEvent.setup()
+  state.assign.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({})
+  const close = vi.fn()
+  render(<PatientEditor onSaved={vi.fn()} onClose={close} />)
+  await fillDemographics()
+  await user.click(screen.getByRole('tab', { name: 'Assign Device' }))
+  await user.type(await screen.findByRole('textbox', { name: 'IMEI' }), '864370061571354')
+  await user.click(await screen.findByRole('button', { name: 'Save and Assign Device' }))
+  await waitFor(() => expect(state.assign).toHaveBeenCalledTimes(1))
+  expect(close).not.toHaveBeenCalled()
+  expect(screen.getByRole('textbox', { name: 'IMEI' })).toHaveValue('864370061571354')
+  await user.click(await screen.findByRole('button', { name: 'Save and Assign Device' }))
+  await waitFor(() => expect(close).toHaveBeenCalledOnce())
+  expect(state.create).toHaveBeenCalledOnce()
+  expect(state.update).not.toHaveBeenCalled()
+  expect(state.assign).toHaveBeenCalledTimes(2)
+})
+it('offers Save Patient until a valid device is supplied and enables QR scanning after that save', async () => {
+  const user = userEvent.setup()
+  const close = vi.fn()
+  render(<PatientEditor onSaved={vi.fn()} onClose={close} />)
+  await fillDemographics()
+  await user.click(screen.getByRole('tab', { name: 'Assign Device' }))
+  expect(screen.getByRole('button', { name: 'Save Patient' })).toBeInTheDocument()
+  expect(screen.queryByText(/QR scan ready for/)).not.toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Save Patient' }))
+  expect(await screen.findByText(`QR scan ready for ${savedPatient.id}`)).toBeInTheDocument()
+  expect(close).not.toHaveBeenCalled()
+  expect(state.create).toHaveBeenCalledOnce()
+  expect(state.assign).not.toHaveBeenCalled()
 })

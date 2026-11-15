@@ -1,9 +1,22 @@
+import { useDeviceAssignmentCandidate } from '@/hooks/use-device-assignment-candidate'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { PatientBirthDateField } from './patient-birth-date-field'
+import { PatientAddressField } from './patient-address-field'
+import type { AddressSuggestion } from '@/services/address-services/address-services'
 import { useField, Form, Formik } from 'formik'
 import * as Yup from 'yup'
 import { Autocomplete, FieldError, Label, ListBox, SearchField, Tabs } from '@heroui/react'
-import { FileText, Mail, MapPin, Phone, Save, ShieldCheck, UserPlus, UserRound } from 'lucide-react'
+import {
+  FileText,
+  Mail,
+  MapPin,
+  MonitorSmartphone,
+  Phone,
+  Save,
+  ShieldCheck,
+  UserPlus,
+  UserRound,
+} from 'lucide-react'
 import {
   FormModal,
   FormTextField,
@@ -26,6 +39,9 @@ import {
   type PatientValues,
 } from '../patients'
 import { translate as t, useAppTranslation } from '@/i18n'
+import { useAssignDevice } from '@/hooks/use-devices'
+import { emptyDeviceLabel } from '../device-scanning/label-parser'
+import { PatientDeviceAssignmentForm } from './patient-device-assignment-form'
 
 const PatientAllergiesEditor = lazy(() =>
   import('./patient-allergies-editor').then((module) => ({
@@ -147,7 +163,7 @@ function choiceOptions(choices: string[], current?: string | null) {
     ),
   }))
 }
-type PatientTab = 'basic' | 'contact' | 'notes'
+type PatientTab = 'basic' | 'contact' | 'notes' | 'assign'
 function PatientTabValidation({ onSelect }: { onSelect: (tab: PatientTab) => void }) {
   const { submitCount, errors, isValidating, isSubmitting } = useFormikContext<PatientValues>()
   const handled = useRef(0)
@@ -177,16 +193,29 @@ export function PatientEditor({
 }) {
   useAppTranslation()
   const [selectedTab, setSelectedTab] = useState<PatientTab>('basic')
+  const [assignmentVisited, setAssignmentVisited] = useState(false)
+  const [selectedAddress, setSelectedAddress] = useState<AddressSuggestion | null>(null)
+  const [addressResolving, setAddressResolving] = useState(false)
   const scope = useAdminScope()
   const organizations = useOrganizations(scope.isSuperAdmin)
   const create = useCreatePatient()
   const update = useUpdatePatient()
-  const pending = create.isPending || update.isPending
+  const assignment = useAssignDevice()
+  const pending = create.isPending || update.isPending || assignment.isPending
+  const [createdPatient, setCreatedPatient] = useState<PatientRecord>()
+  const [deviceDraft, setDeviceDraft] = useState({ ...emptyDeviceLabel })
+  const savedPayload = useRef<string | null>(null)
+  const saving = useRef(false)
   const initial = Object.fromEntries(
     patientTextFields.map((key) => [key, record?.[key] ?? '']),
   ) as Record<(typeof patientTextFields)[number], string>
   const owned =
     scope.isSuperAdmin || (!!scope.orgId && (!record || record.organisationId === scope.orgId))
+  const candidate = useDeviceAssignmentCandidate(
+    deviceDraft.imei,
+    createdPatient?.id,
+    owned && !record,
+  )
   return (
     <Formik<PatientValues>
       initialValues={{
@@ -197,175 +226,266 @@ export function PatientEditor({
         status: record?.isActive === false ? 'inactive' : 'active',
       }}
       validationSchema={schema}
+      validateOnMount
       onSubmit={async (values) => {
-        if (!owned) return
+        if (!owned || pending || saving.current) return
+        saving.current = true
         const payload = patientPayload(values)
         if (!scope.isSuperAdmin) payload.organisationId = scope.orgId
+        const serialized = JSON.stringify(payload)
+        const device = !record && candidate.assignable ? candidate.device : undefined
+        let patient = record ?? createdPatient
+        const wasNew = !patient
         try {
-          if (record) await update.mutateAsync({ id: record.id, payload })
-          else await create.mutateAsync(payload)
-          onSaved()
+          if (!patient) {
+            patient = await create.mutateAsync(payload)
+            setCreatedPatient(patient)
+            savedPayload.current = serialized
+            onSaved()
+          } else if (record || savedPayload.current !== serialized) {
+            const saved = await update.mutateAsync({ id: patient.id, payload })
+            if (!record) setCreatedPatient(saved)
+            savedPayload.current = serialized
+            onSaved()
+          }
+          if (device) {
+            await assignment.mutateAsync({ id: device.id, patientId: patient!.id })
+          } else if (!record && wasNew && selectedTab === 'assign') {
+            // Tokens require a real patient ID; keep this tab open after the first save.
+            return
+          }
           onClose()
         } catch {
-          /* Keep the form open and retain entered values. */
+          if (patient && device) setSelectedTab('assign')
+          /* Retain the saved patient ID so retrying assignment never creates a duplicate. */
+        } finally {
+          saving.current = false
         }
       }}
     >
-      <FormModal
-        open
-        title={t(record ? 'Edit patient' : 'Add patient')}
-        description={record ? patientName(record) : t('Enter patient details to create a record.')}
-        headerIcon={record ? <UserRound size={25} /> : <UserPlus size={25} />}
-        pending={pending}
-        onClose={onClose}
-        scroll="inside"
-        className="w-full sm:w-full sm:max-w-[1180px] sm:p-6"
-        dialogClassName="admin-editor-modal patient-editor-modal patient-api-editor"
-        footer={
-          <SubmitButton
-            form="patient-api-form"
-            pending={pending}
-            disabled={
-              !owned || (scope.isSuperAdmin && (organizations.isPending || organizations.isError))
-            }
-          >
-            <Save size={16} />
-            {t(record ? 'Save changes' : 'Add patient')}
-          </SubmitButton>
-        }
-      >
-        <Form id="patient-api-form" noValidate>
-          <PatientTabValidation onSelect={setSelectedTab} />
-          <Tabs
-            selectedKey={selectedTab}
-            onSelectionChange={(key) => setSelectedTab(String(key) as PatientTab)}
-            className="patient-form-tabs"
-          >
-            <Tabs.List aria-label={t('Patient information')} className="patient-form-tab-list">
-              <Tabs.Tab id="basic">
-                <UserRound size={16} />
-                {t('Basic Info')}
-              </Tabs.Tab>
-              <Tabs.Tab id="contact">
-                <Phone size={16} />
-                {t('Contact')}
-              </Tabs.Tab>
-              <Tabs.Tab id="notes">
-                <FileText size={16} />
-                {t('Notes')}
-              </Tabs.Tab>
-            </Tabs.List>
-            <Tabs.Panel id="basic" className="patient-api-form patient-tab-panel">
-              <FormTextField
-                name="firstName"
-                required
-                label={t('First name')}
-                placeholder={t('Enter First Name')}
-                icon={<UserRound size={17} className="admin-icon-violet" />}
-              />
-              <FormTextField
-                name="lastName"
-                required
-                label={t('Last name')}
-                placeholder={t('Enter Last Name')}
-                icon={<UserRound size={17} className="admin-icon-violet" />}
-              />
-              <PatientBirthDateField />
-              <FormTextField
-                name="mrn"
-                label="MRN"
-                placeholder={t('Enter Medical Record Number')}
-                icon={<FileText size={17} className="admin-icon-teal" />}
-              />
-              <FormTextField
-                name="nationalId"
-                label={t("Driver's License #")}
-                placeholder={t("Enter Driver's License #")}
-                icon={<ShieldCheck size={17} className="admin-icon-blue" />}
-              />
-              <FormTextField
-                name="externalId"
-                label={t('External ID')}
-                placeholder={t('Enter External ID')}
-                icon={<FileText size={17} className="admin-icon-violet" />}
-              />
-              <PatientChoice
-                name="gender"
-                label="Gender"
-                required
-                options={choiceOptions(genders, record?.gender)}
-              />
-              <PatientChoice
-                name="bloodGroup"
-                label="Blood group"
-                required={false}
-                options={choiceOptions(bloodGroups, record?.bloodGroup)}
-              />
-              <FormStatusField disabled={pending} />
-              {scope.isSuperAdmin ? (
-                <PatientChoice
-                  name="organisationId"
-                  label="Organization"
-                  options={(organizations.data ?? []).map((org) => ({
-                    id: org.id,
-                    label: org.name,
-                  }))}
-                />
-              ) : null}
-              {organizations.isError && scope.isSuperAdmin && (
-                <p role="alert" className="text-sm text-danger">
-                  {t('Organization choices could not be loaded.')}{' '}
-                  <button type="button" onClick={() => void organizations.refetch()}>
-                    {t('Try again')}
-                  </button>
-                </p>
+      {({ isValid, isValidating, isSubmitting }) => (
+        <FormModal
+          open
+          title={t(record ? 'Edit patient' : 'Add patient')}
+          description={
+            record
+              ? patientName(record)
+              : createdPatient
+                ? t('Patient saved. Assign a device or finish saving.')
+                : t('Enter patient details to create a record.')
+          }
+          headerIcon={record ? <UserRound size={25} /> : <UserPlus size={25} />}
+          pending={pending || isSubmitting}
+          cancelLabel={createdPatient ? 'Close' : 'Cancel'}
+          onClose={onClose}
+          scroll="inside"
+          className="w-full sm:w-full sm:max-w-[1180px] sm:p-6"
+          dialogClassName="admin-editor-modal patient-editor-modal patient-api-editor"
+          footer={
+            <SubmitButton
+              form="patient-api-form"
+              pending={pending || isSubmitting}
+              disabled={
+                !owned ||
+                addressResolving ||
+                isValidating ||
+                candidate.lookup.isFetching ||
+                (scope.isSuperAdmin && (organizations.isPending || organizations.isError))
+              }
+            >
+              <Save size={16} />
+              {t(
+                record
+                  ? 'Save changes'
+                  : isValid && !isValidating && candidate.assignable
+                    ? 'Save and Assign Device'
+                    : 'Save Patient',
               )}
-              {!owned && (
-                <p role="alert" className="text-sm text-danger">
-                  {t('You do not have permission to manage these patients.')}
-                </p>
-              )}
-              {(create.error || update.error) && (
-                <p role="alert" className="text-sm text-danger patient-api-error">
+            </SubmitButton>
+          }
+        >
+          <Form
+            id="patient-api-form"
+            noValidate
+            onKeyDown={(event) => {
+              if (
+                selectedTab === 'assign' &&
+                event.key === 'Enter' &&
+                event.target instanceof HTMLInputElement
+              )
+                event.preventDefault()
+            }}
+          >
+            <fieldset disabled={pending || isSubmitting} className="min-w-0">
+              <PatientTabValidation onSelect={setSelectedTab} />
+              <Tabs
+                selectedKey={selectedTab}
+                onSelectionChange={(key) => {
+                  if (key === 'assign') setAssignmentVisited(true)
+                  setSelectedTab(String(key) as PatientTab)
+                }}
+                className="patient-form-tabs"
+              >
+                <Tabs.List aria-label={t('Patient information')} className="patient-form-tab-list">
+                  <Tabs.Tab id="basic">
+                    <UserRound size={16} />
+                    {t('Basic Info')}
+                  </Tabs.Tab>
+                  <Tabs.Tab id="contact">
+                    <Phone size={16} />
+                    {t('Contact')}
+                  </Tabs.Tab>
+                  <Tabs.Tab id="notes">
+                    <FileText size={16} />
+                    {t('Notes')}
+                  </Tabs.Tab>
+                  {!record && (
+                    <Tabs.Tab id="assign" isDisabled={pending || isSubmitting}>
+                      <MonitorSmartphone size={16} />
+                      {t('Assign Device')}
+                    </Tabs.Tab>
+                  )}
+                </Tabs.List>
+                <Tabs.Panel id="basic" className="patient-api-form patient-tab-panel">
+                  <FormTextField
+                    name="firstName"
+                    required
+                    label={t('First name')}
+                    placeholder={t('Enter First Name')}
+                    icon={<UserRound size={17} className="admin-icon-violet" />}
+                  />
+                  <FormTextField
+                    name="lastName"
+                    required
+                    label={t('Last name')}
+                    placeholder={t('Enter Last Name')}
+                    icon={<UserRound size={17} className="admin-icon-violet" />}
+                  />
+                  <PatientBirthDateField />
+                  <FormTextField
+                    name="mrn"
+                    label="MRN"
+                    placeholder={t('Enter Medical Record Number')}
+                    icon={<FileText size={17} className="admin-icon-teal" />}
+                  />
+                  <FormTextField
+                    name="nationalId"
+                    label={t("Driver's License #")}
+                    placeholder={t("Enter Driver's License #")}
+                    icon={<ShieldCheck size={17} className="admin-icon-blue" />}
+                  />
+                  <FormTextField
+                    name="externalId"
+                    label={t('External ID')}
+                    placeholder={t('Enter External ID')}
+                    icon={<FileText size={17} className="admin-icon-violet" />}
+                  />
+                  <PatientChoice
+                    name="gender"
+                    label="Gender"
+                    required
+                    options={choiceOptions(genders, record?.gender)}
+                  />
+                  <PatientChoice
+                    name="bloodGroup"
+                    label="Blood group"
+                    required={false}
+                    options={choiceOptions(bloodGroups, record?.bloodGroup)}
+                  />
+                  <FormStatusField disabled={pending} />
+                  {scope.isSuperAdmin ? (
+                    <PatientChoice
+                      name="organisationId"
+                      label="Organization"
+                      options={(organizations.data ?? []).map((org) => ({
+                        id: org.id,
+                        label: org.name,
+                      }))}
+                    />
+                  ) : null}
+                  {organizations.isError && scope.isSuperAdmin && (
+                    <p role="alert" className="text-sm text-danger">
+                      {t('Organization choices could not be loaded.')}{' '}
+                      <button type="button" onClick={() => void organizations.refetch()}>
+                        {t('Try again')}
+                      </button>
+                    </p>
+                  )}
+                  {!owned && (
+                    <p role="alert" className="text-sm text-danger">
+                      {t('You do not have permission to manage these patients.')}
+                    </p>
+                  )}
+                  {(create.error || update.error) && (
+                    <p role="alert" className="text-sm text-danger patient-api-error">
+                      {t(patientErrorMessage(create.error || update.error))}
+                    </p>
+                  )}
+                </Tabs.Panel>
+                <Tabs.Panel
+                  id="contact"
+                  className="patient-api-form patient-tab-panel patient-contact-panel"
+                >
+                  <PatientPhoneField />
+                  <FormTextField
+                    name="email"
+                    label={t('Email')}
+                    type="email"
+                    placeholder="name@example.com"
+                    icon={<Mail size={17} className="admin-icon-blue" />}
+                  />
+                  <div className="patient-contact-address">
+                    {!record ? (
+                      <PatientAddressField
+                        selected={selectedAddress}
+                        onSelect={setSelectedAddress}
+                        onResolvingChange={setAddressResolving}
+                        disabled={pending || isSubmitting}
+                      />
+                    ) : (
+                      <FormTextField
+                        name="address"
+                        multiline
+                        label={t('Address')}
+                        placeholder={t('Enter Address')}
+                        icon={<MapPin size={17} className="admin-icon-teal" />}
+                      />
+                    )}
+                  </div>
+                </Tabs.Panel>
+                <Tabs.Panel id="notes" className="patient-tab-panel">
+                  <Suspense fallback={<p className="text-sm text-muted">{t('Loading editor…')}</p>}>
+                    <PatientAllergiesEditor />
+                  </Suspense>
+                </Tabs.Panel>
+                {!record && assignmentVisited && (
+                  <Tabs.Panel
+                    id="assign"
+                    shouldForceMount
+                    hidden={selectedTab !== 'assign'}
+                    className="patient-tab-panel patient-assign-tab"
+                  >
+                    <PatientDeviceAssignmentForm
+                      values={deviceDraft}
+                      onChange={setDeviceDraft}
+                      patientId={createdPatient?.id}
+                      allowed={owned}
+                      pending={pending || isSubmitting}
+                      candidate={candidate}
+                      error={assignment.error}
+                    />
+                  </Tabs.Panel>
+                )}
+              </Tabs>
+              {(create.error || update.error) && selectedTab !== 'basic' && (
+                <p role="alert" className="mt-4 text-sm text-danger">
                   {t(patientErrorMessage(create.error || update.error))}
                 </p>
               )}
-            </Tabs.Panel>
-            <Tabs.Panel
-              id="contact"
-              className="patient-api-form patient-tab-panel patient-contact-panel"
-            >
-              <PatientPhoneField />
-              <FormTextField
-                name="email"
-                label={t('Email')}
-                type="email"
-                placeholder="name@example.com"
-                icon={<Mail size={17} className="admin-icon-blue" />}
-              />
-              <div className="patient-contact-address">
-                <FormTextField
-                  name="address"
-                  multiline
-                  label={t('Address')}
-                  placeholder={t('Enter Address')}
-                  icon={<MapPin size={17} className="admin-icon-teal" />}
-                />
-              </div>
-            </Tabs.Panel>
-            <Tabs.Panel id="notes" className="patient-tab-panel">
-              <Suspense fallback={<p className="text-sm text-muted">{t('Loading editor…')}</p>}>
-                <PatientAllergiesEditor />
-              </Suspense>
-            </Tabs.Panel>
-          </Tabs>
-          {(create.error || update.error) && selectedTab !== 'basic' && (
-            <p role="alert" className="mt-4 text-sm text-danger">
-              {t(patientErrorMessage(create.error || update.error))}
-            </p>
-          )}
-        </Form>
-      </FormModal>
+            </fieldset>
+          </Form>
+        </FormModal>
+      )}
     </Formik>
   )
 }

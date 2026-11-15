@@ -34,6 +34,7 @@ export function PatientAssignDevice({
   onChange,
   actions,
   pending = false,
+  scannerPanel,
 }: {
   values: DeviceLabelFields
   onChange: (
@@ -41,6 +42,8 @@ export function PatientAssignDevice({
   ) => void
   actions?: ReactNode | ((scanning: boolean) => ReactNode)
   pending?: boolean
+  scannerPanel?:
+    ReactNode | ((applyFields: (fields: Partial<DeviceLabelFields>) => void) => ReactNode)
 }) {
   useAppTranslation()
   const fileInput = useRef<HTMLInputElement>(null)
@@ -63,8 +66,25 @@ export function PatientAssignDevice({
   const [missing, setMissing] = useState<Set<keyof DeviceLabelFields>>(new Set())
 
   function revealForm() {
-    if (!window.matchMedia('(max-width: 767px)').matches) return
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (!window.matchMedia?.('(max-width: 767px)').matches) return
+    formRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+  }
+  function applyScanFields(scanFields: Partial<DeviceLabelFields>) {
+    const nextMissing = fields
+      .map(({ name }) => name)
+      .filter((name) =>
+        edited.current.has(name) ? !values[name] : !(scanFields[name] || values[name]),
+      )
+    onChange((current) => ({
+      ...current,
+      ...Object.fromEntries(
+        Object.entries(scanFields).filter(
+          ([key]) => !edited.current.has(key as keyof DeviceLabelFields),
+        ),
+      ),
+    }))
+    setMissing(new Set(nextMissing))
+    revealForm()
   }
 
   useEffect(
@@ -100,21 +120,7 @@ export function PatientAssignDevice({
         )
         return
       }
-      const nextMissing = fields
-        .map(({ name }) => name)
-        .filter((name) =>
-          edited.current.has(name) ? !values[name] : !(output.fields[name] || values[name]),
-        )
-      onChange((current) => ({
-        ...current,
-        ...Object.fromEntries(
-          Object.entries(output.fields).filter(
-            ([key]) => !edited.current.has(key as keyof DeviceLabelFields),
-          ),
-        ),
-      }))
-      setMissing(new Set(nextMissing))
-      revealForm()
+      applyScanFields(output.fields)
       setResult(
         !validGtin(output.fields.gtin ?? '') ||
           !output.fields.serialNumber ||
@@ -256,97 +262,99 @@ export function PatientAssignDevice({
           </Button>
         </div>
       </section>
-      <section className="patient-label-scanner" aria-label={t('Scan device label')}>
-        <div className="patient-assignment-heading">
-          <span>
-            <ScanLine size={20} />
-          </span>
-          <div>
-            <h3>{t('Scan device label')}</h3>
-            <p>{t('Read barcodes and printed text from a device label.')}</p>
+      {(typeof scannerPanel === 'function' ? scannerPanel(applyScanFields) : scannerPanel) ?? (
+        <section className="patient-label-scanner" aria-label={t('Scan device label')}>
+          <div className="patient-assignment-heading">
+            <span>
+              <ScanLine size={20} />
+            </span>
+            <div>
+              <h3>{t('Scan device label')}</h3>
+              <p>{t('Read barcodes and printed text from a device label.')}</p>
+            </div>
           </div>
-        </div>
-        <div className="patient-scanner-controls">
-          <Button
-            variant="outline"
-            isDisabled={busy || pending || cameraOpen}
-            onPress={() => fileInput.current?.click()}
-          >
-            <ImagePlus size={16} />
-            {t('Upload image')}
-          </Button>
-          <Button
-            variant="primary"
-            isDisabled={busy || pending}
-            onPress={() => {
-              setError(null)
-              setCameraOpen(true)
-            }}
-          >
-            <Camera size={16} />
-            {t('Open camera')}
-          </Button>
-          {preview && (
+          <div className="patient-scanner-controls">
             <Button
-              variant="ghost"
+              variant="outline"
+              isDisabled={busy || pending || cameraOpen}
+              onPress={() => fileInput.current?.click()}
+            >
+              <ImagePlus size={16} />
+              {t('Upload image')}
+            </Button>
+            <Button
+              variant="primary"
               isDisabled={busy || pending}
               onPress={() => {
-                if (image.current) void scan(image.current)
+                setError(null)
+                setCameraOpen(true)
               }}
             >
-              <ScanLine size={16} />
-              {t('Read again')}
+              <Camera size={16} />
+              {t('Open camera')}
             </Button>
+            {preview && (
+              <Button
+                variant="ghost"
+                isDisabled={busy || pending}
+                onPress={() => {
+                  if (image.current) void scan(image.current)
+                }}
+              >
+                <ScanLine size={16} />
+                {t('Read again')}
+              </Button>
+            )}
+          </div>
+          <div className="patient-scanner-preview">
+            {preview ? (
+              <img src={preview} alt={t('Device label preview')} />
+            ) : (
+              <div className="patient-scanner-empty">
+                <ScanLine size={40} />
+                <strong>{t('Place the device label in view')}</strong>
+                <p>
+                  {t(
+                    'Include the name, Data Matrix code and IMEI barcode. Use good lighting and avoid glare.',
+                  )}
+                </p>
+              </div>
+            )}
+            {busy && (
+              <div className="patient-scanner-progress" role="status">
+                <LoaderCircle size={24} className="animate-spin" />
+                <span>
+                  {t('Reading label…')} {Math.round(progress * 100)}%
+                </span>
+              </div>
+            )}
+          </div>
+          <input
+            ref={fileInput}
+            hidden
+            tabIndex={-1}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            aria-label={t('Upload device label')}
+            disabled={busy || pending || cameraOpen}
+            onChange={(event) => {
+              void upload(event.target.files?.[0])
+              event.target.value = ''
+            }}
+          />
+          {error && (
+            <p className="patient-scanner-error" role="alert">
+              {t(error)}
+            </p>
           )}
-        </div>
-        <div className="patient-scanner-preview">
-          {preview ? (
-            <img src={preview} alt={t('Device label preview')} />
-          ) : (
-            <div className="patient-scanner-empty">
-              <ScanLine size={40} />
-              <strong>{t('Place the device label in view')}</strong>
-              <p>
-                {t(
-                  'Include the name, Data Matrix code and IMEI barcode. Use good lighting and avoid glare.',
-                )}
-              </p>
-            </div>
+          {result && (
+            <p className="patient-scanner-result" role="status">
+              <CheckCircle2 size={16} />
+              {t(result)}
+            </p>
           )}
-          {busy && (
-            <div className="patient-scanner-progress" role="status">
-              <LoaderCircle size={24} className="animate-spin" />
-              <span>
-                {t('Reading label…')} {Math.round(progress * 100)}%
-              </span>
-            </div>
-          )}
-        </div>
-        <input
-          ref={fileInput}
-          hidden
-          tabIndex={-1}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          aria-label={t('Upload device label')}
-          disabled={busy || pending || cameraOpen}
-          onChange={(event) => {
-            void upload(event.target.files?.[0])
-            event.target.value = ''
-          }}
-        />
-        {error && (
-          <p className="patient-scanner-error" role="alert">
-            {t(error)}
-          </p>
-        )}
-        {result && (
-          <p className="patient-scanner-result" role="status">
-            <CheckCircle2 size={16} />
-            {t(result)}
-          </p>
-        )}
-      </section>
+        </section>
+      )}
       {cameraOpen && (
         <DeviceCameraDialog
           onClose={() => setCameraOpen(false)}

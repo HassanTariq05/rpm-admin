@@ -59,7 +59,11 @@ it.each([
       if (allowed) expect(link).toBeInTheDocument()
       else expect(link).not.toBeInTheDocument()
     }
-    expect(navigation.getByRole('link', { name: 'Device Readings' })).toHaveAttribute('href', '/')
+    expect(navigation.getByRole('link', { name: 'Device Readings' })).toHaveAttribute(
+      'href',
+      '/device-readings',
+    )
+    expect(navigation.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/')
     expect(navigation.getByRole('link', { name: 'Patients' })).toHaveAttribute('href', '/patients')
     expect(navigation.getByRole('link', { name: 'Devices' })).toHaveAttribute('href', '/devices')
     for (const label of ['Overview', 'Reports']) {

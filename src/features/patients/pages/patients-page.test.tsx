@@ -12,6 +12,21 @@ const state = vi.hoisted(() => ({
   superAdmin: true,
   refetch: vi.fn(),
 }))
+vi.mock('@/hooks/use-device-assignment-tokens', () => ({
+  useCreateAssignmentToken: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+    isIdle: false,
+    isError: false,
+    data: {
+      token: 'one-time',
+      patientId: '123e4567-e89b-42d3-a456-426614174000',
+      createdAt: '2026-11-14T10:00:00Z',
+      expiresAt: '2099-11-14T10:05:00Z',
+    },
+  }),
+  useAssignmentToken: () => ({ data: undefined, isError: false }),
+}))
 vi.mock('@/hooks/use-patients', () => ({
   usePatients: () => ({
     data: [
@@ -156,7 +171,7 @@ it('opens a separate Assign Device dialog from patient actions with the selected
   const dialog = within(await screen.findByRole('dialog', { name: 'Assign Device' }))
   expect(dialog.getByText('Scan or enter device details for Alex Rivera.')).toBeInTheDocument()
   expect(await dialog.findByRole('textbox', { name: 'Name' })).toBeInTheDocument()
-  expect(dialog.getByRole('button', { name: 'Open camera' })).toBeInTheDocument()
+  expect(dialog.getByText('Use your phone camera to scan this QR code.')).toBeInTheDocument()
   expect(dialog.queryByRole('tab', { name: 'Assign Device' })).not.toBeInTheDocument()
   await user.click(dialog.getAllByRole('button', { name: 'Close' })[0]!)
   expect(screen.queryByRole('dialog', { name: 'Assign Device' })).not.toBeInTheDocument()

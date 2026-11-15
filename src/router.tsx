@@ -10,7 +10,7 @@ import {
 
 import { useAuthStore } from '@/stores/auth-store'
 import { AppShell } from '@/app/layout/app-shell'
-// import { DashboardPage } from '@/features/dashboard/pages/dashboard-page'
+import { DashboardPage } from '@/features/dashboard/pages/dashboard-page'
 import { PatientsPage } from '@/features/patients/pages/patients-page'
 import { DeviceReadingsPage } from '@/features/device-readings'
 import { OrdersPage } from '@/features/orders/pages/orders-page'
@@ -26,6 +26,13 @@ import RegisterPage from '@/features/auth/register/page'
 import ForgotPasswordPage from '@/features/auth/forgot-password/page'
 import OtpPage from '@/features/auth/otp/page'
 import PasswordResetPage from '@/features/auth/password-reset/page'
+import { lazy, Suspense } from 'react'
+import { deviceScanPath } from '@/features/patients/device-scanning/scan-handoff'
+const PublicDeviceScanPage = lazy(() =>
+  import('@/features/patients/pages/public-device-scan-page').then((module) => ({
+    default: module.PublicDeviceScanPage,
+  })),
+)
 
 function NotFoundPage() {
   useAppTranslation()
@@ -41,7 +48,7 @@ function NotFoundPage() {
         to="/"
         className="mt-6 inline-flex rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700"
       >
-        {t(' Back to Device Readings ')}
+        {t('Back to Dashboard')}
       </Link>
     </div>
   )
@@ -71,8 +78,15 @@ const appLayoutRoute = createRoute({
 const indexRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/',
-  // component: DashboardPage,
-  component: DeviceReadingsPage,
+  component: DashboardPage,
+})
+
+const dashboardRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/dashboard',
+  beforeLoad: () => {
+    throw redirect({ to: '/', replace: true })
+  },
 })
 
 const patientsRoute = createRoute({
@@ -96,9 +110,7 @@ const ordersRoute = createRoute({
 const deviceReadingsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/device-readings',
-  beforeLoad: () => {
-    throw redirect({ to: '/', replace: true })
-  },
+  component: DeviceReadingsPage,
 })
 
 const reportsRoute = createRoute({
@@ -165,8 +177,18 @@ const passwordResetRoute = createRoute({
 })
 
 const routeTree = rootRoute.addChildren([
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: deviceScanPath,
+    component: () => (
+      <Suspense fallback={<div role="status">{t('Loading device scanner…')}</div>}>
+        <PublicDeviceScanPage />
+      </Suspense>
+    ),
+  }),
   appLayoutRoute.addChildren([
     indexRoute,
+    dashboardRoute,
     patientsRoute,
     devicesRoute,
     ordersRoute,

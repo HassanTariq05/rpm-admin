@@ -34,12 +34,14 @@ function renderProvider() {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  window.history.replaceState({}, '', '/')
   useAuthStore.getState().auth.reset()
   queryClient = new QueryClient()
 })
 
 afterEach(() => {
   cleanup()
+  window.history.replaceState({}, '', '/')
   queryClient.clear()
   useAuthStore.getState().auth.reset()
 })
@@ -114,4 +116,13 @@ it('shows a session-expired dialog after unexpected expiration and allows signin
     expect(screen.queryByRole('dialog', { name: 'Session expired' })).not.toBeInTheDocument(),
   )
   expect(router.navigate).toHaveBeenCalledWith({ to: '/login', replace: true })
+})
+
+it('renders the independent scan page without authentication, account fetch or a login redirect', () => {
+  window.history.replaceState({}, '', '/device-assignment/scan#token=opaque')
+  useAuthStore.getState().auth.setAccessToken('expired-local-session')
+  renderProvider()
+  expect(screen.getByText('Account ready')).toBeInTheDocument()
+  expect(axios.get).not.toHaveBeenCalled()
+  expect(router.navigate).not.toHaveBeenCalled()
 })

@@ -12,6 +12,12 @@ const api = vi.hoisted(() => ({
   getPatientDevices: vi.fn(),
   assign: vi.fn(),
   unassign: vi.fn(),
+  createScan: vi.fn(),
+  getScan: vi.fn(),
+}))
+vi.mock('@/services/patient-services/device-assignment-tokens', async (original) => ({
+  ...(await original<typeof import('@/services/patient-services/device-assignment-tokens')>()),
+  useAssignmentTokenService: () => ({ create: api.createScan, get: api.getScan }),
 }))
 vi.mock('@/services/device-services/device-services', async (original) => ({
   ...(await original<typeof import('@/services/device-services/device-services')>()),
@@ -45,6 +51,14 @@ function show(ui: React.ReactNode) {
 beforeEach(() => {
   vi.resetAllMocks()
   useAuthStore.getState().auth.setAccessToken('synthetic-test-token')
+  const scan = {
+    token: 'one-time',
+    patientId: patient.id,
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 300000).toISOString(),
+  }
+  api.createScan.mockResolvedValue(scan)
+  api.getScan.mockResolvedValue({ ...scan, usedAt: null })
   api.getAll.mockResolvedValue([device])
   api.getPatientDevices.mockResolvedValue([{ ...device, patientId: patient.id }])
   api.assign.mockResolvedValue({ device: { ...device, patientId: patient.id }, assignment: null })
@@ -120,4 +134,44 @@ it('shows an empty device state without fabricating cards', async () => {
   await user.click(screen.getByRole('tab', { name: 'Devices' }))
   expect(await screen.findByText('No devices assigned')).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: /Device actions for/ })).not.toBeInTheDocument()
+})
+
+it('applies a remote scan to the assignment form and preserves manual edits on a later QR scan', async () => {
+  const user = userEvent.setup()
+  const future = new Date(Date.now() + 300000).toISOString()
+  api.createScan
+    .mockResolvedValueOnce({
+      token: 'first-scan',
+      patientId: patient.id,
+      createdAt: new Date().toISOString(),
+      expiresAt: future,
+    })
+    .mockResolvedValueOnce({
+      token: 'second-scan',
+      patientId: patient.id,
+      createdAt: new Date().toISOString(),
+      expiresAt: future,
+    })
+  api.getScan.mockImplementation(async (token: string) => ({
+    token,
+    patientId: patient.id,
+    expiresAt: future,
+    usedAt: new Date().toISOString(),
+    requestPayload: {
+      name: token === 'first-scan' ? 'First monitor' : 'Second monitor',
+      imei: token === 'first-scan' ? device.imei : '868369084111269',
+    },
+  }))
+  show(<PatientAssignDeviceDialog record={patient} onClose={vi.fn()} />)
+  await waitFor(() =>
+    expect(screen.getByRole('textbox', { name: 'IMEI' })).toHaveValue(device.imei),
+  )
+  expect(screen.queryByRole('button', { name: 'Open camera' })).not.toBeInTheDocument()
+  await user.clear(screen.getByRole('textbox', { name: 'Name' }))
+  await user.type(screen.getByRole('textbox', { name: 'Name' }), 'My monitor')
+  await user.click(screen.getByRole('button', { name: 'Scan another label' }))
+  await waitFor(() =>
+    expect(screen.getByRole('textbox', { name: 'IMEI' })).toHaveValue('868369084111269'),
+  )
+  expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('My monitor')
 })

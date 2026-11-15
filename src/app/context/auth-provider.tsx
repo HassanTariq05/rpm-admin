@@ -7,8 +7,16 @@ import { useAuthStore } from '@/stores/auth-store'
 import { router } from '@/router'
 import { useIdleLogout } from '@/hooks/use-idle-logout'
 import { SessionTimeoutDialog } from '@/app/components/session-timeout-dialog'
+import { deviceScanPath } from '@/features/patients/device-scanning/scan-handoff'
 
-const publicPaths = new Set(['/login', '/signup', '/forgot-password', '/otp', '/reset-password'])
+const publicPaths = new Set([
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/otp',
+  '/reset-password',
+  deviceScanPath,
+])
 
 function redirectToLogin() {
   if (!publicPaths.has(window.location.pathname)) {
@@ -21,12 +29,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const queryClient = useQueryClient()
   const token = useAuthStore((state) => state.auth.accessToken)
-  const [loading, setLoading] = useState(true)
-  useIdleLogout(!loading)
+  const independentScan = window.location.pathname === deviceScanPath
+  const [loading, setLoading] = useState(!independentScan)
+  useIdleLogout(!loading && !independentScan)
 
   useEffect(() => {
     let active = true
     const { auth } = useAuthStore.getState()
+    if (independentScan) {
+      setLoading(false)
+      return
+    }
 
     if (!token) {
       queryClient.clear()
@@ -62,7 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       active = false
     }
-  }, [queryClient, token])
+  }, [queryClient, token, independentScan])
 
   if (loading) {
     return (
@@ -75,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return (
     <>
       {children}
-      <SessionTimeoutDialog />
+      {!independentScan && <SessionTimeoutDialog />}
     </>
   )
 }

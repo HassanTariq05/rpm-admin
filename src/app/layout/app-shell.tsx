@@ -11,7 +11,7 @@ import {
   ChevronRight,
   CircleHelp,
   HeartPulse,
-  // LayoutDashboard,
+  LayoutDashboard,
   LogOut,
   Menu,
   Moon,
@@ -53,11 +53,11 @@ const navItems: {
   count?: string
   administration?: boolean
 }[] = [
-  // { label: 'Overview', to: '/', icon: LayoutDashboard },
+  { label: 'Dashboard', to: '/', icon: LayoutDashboard },
   { label: 'Patients', to: '/patients', icon: UsersRound },
   { label: 'Devices', to: '/devices', icon: MonitorSmartphone },
 
-  { label: 'Device Readings', to: '/', icon: Activity },
+  { label: 'Device Readings', to: '/device-readings', icon: Activity },
   { label: 'Orders', to: '/orders', icon: Package },
   // { label: 'Reports', to: '/reports', icon: ChartNoAxesCombined },
   { label: 'Users', to: '/users', administration: true, icon: UserRoundCog },
@@ -67,7 +67,7 @@ const navItems: {
 ]
 
 const pageTitles: Record<AppPath, string> = {
-  '/': 'Device Readings',
+  '/': 'Dashboard',
   '/patients': 'Patients',
   '/devices': 'Devices',
   '/device-readings': 'Device Readings',

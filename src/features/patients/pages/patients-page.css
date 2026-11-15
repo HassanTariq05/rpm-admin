@@ -1663,3 +1663,182 @@
     gap: 14px;
   }
 }
+
+.patient-assign-tab[hidden] {
+  display: none;
+}
+.patient-pending-scan {
+  display: flex;
+  min-height: 280px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 28px;
+  text-align: center;
+  color: var(--muted);
+}
+.patient-pending-scan > svg {
+  color: var(--accent);
+}
+.patient-pending-scan h3 {
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--foreground);
+}
+.patient-pending-scan p {
+  font-size: 12px;
+  line-height: 1.7;
+  max-width: 360px;
+}
+
+.patient-address-search {
+  min-width: 0;
+}
+.patient-address-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.patient-address-input {
+  position: relative;
+}
+.patient-address-input > svg:first-child {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--editor-teal);
+}
+.patient-address-input input {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 38px;
+  border: 1px solid var(--control-border, var(--border));
+  border-radius: 10px;
+  background: var(--control-bg, var(--panel));
+  color: var(--foreground);
+  font-size: 13px;
+  outline: none;
+}
+.patient-address-input input:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.patient-address-loading {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: var(--muted);
+}
+.patient-address-popover {
+  z-index: 1000;
+  width: var(--trigger-width);
+  max-width: calc(100vw - 32px);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--foreground);
+  box-shadow: 0 14px 40px rgb(0 0 0 / 16%);
+}
+.patient-address-popover [role='listbox'] {
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+  outline: none;
+  overscroll-behavior: contain;
+}
+.patient-address-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+}
+.patient-address-option[data-focused],
+.patient-address-option[data-selected] {
+  background: color-mix(in srgb, var(--accent) 9%, var(--panel));
+}
+.patient-address-option > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--accent);
+}
+.patient-address-option strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+.patient-address-option span {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.patient-address-empty {
+  padding: 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.patient-address-attribution {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+}
+.patient-address-help {
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.patient-address-components {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.patient-address-components > div {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+  min-width: 0;
+}
+.patient-address-components dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+.patient-address-components dd {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 420px) {
+  .patient-address-components {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+.google-maps-attribution {
+  color: #5e5e5e;
+  font-family: inherit;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: normal;
+  white-space: nowrap;
+}
+.dark .google-maps-attribution {
+  color: #fff;
+}
