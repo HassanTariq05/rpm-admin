@@ -26,3 +26,21 @@ it('only accepts known label fields from the submitted payload', () => {
     }),
   ).toEqual({ name: 'Monitor', imei: '864370061571354' })
 })
+it('identifies device-creation links without exposing a patient ID and rejects unknown purposes', () => {
+  const url = new URL(
+    scanHandoffUrl(
+      'https://example.test',
+      'creation-token',
+      '2026-11-14T10:05:00Z',
+      'device_creation',
+    ),
+  )
+  expect(url.search).toBe('')
+  expect(readScanHandoff(url.hash)).toEqual({
+    token: 'creation-token',
+    expiresAt: '2026-11-14T10:05:00Z',
+    sourceType: 'device_creation',
+  })
+  expect(url.hash).not.toContain('patientId')
+  expect(readScanHandoff(url.hash.replace('device_creation', 'unrecognized'))).toBeNull()
+})

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { DevicesPage } from './devices-page'
 import { deviceFixture } from '../devices.fixtures'
 const state = vi.hoisted(() => ({
+  total: 12,
   pending: false,
   fetching: false,
   error: null as unknown,
@@ -20,11 +21,14 @@ const state = vi.hoisted(() => ({
   refetch: vi.fn(),
   detail: vi.fn(),
 }))
+vi.mock('@/features/patients/components/device-scan-handoff', () => ({
+  DeviceScanHandoff: () => null,
+}))
 vi.mock('@/hooks/use-devices', () => ({
   useDevices: () => ({
     data: state.pending
       ? undefined
-      : Array.from({ length: 12 }, (_, index) => ({
+      : Array.from({ length: state.total }, (_, index) => ({
           ...deviceFixture,
           id: `device-${index}`,
           imei: `860000000${String(index).padStart(6, '0')}`,
@@ -61,6 +65,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   localStorage.removeItem('rpm.devices.view.v1')
   Object.assign(state, {
+    total: 12,
     pending: false,
     fetching: false,
     error: null,
@@ -80,15 +85,16 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 it('filters real vendor aliases, types, and IMEI and resets pagination', async () => {
+  state.total = 20
   const user = userEvent.setup()
   render(<DevicesPage />)
-  expect(screen.getAllByRole('article')).toHaveLength(8)
+  expect(screen.getAllByRole('article')).toHaveLength(16)
   await user.click(screen.getByRole('button', { name: 'Next devices page' }))
-  expect(screen.getByText('Showing 9–12 of 12 devices')).toBeInTheDocument()
+  expect(screen.getByText('Showing 17–20 of 20 devices')).toBeInTheDocument()
   await user.click(await screen.findByRole('tab', { name: /^Pylo/ }))
-  expect(screen.getAllByRole('article')).toHaveLength(6)
+  expect(screen.getAllByRole('article')).toHaveLength(10)
   await user.click(await screen.findByRole('tab', { name: /^Weight/ }))
-  expect(screen.getAllByRole('article')).toHaveLength(3)
+  expect(screen.getAllByRole('article')).toHaveLength(7)
   fireEvent.change(screen.getByRole('textbox', { name: 'Search devices' }), {
     target: { value: '860000000000007' },
   })
@@ -239,14 +245,15 @@ it('searches company and type dropdowns and saves the active toggle as the API b
 })
 
 it('switches to a list without resetting pagination, opens details and restores the saved view', async () => {
+  state.total = 20
   const user = userEvent.setup()
   const first = render(<DevicesPage />)
   await user.click(screen.getByRole('button', { name: 'Next devices page' }))
   await user.click(screen.getByRole('button', { name: 'List view' }))
   let table = within(screen.getByRole('table', { name: 'Devices' }))
   expect(table.getAllByRole('row')).toHaveLength(5)
-  expect(table.getByText('860000000000008')).toBeInTheDocument()
-  expect(screen.getByText('Showing 9–12 of 12 devices')).toBeInTheDocument()
+  expect(table.getByText('860000000000016')).toBeInTheDocument()
+  expect(screen.getByText('Showing 17–20 of 20 devices')).toBeInTheDocument()
   expect(localStorage.getItem('rpm.devices.view.v1')).toBe('list')
   first.unmount()
   const second = render(<DevicesPage />)
@@ -259,7 +266,7 @@ it('switches to a list without resetting pagination, opens details and restores 
   render(<DevicesPage />)
   await user.click(screen.getByRole('button', { name: 'Grid view' }))
   expect(screen.queryByRole('table', { name: 'Devices' })).not.toBeInTheDocument()
-  expect(screen.getAllByRole('article')).toHaveLength(8)
+  expect(screen.getAllByRole('article')).toHaveLength(16)
   expect(localStorage.getItem('rpm.devices.view.v1')).toBe('grid')
 })
 it('keeps filters and search applied when switching views', async () => {

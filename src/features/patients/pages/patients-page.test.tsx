@@ -20,6 +20,7 @@ vi.mock('@/hooks/use-device-assignment-tokens', () => ({
     isError: false,
     data: {
       token: 'one-time',
+      sourceType: 'patient_device_assoc',
       patientId: '123e4567-e89b-42d3-a456-426614174000',
       createdAt: '2026-11-14T10:00:00Z',
       expiresAt: '2099-11-14T10:05:00Z',
@@ -175,4 +176,14 @@ it('opens a separate Assign Device dialog from patient actions with the selected
   expect(dialog.queryByRole('tab', { name: 'Assign Device' })).not.toBeInTheDocument()
   await user.click(dialog.getAllByRole('button', { name: 'Close' })[0]!)
   expect(screen.queryByRole('dialog', { name: 'Assign Device' })).not.toBeInTheDocument()
+})
+
+it('opens patient details by selecting the first-column patient name', () => {
+  render(<PatientsPage />)
+  fireEvent.click(screen.getByRole('button', { name: 'Alex Rivera' }))
+  expect(
+    within(screen.getByRole('dialog', { name: 'View patient' })).getByRole('heading', {
+      name: 'Alex Rivera',
+    }),
+  ).toBeInTheDocument()
 })

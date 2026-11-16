@@ -16,7 +16,7 @@ export function ThemePicker() {
         aria-label={t('Choose color theme, current: {{value0}}', {
           value0: t(selectedTheme.label),
         })}
-        className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-surface-muted"
+        className="header-choice-trigger flex h-9 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[11px] font-normal text-muted transition-colors hover:bg-surface-muted"
       >
         <Palette size={16} className="text-muted" />
         <span className="hidden sm:block">{t(selectedTheme.label)}</span>

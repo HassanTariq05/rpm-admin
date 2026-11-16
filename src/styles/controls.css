@@ -184,3 +184,11 @@ html[data-theme] {
 :is([data-slot='textfield'], [data-slot='select'])[data-invalid='true'] [data-slot='label'] {
   color: var(--danger);
 }
+
+/* Header choices stay secondary to the page and primary actions. */
+.header-choice-trigger {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--muted);
+}

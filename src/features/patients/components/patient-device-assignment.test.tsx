@@ -54,6 +54,7 @@ beforeEach(() => {
   const scan = {
     token: 'one-time',
     patientId: patient.id,
+    sourceType: 'patient_device_assoc',
     createdAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 300000).toISOString(),
   }
@@ -143,18 +144,21 @@ it('applies a remote scan to the assignment form and preserves manual edits on a
     .mockResolvedValueOnce({
       token: 'first-scan',
       patientId: patient.id,
+      sourceType: 'patient_device_assoc',
       createdAt: new Date().toISOString(),
       expiresAt: future,
     })
     .mockResolvedValueOnce({
       token: 'second-scan',
       patientId: patient.id,
+      sourceType: 'patient_device_assoc',
       createdAt: new Date().toISOString(),
       expiresAt: future,
     })
   api.getScan.mockImplementation(async (token: string) => ({
     token,
     patientId: patient.id,
+    sourceType: 'patient_device_assoc',
     expiresAt: future,
     usedAt: new Date().toISOString(),
     requestPayload: {

@@ -4,7 +4,10 @@ import { Button } from '@heroui/react'
 import { CheckCircle2, ScanLine, Send } from 'lucide-react'
 import { translate as t, useAppTranslation } from '@/i18n'
 import { useSubmitAssignmentScan } from '@/hooks/use-device-assignment-tokens'
-import { assignmentTokenError } from '@/services/patient-services/device-assignment-tokens'
+import {
+  assignmentTokenError,
+  type ScanTokenSource,
+} from '@/services/patient-services/device-assignment-tokens'
 import { emptyDeviceLabel, validImei } from '../device-scanning/label-parser'
 import { readScanHandoff } from '../device-scanning/scan-handoff'
 import { useScanExpiry } from '../device-scanning/use-scan-expiry'
@@ -18,9 +21,13 @@ const subscribe = (notify: () => void) => {
   window.addEventListener('hashchange', notify)
   return () => window.removeEventListener('hashchange', notify)
 }
-function ScanSession({ handoff }: { handoff: { token: string; expiresAt: string } }) {
+function ScanSession({
+  handoff,
+}: {
+  handoff: { token: string; expiresAt: string; sourceType?: ScanTokenSource }
+}) {
   const [draft, setDraft] = useState({ ...emptyDeviceLabel })
-  const submit = useSubmitAssignmentScan()
+  const submit = useSubmitAssignmentScan(handoff.sourceType)
   const { expired, remaining } = useScanExpiry(handoff.expiresAt, !submit.isSuccess)
   if (
     axios.isAxiosError(submit.error) &&
@@ -38,7 +45,13 @@ function ScanSession({ handoff }: { handoff: { token: string; expiresAt: string 
       <div className="public-scan-message" role="status">
         <CheckCircle2 size={48} />
         <h1>{t('Device details sent')}</h1>
-        <p>{t('Return to the original assignment screen to review and assign the device.')}</p>
+        <p>
+          {t(
+            handoff.sourceType === 'device_creation'
+              ? 'Return to Add Device to review and save the device.'
+              : 'Return to the original assignment screen to review and assign the device.',
+          )}
+        </p>
       </div>
     )
   if (expired)
@@ -116,12 +129,19 @@ export function PublicDeviceScanPage() {
     <main className="device-scan-public">
       <div className="public-scan-shell">
         {handoff ? (
-          <ScanSession key={handoff.token} handoff={handoff} />
+          <ScanSession
+            key={`${handoff.sourceType ?? 'patient_device_assoc'}:${handoff.token}`}
+            handoff={handoff}
+          />
         ) : (
           <div className="public-scan-message" role="alert">
             <ScanLine size={40} />
             <h1>{t('Scan link unavailable')}</h1>
-            <p>{t('Scan a valid QR code from the patient assignment screen to continue.')}</p>
+            <p>
+              {t(
+                'Scan a valid QR code from Add Device or the patient assignment screen to continue.',
+              )}
+            </p>
           </div>
         )}
       </div>

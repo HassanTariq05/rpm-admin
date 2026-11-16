@@ -1,3 +1,4 @@
+import { RecordOpenButton } from '@/app/components/administration/record-open-button'
 import { locale, translate as t, useAppTranslation } from '@/i18n'
 import { Link } from '@tanstack/react-router'
 import { useAuthStore } from '@/stores/auth-store'
@@ -63,10 +64,12 @@ function ReadingValue({ reading, isNew }: { reading: DeviceReading; isNew: boole
       </span>
       <div className="min-w-0">
         <span className="flex flex-wrap items-center gap-2">
-          <span className="reading-type-label">{t(readingLabel(reading.readingType))}</span>
+          <span className="reading-type-label record-open-label">
+            {t(readingLabel(reading.readingType))}
+          </span>
           {isNew ? <span className="reading-new-badge">{t('New')}</span> : null}
         </span>
-        <p className="mt-1 whitespace-nowrap reading-measurement font-semibold tabular-nums text-foreground">
+        <p className="record-open-label mt-1 whitespace-nowrap reading-measurement font-semibold tabular-nums text-foreground">
           {t(result.value)}{' '}
           {result.unit && (
             <span className="text-[11px] font-normal text-muted">{t(result.unit)}</span>
@@ -368,10 +371,14 @@ export function DeviceReadingsPage() {
                             rows.map((reading) => (
                               <tr key={reading.id}>
                                 <th scope="row">
-                                  <ReadingValue
-                                    reading={reading}
-                                    isNew={newReadingIds.has(reading.id)}
-                                  />
+                                  <RecordOpenButton
+                                    onOpen={() => setSelected({ reading, userId: scope.user?.id })}
+                                  >
+                                    <ReadingValue
+                                      reading={reading}
+                                      isNew={newReadingIds.has(reading.id)}
+                                    />
+                                  </RecordOpenButton>
                                   <span className="mt-2 block text-[10px] font-normal text-muted">
                                     {t(' Reading #')}
                                     {reading.id}

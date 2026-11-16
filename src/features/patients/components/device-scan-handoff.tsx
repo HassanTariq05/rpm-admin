@@ -1,50 +1,147 @@
+import '../device-scanning/device-scanning.css'
 import '../device-scanning/device-scan-handoff.css'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, Input, Label, TextField } from '@heroui/react'
 import { QRCodeSVG } from 'qrcode.react'
 import { CheckCircle2, Copy, LoaderCircle, QrCode, RefreshCw, Smartphone } from 'lucide-react'
-import { useCreateAssignmentToken, useAssignmentToken } from '@/hooks/use-device-assignment-tokens'
-import { assignmentTokenError } from '@/services/patient-services/device-assignment-tokens'
+import {
+  useCreateAssignmentToken,
+  useAssignmentToken,
+  useCreateDeviceCreationToken,
+  useDeviceCreationToken,
+} from '@/hooks/use-device-assignment-tokens'
+import {
+  assignmentTokenError,
+  type OneTimeScanToken,
+  type ScanTokenSource,
+} from '@/services/patient-services/device-assignment-tokens'
 import { translate as t, useAppTranslation } from '@/i18n'
 import { scanHandoffUrl, scanPayloadFields } from '../device-scanning/scan-handoff'
 import { useScanExpiry } from '../device-scanning/use-scan-expiry'
 import type { DeviceLabelFields } from '../device-scanning/label-parser'
 
-export function DeviceScanHandoff({
+type CommonHandoffProps = {
+  onReceived: (fields: Partial<DeviceLabelFields>) => void
+  disabled?: boolean
+}
+type HandoffProps = CommonHandoffProps &
+  (
+    | { patientId: string; sourceType?: 'patient_device_assoc' }
+    | { patientId?: never; sourceType: 'device_creation' }
+  )
+export function DeviceScanHandoff(props: HandoffProps) {
+  return props.sourceType === 'device_creation' ? (
+    <CreationHandoff onReceived={props.onReceived} disabled={props.disabled} />
+  ) : (
+    <AssignmentHandoff
+      patientId={props.patientId}
+      onReceived={props.onReceived}
+      disabled={props.disabled}
+    />
+  )
+}
+function AssignmentHandoff({
   patientId,
   onReceived,
-}: {
-  patientId: string
-  onReceived: (fields: Partial<DeviceLabelFields>) => void
-}) {
-  useAppTranslation()
+  disabled = false,
+}: CommonHandoffProps & { patientId: string }) {
   const create = useCreateAssignmentToken()
   const { mutate } = create
+  const start = useCallback(() => mutate(patientId), [mutate, patientId])
+  const token = create.data
+  const query = useAssignmentToken(
+    token,
+    !disabled &&
+      !create.isPending &&
+      !create.isError &&
+      !!token &&
+      Date.parse(token.expiresAt) > Date.now(),
+  )
+  return (
+    <ScanHandoffView
+      contextKey={patientId}
+      sourceType="patient_device_assoc"
+      create={create}
+      start={start}
+      query={query}
+      onReceived={onReceived}
+      disabled={disabled}
+    />
+  )
+}
+function CreationHandoff({ onReceived, disabled = false }: CommonHandoffProps) {
+  const create = useCreateDeviceCreationToken()
+  const { mutate } = create
+  const start = useCallback(() => mutate(), [mutate])
+  const token = create.data
+  const query = useDeviceCreationToken(
+    token,
+    !disabled &&
+      !create.isPending &&
+      !create.isError &&
+      !!token &&
+      Date.parse(token.expiresAt) > Date.now(),
+  )
+  return (
+    <ScanHandoffView
+      contextKey="device_creation"
+      sourceType="device_creation"
+      create={create}
+      start={start}
+      query={query}
+      onReceived={onReceived}
+      disabled={disabled}
+    />
+  )
+}
+function ScanHandoffView({
+  contextKey,
+  sourceType,
+  create,
+  start,
+  query,
+  onReceived,
+  disabled = false,
+}: CommonHandoffProps & {
+  contextKey: string
+  sourceType: ScanTokenSource
+  start: () => void
+  create: {
+    data?: OneTimeScanToken
+    isPending: boolean
+    isIdle: boolean
+    isError: boolean
+    error: unknown
+  }
+  query: ReturnType<typeof useAssignmentToken>
+}) {
+  useAppTranslation()
   const started = useRef<string | null>(null)
   const applied = useRef<string | null>(null)
   const [copied, setCopied] = useState(false)
   useEffect(() => {
-    if (started.current === patientId) return
-    started.current = patientId
-    mutate(patientId)
-  }, [patientId, mutate])
+    if (disabled || started.current === contextKey) return
+    started.current = contextKey
+    start()
+  }, [contextKey, start, disabled])
   const token = create.data
-  const query = useAssignmentToken(
-    token,
-    !create.isPending && !create.isError && !!token && Date.parse(token.expiresAt) > Date.now(),
-  )
   const received =
-    !!query.data?.usedAt && query.data.patientId === patientId && query.data.token === token?.token
+    !!query.data?.usedAt &&
+    query.data.patientId === token?.patientId &&
+    query.data.sourceType === sourceType &&
+    query.data.token === token?.token
   const { expired, remaining } = useScanExpiry(query.data?.expiresAt ?? token?.expiresAt, !received)
-  const url = token ? scanHandoffUrl(window.location.origin, token.token, token.expiresAt) : ''
+  const url = token
+    ? scanHandoffUrl(window.location.origin, token.token, token.expiresAt, sourceType)
+    : ''
   useEffect(() => {
-    if (!received || !query.data || applied.current === query.data.token) return
+    if (disabled || !received || !query.data || applied.current === query.data.token) return
     applied.current = query.data.token
     onReceived(scanPayloadFields(query.data.requestPayload))
-  }, [received, query.data, onReceived])
+  }, [received, query.data, onReceived, disabled])
   function regenerate() {
     setCopied(false)
-    create.mutate(patientId)
+    start()
   }
   return (
     <section
@@ -68,7 +165,7 @@ export function DeviceScanHandoff({
       ) : create.isError ? (
         <div role="alert" className="patient-handoff-state">
           <p>{t(assignmentTokenError(create.error))}</p>
-          <Button variant="outline" onPress={regenerate}>
+          <Button variant="outline" onPress={regenerate} isDisabled={disabled}>
             {t('Try again')}
           </Button>
         </div>
@@ -76,8 +173,14 @@ export function DeviceScanHandoff({
         <div className="patient-handoff-state patient-handoff-complete" role="status">
           <CheckCircle2 size={42} />
           <h3>{t('Scan received')}</h3>
-          <p>{t('Review the device details, then assign the device.')}</p>
-          <Button variant="outline" onPress={regenerate}>
+          <p>
+            {t(
+              sourceType === 'device_creation'
+                ? 'Review the populated fields, then add the device.'
+                : 'Review the device details, then assign the device.',
+            )}
+          </p>
+          <Button variant="outline" onPress={regenerate} isDisabled={disabled}>
             {t('Scan another label')}
           </Button>
         </div>
@@ -86,7 +189,7 @@ export function DeviceScanHandoff({
           <QrCode size={36} />
           <h3>{t('QR code expired')}</h3>
           <p>{t('Generate a new QR code to continue scanning.')}</p>
-          <Button variant="primary" onPress={regenerate}>
+          <Button variant="primary" onPress={regenerate} isDisabled={disabled}>
             <RefreshCw size={16} />
             {t('Generate new QR code')}
           </Button>

@@ -1,3 +1,4 @@
+import { RecordOpenButton } from '@/app/components/administration/record-open-button'
 import { useState } from 'react'
 import { Button, Dropdown, Input, TextField } from '@heroui/react'
 import {
@@ -348,12 +349,17 @@ export function PatientsPage() {
                         className={`patient-tone-${tones[groups.indexOf(patient.status)]}`}
                       >
                         <td>
-                          <div className="patient-identity">
-                            <span className="patient-avatar">{t(getInitials(patient.name))}</span>
+                          <RecordOpenButton
+                            className="patient-identity"
+                            onOpen={() => setViewing(patient.record)}
+                          >
+                            <span className="patient-avatar" aria-hidden="true">
+                              {t(getInitials(patient.name))}
+                            </span>
                             <div>
-                              <strong>{patient.name}</strong>
+                              <strong className="record-open-label">{patient.name}</strong>
                             </div>
-                          </div>
+                          </RecordOpenButton>
                         </td>
                         <td>
                           <span className="patient-mrn">{patient.mrn || '—'}</span>

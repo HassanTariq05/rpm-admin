@@ -22,6 +22,7 @@ vi.mock('@/hooks/use-administration', () => ({
 const patientId = '223e4567-e89b-42d3-a456-426614174000'
 const makeToken = () => ({
   token: 'opaque/+token',
+  sourceType: 'patient_device_assoc',
   patientId,
   createdAt: new Date().toISOString(),
   expiresAt: new Date(Date.now() + 300_000).toISOString(),
@@ -191,4 +192,44 @@ it('does not apply a payload returned for a different patient', async () => {
   show(<DeviceScanHandoff patientId={patientId} onReceived={received} />)
   expect(await screen.findByRole('alert')).toHaveTextContent('unexpected response')
   expect(received).not.toHaveBeenCalled()
+})
+
+it('rejects a newly created token for a different source before displaying a QR code', async () => {
+  api.create.mockResolvedValue({ ...makeToken(), sourceType: 'device_creation', patientId: null })
+  show(<DeviceScanHandoff patientId={patientId} onReceived={vi.fn()} />)
+  expect(await screen.findByRole('alert')).toHaveTextContent('unexpected response')
+  expect(screen.queryByRole('textbox', { name: 'Scan link' })).not.toBeInTheDocument()
+  expect(api.get).not.toHaveBeenCalled()
+})
+it('does not apply a payload returned for a different source type', async () => {
+  api.get.mockResolvedValue({
+    ...makeToken(),
+    sourceType: 'device_creation',
+    usedAt: new Date().toISOString(),
+    requestPayload: { imei: '864370061571354' },
+  })
+  const received = vi.fn()
+  show(<DeviceScanHandoff patientId={patientId} onReceived={received} />)
+  expect(await screen.findByRole('alert')).toHaveTextContent('unexpected response')
+  expect(received).not.toHaveBeenCalled()
+})
+
+it('supports anonymous mobile capture for a device-creation link', async () => {
+  const user = userEvent.setup()
+  useAuthStore.getState().auth.reset()
+  const creation = { ...makeToken(), sourceType: 'device_creation', patientId: null }
+  window.history.replaceState(
+    {},
+    '',
+    scanHandoffUrl(window.location.origin, creation.token, creation.expiresAt, 'device_creation'),
+  )
+  api.verify.mockResolvedValue({ ...creation, usedAt: new Date().toISOString() })
+  show(<PublicDeviceScanPage />)
+  await user.type(await screen.findByRole('textbox', { name: 'IMEI' }), '864370061571354')
+  await user.click(screen.getByRole('button', { name: 'Send device details' }))
+  expect(
+    await screen.findByText('Return to Add Device to review and save the device.'),
+  ).toBeInTheDocument()
+  expect(api.create).not.toHaveBeenCalled()
+  expect(api.get).not.toHaveBeenCalled()
 })

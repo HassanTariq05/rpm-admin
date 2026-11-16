@@ -1571,5 +1571,10 @@
   "8 orders across the delivery journey": "8 pedidos en distintas etapas de entrega",
   "Search orders": "Buscar pedidos",
   "No orders match your filters.": "Ningún pedido coincide con los filtros.",
-  "Shipment": "Envío"
+  "Shipment": "Envío",
+  "This scan link has already been used. Check the original screen.": "Este enlace de escaneo ya se utilizó. Revisa la pantalla original.",
+  "Review the populated fields, then add the device.": "Revisa los campos completados y añade el dispositivo.",
+  "Return to Add Device to review and save the device.": "Vuelve a Añadir dispositivo para revisarlo y guardarlo.",
+  "Scan a valid QR code from Add Device or the patient assignment screen to continue.": "Escanea un código QR válido desde Añadir dispositivo o desde la pantalla de asignación al paciente para continuar.",
+  "Captured label details": "Datos de la etiqueta capturada"
 }

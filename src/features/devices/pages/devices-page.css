@@ -206,7 +206,7 @@
 }
 .device-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 14px;
 }
 .device-card {
@@ -500,7 +500,7 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-@media (max-width: 1250px) {
+@media (max-width: 1100px) {
   .device-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -854,4 +854,129 @@
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
+}
+/* Compact six-column catalog; tablet and phone breakpoints remain responsive. */
+.device-grid {
+  gap: 10px;
+}
+.device-grid .device-card {
+  border-radius: 10px;
+}
+.device-grid .device-card-image {
+  padding: 8px 8px 5px;
+}
+.device-grid .device-card-image-top {
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.device-grid .device-card-image-top .device-brand-logo {
+  width: 60px;
+  height: 20px;
+  padding: 3px 4px;
+}
+.device-grid .device-card-image-top .device-brand-pylo {
+  width: 42px;
+}
+.device-grid .device-card-image .device-picture {
+  max-width: 100px;
+  height: 86px;
+}
+.device-grid .device-card-body {
+  padding: 10px 10px 0;
+}
+.device-grid .device-card h3 {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.device-grid .device-category {
+  font-size: 8px;
+  letter-spacing: 0.02em;
+}
+.device-grid .device-card-model {
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+.device-grid .device-imei {
+  margin-top: 10px;
+  padding: 8px 0;
+  font-size: 9px;
+}
+.device-grid .device-imei strong {
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+.device-grid .device-card-patient {
+  margin-inline: 10px;
+  padding: 9px 0;
+  gap: 5px;
+}
+.device-grid .device-patient-avatar {
+  width: 22px;
+  height: 22px;
+}
+.device-grid .device-patient-label {
+  font-size: 8px;
+}
+.device-grid .device-patient-name {
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+.device-grid .device-status {
+  font-size: 8px;
+  gap: 3px;
+  padding: 3px 4px;
+}
+
+.device-create-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.device-create-layout > .patient-scan-handoff {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  background: var(--panel-muted);
+}
+.device-create-layout .patient-handoff-qr svg {
+  width: 180px;
+  height: 180px;
+}
+.device-create-layout .patient-handoff-steps {
+  font-size: 11px;
+}
+.device-captured-label {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-muted);
+}
+.device-captured-label h3 {
+  font-size: 12px;
+  font-weight: 600;
+}
+.device-captured-label dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 12px;
+}
+.device-captured-label dt {
+  color: var(--muted);
+  font-size: 10px;
+}
+.device-captured-label dd {
+  font-size: 12px;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 800px) {
+  .device-create-layout {
+    grid-template-columns: 1fr;
+  }
+  .device-create-layout > .patient-scan-handoff {
+    order: -1;
+  }
 }

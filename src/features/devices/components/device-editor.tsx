@@ -1,5 +1,7 @@
 import { Form, Formik, useField } from 'formik'
-import type { ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
+import { DeviceScanHandoff } from '@/features/patients/components/device-scan-handoff'
+import type { DeviceLabelFields } from '@/features/patients/device-scanning/label-parser'
 import { Autocomplete, FieldError, Label, ListBox, SearchField } from '@heroui/react'
 import * as Yup from 'yup'
 import { Barcode, Building2, Fingerprint, MonitorSmartphone, Package, Save } from 'lucide-react'
@@ -109,6 +111,8 @@ export function DeviceEditor({
   onSaved: () => void
 }) {
   useAppTranslation()
+  const edited = useRef(new Set<string>())
+  const [captured, setCaptured] = useState<Partial<DeviceLabelFields>>({})
   const create = useCreateDevice()
   const update = useUpdateDevice()
   const pending = create.isPending || update.isPending
@@ -136,7 +140,7 @@ export function DeviceEditor({
         }
       }}
     >
-      {({ status, isSubmitting }) => (
+      {({ status, isSubmitting, setValues }) => (
         <FormModal
           open
           pending={pending || isSubmitting}
@@ -144,7 +148,7 @@ export function DeviceEditor({
           title={t(record ? 'Edit device' : 'Add device')}
           description={t('Manage device identity, manufacturer, and inventory details.')}
           headerIcon={<Package size={25} />}
-          dialogClassName="admin-editor-modal device-modal device-editor-modal"
+          dialogClassName={`admin-editor-modal device-modal device-editor-modal ${record ? '' : 'device-create-modal'}`}
           className="w-full sm:max-w-[1180px] sm:p-6"
           footer={
             <SubmitButton pending={pending || isSubmitting} form="device-form">
@@ -153,68 +157,113 @@ export function DeviceEditor({
             </SubmitButton>
           }
         >
-          <Form
-            id="device-form"
-            noValidate
-            className="device-editor-form grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            <FormTextField
-              name="deviceModel"
-              label="Model"
-              placeholder="Enter device model"
-              icon={<Package size={17} className="admin-icon-violet" />}
-              disabled={pending || isSubmitting}
-            />
-            <FormTextField
-              name="imei"
-              label="IMEI"
-              placeholder="Enter IMEI"
-              icon={<Barcode size={17} className="admin-icon-blue" />}
-              disabled={pending || isSubmitting}
-            />
-            <FormTextField
-              name="externalDeviceId"
-              label="External device ID"
-              placeholder="Vendor or external device ID"
-              icon={<Fingerprint size={17} className="admin-icon-teal" />}
-              disabled={pending || isSubmitting}
-            />
-            <DeviceChoiceField
-              disabled={pending || isSubmitting}
-              icon={<Building2 size={17} className="admin-icon-amber" />}
-              name="vendor"
-              label="Company"
-              options={choices(
-                [
-                  { id: '', label: 'Not specified' },
-                  ...companies.map((id) => ({
-                    id: id === 'SmartMeter' ? 'smart_meter' : 'pylo',
-                    label: id,
-                  })),
-                ],
-                record?.vendor,
+          <div className={record ? '' : 'device-create-layout'}>
+            <Form
+              id="device-form"
+              noValidate
+              className={`device-editor-form grid gap-4 sm:grid-cols-2 ${record ? 'lg:grid-cols-3' : ''}`}
+              onChangeCapture={(event) => {
+                const target = event.target
+                if (
+                  target instanceof HTMLInputElement &&
+                  ['deviceModel', 'imei'].includes(target.name)
+                )
+                  edited.current.add(target.name)
+              }}
+            >
+              <FormTextField
+                name="deviceModel"
+                label="Model"
+                placeholder="Enter device model"
+                icon={<Package size={17} className="admin-icon-violet" />}
+                disabled={pending || isSubmitting}
+              />
+              <FormTextField
+                name="imei"
+                label="IMEI"
+                placeholder="Enter IMEI"
+                icon={<Barcode size={17} className="admin-icon-blue" />}
+                disabled={pending || isSubmitting}
+              />
+              <FormTextField
+                name="externalDeviceId"
+                label="External device ID"
+                placeholder="Vendor or external device ID"
+                icon={<Fingerprint size={17} className="admin-icon-teal" />}
+                disabled={pending || isSubmitting}
+              />
+              <DeviceChoiceField
+                disabled={pending || isSubmitting}
+                icon={<Building2 size={17} className="admin-icon-amber" />}
+                name="vendor"
+                label="Company"
+                options={choices(
+                  [
+                    { id: '', label: 'Not specified' },
+                    ...companies.map((id) => ({
+                      id: id === 'SmartMeter' ? 'smart_meter' : 'pylo',
+                      label: id,
+                    })),
+                  ],
+                  record?.vendor,
+                )}
+              />
+              <DeviceChoiceField
+                disabled={pending || isSubmitting}
+                icon={<MonitorSmartphone size={17} className="admin-icon-violet" />}
+                name="deviceType"
+                label="Device type"
+                options={choices(
+                  [
+                    { id: '', label: 'Not specified' },
+                    ...deviceTypes.map((label) => ({ id: typeValues[label], label })),
+                  ],
+                  record?.deviceType,
+                )}
+              />
+              <FormStatusField disabled={pending || isSubmitting} />
+              {!record && (captured.gtin || captured.serialNumber) && (
+                <section
+                  className="device-captured-label sm:col-span-2"
+                  aria-label={t('Captured label details')}
+                >
+                  <h3>{t('Captured label details')}</h3>
+                  <dl>
+                    <div>
+                      <dt>{t('GTIN')}</dt>
+                      <dd>{captured.gtin || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('Serial Number')}</dt>
+                      <dd>{captured.serialNumber || '—'}</dd>
+                    </div>
+                  </dl>
+                </section>
               )}
-            />
-            <DeviceChoiceField
-              disabled={pending || isSubmitting}
-              icon={<MonitorSmartphone size={17} className="admin-icon-violet" />}
-              name="deviceType"
-              label="Device type"
-              options={choices(
-                [
-                  { id: '', label: 'Not specified' },
-                  ...deviceTypes.map((label) => ({ id: typeValues[label], label })),
-                ],
-                record?.deviceType,
+              {status && (
+                <p role="alert" className="text-sm text-danger sm:col-span-2 lg:col-span-3">
+                  {t(status)}
+                </p>
               )}
-            />
-            <FormStatusField disabled={pending || isSubmitting} />
-            {status && (
-              <p role="alert" className="text-sm text-danger sm:col-span-2 lg:col-span-3">
-                {t(status)}
-              </p>
-            )}
-          </Form>
+            </Form>
+            {!record && (
+              <DeviceScanHandoff
+                sourceType="device_creation"
+                disabled={pending || isSubmitting}
+                onReceived={(fields) => {
+                  if (pending || isSubmitting) return
+                  setCaptured(fields)
+                  void setValues((current) => ({
+                    ...current,
+                    ...(!edited.current.has('deviceModel')
+                      ? { deviceModel: fields.name ?? '' }
+                      : {}),
+                    ...(!edited.current.has('imei') ? { imei: fields.imei ?? '' } : {}),
+                  }))
+                }}
+              />
+            )}{' '}
+          </div>
         </FormModal>
       )}
     </Formik>

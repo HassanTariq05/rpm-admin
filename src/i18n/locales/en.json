@@ -1571,5 +1571,10 @@
   "8 orders across the delivery journey": "8 orders across the delivery journey",
   "Search orders": "Search orders",
   "No orders match your filters.": "No orders match your filters.",
-  "Shipment": "Shipment"
+  "Shipment": "Shipment",
+  "This scan link has already been used. Check the original screen.": "This scan link has already been used. Check the original screen.",
+  "Review the populated fields, then add the device.": "Review the populated fields, then add the device.",
+  "Return to Add Device to review and save the device.": "Return to Add Device to review and save the device.",
+  "Scan a valid QR code from Add Device or the patient assignment screen to continue.": "Scan a valid QR code from Add Device or the patient assignment screen to continue.",
+  "Captured label details": "Captured label details"
 }

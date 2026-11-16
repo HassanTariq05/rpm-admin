@@ -1,3 +1,4 @@
+import { RecordOpenButton } from '@/app/components/administration/record-open-button'
 import { useState, type ReactNode } from 'react'
 import { Button, Input, Tabs, TextField } from '@heroui/react'
 import {
@@ -63,7 +64,7 @@ function DeviceLogo({ company }: { company: string }) {
     </span>
   )
 }
-const pageSize = 8
+const pageSize = 16
 function InventoryStatus({ status }: { status: DeviceRecord['status'] }) {
   return (
     <span className={`device-status device-status-${status.toLowerCase()}`}>
@@ -112,11 +113,10 @@ function DeviceList({
           {devices.map((device) => (
             <tr key={device.id}>
               <td>
-                <button
-                  type="button"
+                <RecordOpenButton
                   className="device-list-name"
-                  onClick={() => onOpen(device.id)}
-                  aria-label={t('View {{value0}}, IMEI {{value1}}', {
+                  onOpen={() => onOpen(device.id)}
+                  label={t('View {{value0}}, IMEI {{value1}}', {
                     value0: device.name,
                     value1: device.imei || t('Not provided'),
                   })}
@@ -125,12 +125,14 @@ function DeviceList({
                     <DevicePicture type={device.type} />
                   </span>
                   <span>
-                    <strong>{device.model ? device.name : t(device.name)}</strong>
+                    <strong className="record-open-label">
+                      {device.model ? device.name : t(device.name)}
+                    </strong>
                     <small>
                       {t('Model')} {device.model || '—'}
                     </small>
                   </span>
-                </button>
+                </RecordOpenButton>
               </td>
               <td>
                 <div className="device-list-patient">

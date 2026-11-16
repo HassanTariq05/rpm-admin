@@ -28,7 +28,7 @@ export function LanguagePicker() {
     <Dropdown>
       <Dropdown.Trigger
         aria-label={t('Choose language')}
-        className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-surface px-2 text-xs font-semibold text-foreground hover:bg-surface-muted"
+        className="header-choice-trigger flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-surface px-2 text-[11px] font-normal text-muted hover:bg-surface-muted"
       >
         <Languages size={16} aria-hidden="true" />
         <span lang={language}>{language === 'es' ? 'Español' : 'English'}</span>

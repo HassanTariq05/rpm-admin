@@ -4,7 +4,7 @@ export function DevicesSkeleton({ view = 'grid' }: { view?: DeviceViewMode }) {
   if (view === 'list')
     return (
       <div role="status" aria-label={t('Loading devices')} className="device-list-skeleton">
-        {Array.from({ length: 8 }, (_, index) => (
+        {Array.from({ length: 16 }, (_, index) => (
           <div key={index} className="device-list-skeleton-row" aria-hidden="true">
             <span className="device-skeleton-block h-10 w-14" />
             <span className="device-skeleton-block h-4 w-1/3" />
@@ -19,7 +19,7 @@ export function DevicesSkeleton({ view = 'grid' }: { view?: DeviceViewMode }) {
       aria-label={t('Loading devices')}
       className="device-grid device-skeleton-grid"
     >
-      {Array.from({ length: 8 }, (_, index) => (
+      {Array.from({ length: 16 }, (_, index) => (
         <div className="device-card device-skeleton-card" key={index} aria-hidden="true">
           <div className="device-skeleton-image device-skeleton-block" />
           <div className="device-card-body">
