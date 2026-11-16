@@ -48,7 +48,7 @@ function ScanSession({
         <p>
           {t(
             handoff.sourceType === 'device_creation'
-              ? 'Return to Add Device to review and save the device.'
+              ? 'Return to the device form to review and save the device.'
               : 'Return to the original assignment screen to review and assign the device.',
           )}
         </p>

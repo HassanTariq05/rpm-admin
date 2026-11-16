@@ -156,7 +156,9 @@ export function PatientAddressField({
         </p>
       )}
       <p className="patient-address-help">
-        {t('Choose a suggestion to fill city, state and country, or enter the address manually.')}
+        {t(
+          'Choose a suggestion to fill city, state, country and ZIP/postal code, or enter the address manually.',
+        )}
       </p>
       <dl className="patient-address-components">
         {(
@@ -164,6 +166,7 @@ export function PatientAddressField({
             { label: 'City', value: selected?.city },
             { label: 'State / Province', value: selected?.state },
             { label: 'Country', value: selected?.country },
+            { label: 'ZIP / Postal code', value: selected?.postalCode },
           ] as const
         ).map(({ label, value }) => (
           <div key={label}>

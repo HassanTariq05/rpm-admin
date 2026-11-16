@@ -32,6 +32,16 @@ vi.mock('@/hooks/use-devices', () => ({
           ...deviceFixture,
           id: `device-${index}`,
           imei: `860000000${String(index).padStart(6, '0')}`,
+          patientId: index === 0 ? 'f8d5c3ab-5402-4ecb-a393-e8650d86b984' : null,
+          patient:
+            index === 0
+              ? {
+                  id: 'f8d5c3ab-5402-4ecb-a393-e8650d86b984',
+                  firstName: 'Hassan',
+                  lastName: 'Tariq',
+                  mrn: 'MRN-12345',
+                }
+              : null,
           vendor: index % 2 ? 'pylo' : 'smart_meter',
           deviceType: index > 5 ? 'scale' : 'bp-cuff',
         })),
@@ -288,4 +298,14 @@ it('ignores invalid preferences and allows switching when storage is blocked', a
   })
   await user.click(screen.getByRole('button', { name: 'List view' }))
   expect(screen.getByRole('table', { name: 'Devices' })).toBeInTheDocument()
+})
+
+it('displays the embedded assigned patient name in both grid and list views', async () => {
+  const user = userEvent.setup()
+  render(<DevicesPage />)
+  expect(screen.getByText('Hassan Tariq')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'List view' }))
+  const row = screen.getByText('Hassan Tariq').closest('tr')!
+  expect(within(row).getAllByRole('cell')[1]).toHaveTextContent('Hassan Tariq')
+  expect(within(row).getAllByRole('cell')[1]).not.toHaveTextContent('Not provided')
 })

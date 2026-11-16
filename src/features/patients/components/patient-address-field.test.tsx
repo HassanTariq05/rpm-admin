@@ -18,6 +18,7 @@ const address = {
   city: 'Berlin',
   state: 'Berlin State',
   country: 'Germany',
+  postalCode: '00123',
 }
 function Form() {
   const [selected, setSelected] = useState<AddressSuggestion | null>(null)
@@ -42,8 +43,10 @@ it('shows recommendations, allows keyboard selection and extracts the location c
   await waitFor(() => expect(input).toHaveValue(address.address))
   expect(screen.getByText('Berlin State')).toBeInTheDocument()
   expect(screen.getByText('Germany')).toBeInTheDocument()
+  expect(screen.getByText('00123')).toBeInTheDocument()
   await user.type(input, ' changed')
   expect(screen.queryByText('Berlin State')).not.toBeInTheDocument()
+  expect(screen.queryByText('00123')).not.toBeInTheDocument()
 })
 it('keeps manual entry available when suggestions fail', async () => {
   api.search.mockRejectedValue(new Error('offline'))

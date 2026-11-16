@@ -103,44 +103,84 @@ it('populates Add Device from a creation scan and only saves documented device f
     }),
   )
 })
-it('preserves manual model, IMEI, company and type edits when a phone scan arrives later', async () => {
-  let finish!: (data: unknown) => void
-  api.getToken.mockImplementation(
-    () =>
-      new Promise((resolve) => {
-        finish = resolve
-      }),
-  )
+it.each([undefined, deviceFixture])(
+  'preserves manual edits when a scan arrives in the device form (%j)',
+  async (record) => {
+    let finish!: (data: unknown) => void
+    api.getToken.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        }),
+    )
+    const user = userEvent.setup()
+    show(record)
+    await waitFor(() => expect(api.getToken).toHaveBeenCalledOnce())
+    await user.click(screen.getByRole('textbox', { name: 'Model' }))
+    await user.clear(screen.getByRole('textbox', { name: 'Model' }))
+    await user.paste('My custom model')
+    await user.click(screen.getByRole('textbox', { name: 'IMEI' }))
+    await user.clear(screen.getByRole('textbox', { name: 'IMEI' }))
+    await user.paste('868369084111269')
+    await user.click(screen.getByRole('button', { name: /Company/ }))
+    await user.click(await screen.findByRole('option', { name: 'Pylo' }))
+    await user.click(screen.getByRole('button', { name: /Device type/ }))
+    await user.click(await screen.findByRole('option', { name: 'Weight' }))
+    await act(async () =>
+      finish({ ...token(), usedAt: new Date().toISOString(), requestPayload: fields }),
+    )
+    await screen.findByText('Scan received')
+    expect(screen.getByRole('textbox', { name: 'Model' })).toHaveValue('My custom model')
+    expect(screen.getByRole('textbox', { name: 'IMEI' })).toHaveValue('868369084111269')
+    expect(
+      screen.getByRole('button', { name: /Company/ }).closest('[data-slot=autocomplete-trigger]'),
+    ).toHaveTextContent('Pylo')
+    expect(
+      screen
+        .getByRole('button', { name: /Device type/ })
+        .closest('[data-slot=autocomplete-trigger]'),
+    ).toHaveTextContent('Weight')
+    expect(api.save).not.toHaveBeenCalled()
+  },
+)
+it('populates Edit Device from a scan and updates the existing ID only after saving', async () => {
   const user = userEvent.setup()
-  show()
-  await waitFor(() => expect(api.getToken).toHaveBeenCalledOnce())
-  await user.click(screen.getByRole('textbox', { name: 'Model' }))
-  await user.paste('My custom model')
-  await user.click(screen.getByRole('textbox', { name: 'IMEI' }))
-  await user.paste('868369084111269')
-  await user.click(screen.getByRole('button', { name: /Company/ }))
-  await user.click(await screen.findByRole('option', { name: 'Pylo' }))
-  await user.click(screen.getByRole('button', { name: /Device type/ }))
-  await user.click(await screen.findByRole('option', { name: 'Weight' }))
-  await act(async () =>
-    finish({ ...token(), usedAt: new Date().toISOString(), requestPayload: fields }),
-  )
+  show(deviceFixture)
   await screen.findByText('Scan received')
-  expect(screen.getByRole('textbox', { name: 'Model' })).toHaveValue('My custom model')
-  expect(screen.getByRole('textbox', { name: 'IMEI' })).toHaveValue('868369084111269')
-  expect(
-    screen.getByRole('button', { name: /Company/ }).closest('[data-slot=autocomplete-trigger]'),
-  ).toHaveTextContent('Pylo')
-  expect(
-    screen.getByRole('button', { name: /Device type/ }).closest('[data-slot=autocomplete-trigger]'),
-  ).toHaveTextContent('Weight')
+  expect(screen.getByRole('textbox', { name: 'Model' })).toHaveValue(fields.name)
+  expect(screen.getByRole('textbox', { name: 'IMEI' })).toHaveValue(fields.imei)
+  expect(screen.getByText(fields.serialNumber)).toBeInTheDocument()
+  expect(api.update).not.toHaveBeenCalled()
+  expect(api.save).not.toHaveBeenCalled()
+  await user.click(screen.getByRole('button', { name: 'Save changes' }))
+  await waitFor(() =>
+    expect(api.update).toHaveBeenCalledWith({
+      id: deviceFixture.id,
+      payload: {
+        deviceModel: fields.name,
+        imei: fields.imei,
+        vendor: fields.vendor,
+        deviceType: fields.deviceType,
+        externalDeviceId: deviceFixture.externalDeviceId,
+        isActive: deviceFixture.isActive,
+      },
+    }),
+  )
   expect(api.save).not.toHaveBeenCalled()
 })
-it('does not create scan tokens while editing an existing device', () => {
+it('preserves existing fields that are missing from an edit scan', async () => {
+  api.getToken.mockResolvedValue({
+    ...token(),
+    usedAt: new Date().toISOString(),
+    requestPayload: { imei: fields.imei },
+  })
   show(deviceFixture)
-  expect(screen.queryByText('Scan with another device')).not.toBeInTheDocument()
-  expect(api.createToken).not.toHaveBeenCalled()
-  expect(api.getToken).not.toHaveBeenCalled()
+  await screen.findByText('Scan received')
+  expect(screen.getByRole('textbox', { name: 'Model' })).toHaveValue(deviceFixture.deviceModel)
+  expect(screen.getByRole('textbox', { name: 'IMEI' })).toHaveValue(fields.imei)
+  expect(
+    screen.getByRole('button', { name: /Company/ }).closest('[data-slot=autocomplete-trigger]'),
+  ).toHaveTextContent('SmartMeter')
 })
 it('cancels a pending scan lookup when Add Device closes', async () => {
   api.getToken.mockImplementation(() => new Promise(() => {}))

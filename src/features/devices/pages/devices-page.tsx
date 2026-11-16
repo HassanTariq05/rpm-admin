@@ -1,4 +1,5 @@
 import { RecordOpenButton } from '@/app/components/administration/record-open-button'
+import { getInitials } from '@/lib/initials'
 import { useState, type ReactNode } from 'react'
 import { Button, Input, Tabs, TextField } from '@heroui/react'
 import {
@@ -73,15 +74,23 @@ function InventoryStatus({ status }: { status: DeviceRecord['status'] }) {
     </span>
   )
 }
-function DevicePatientInfo() {
+function DevicePatientInfo({ device }: { device: DeviceRecord }) {
+  const patient = device.raw.patient
+  const name =
+    patient && (!device.raw.patientId || device.raw.patientId === patient.id)
+      ? [patient.firstName, patient.lastName].filter(Boolean).join(' ').trim()
+      : ''
   return (
     <>
-      <span className="device-patient-avatar device-patient-unassigned" aria-hidden="true">
-        <UserRound size={16} />
+      <span
+        className={`device-patient-avatar ${name ? '' : 'device-patient-unassigned'}`}
+        aria-hidden="true"
+      >
+        {name ? getInitials(name) : <UserRound size={16} />}
       </span>
       <span className="device-patient-info">
         <span className="device-patient-label">{t('Assigned patient')}</span>
-        <span className="device-patient-name">{t('Not provided')}</span>
+        <span className="device-patient-name">{name || t('Not provided')}</span>
       </span>
     </>
   )
@@ -128,15 +137,12 @@ function DeviceList({
                     <strong className="record-open-label">
                       {device.model ? device.name : t(device.name)}
                     </strong>
-                    <small>
-                      {t('Model')} {device.model || '—'}
-                    </small>
                   </span>
                 </RecordOpenButton>
               </td>
               <td>
                 <div className="device-list-patient">
-                  <DevicePatientInfo />
+                  <DevicePatientInfo device={device} />
                 </div>
               </td>
               <td>
@@ -441,9 +447,6 @@ export function DevicesPage() {
                     <div className="device-card-body">
                       <p className="device-category">{t(device.type)}</p>
                       <h3>{device.model ? device.name : t(device.name)}</h3>
-                      <p className="device-card-model">
-                        {t('Model')} {device.model}
-                      </p>
                       <div className="device-imei">
                         <span>
                           <Barcode size={15} />
@@ -453,7 +456,7 @@ export function DevicesPage() {
                       </div>
                     </div>
                     <div className="device-card-patient">
-                      <DevicePatientInfo />
+                      <DevicePatientInfo device={device} />
                     </div>
                   </button>
                 </article>

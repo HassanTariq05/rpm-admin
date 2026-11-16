@@ -232,7 +232,7 @@ it('supports anonymous mobile capture for a device-creation link', async () => {
   await user.click(await screen.findByRole('option', { name: 'Weight' }))
   await user.click(screen.getByRole('button', { name: 'Send device details' }))
   expect(
-    await screen.findByText('Return to Add Device to review and save the device.'),
+    await screen.findByText('Return to the device form to review and save the device.'),
   ).toBeInTheDocument()
   expect(api.verify).toHaveBeenCalledWith(
     expect.objectContaining({ vendor: 'pylo', deviceType: 'scale' }),

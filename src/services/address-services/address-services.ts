@@ -8,6 +8,7 @@ export interface AddressSuggestion {
   city: string
   state: string
   country: string
+  postalCode?: string
   resolve?: () => Promise<AddressSuggestion>
 }
 export interface AddressSearchSession {
@@ -27,7 +28,10 @@ export function placeAddressFields(
 ) {
   const part = (type: string) =>
     components.find((component) => component.types.includes(type))?.longText || ''
+  const postalCode = part('postal_code')
+  const suffix = part('postal_code_suffix')
   return {
+    postalCode: postalCode ? [postalCode, suffix].filter(Boolean).join('-') : '',
     city: part('locality') || part('postal_town') || part('sublocality_level_1'),
     state: part('administrative_area_level_1'),
     country: part('country'),

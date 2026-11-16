@@ -206,6 +206,7 @@ export function PatientEditor({
   const [deviceDraft, setDeviceDraft] = useState({ ...emptyDeviceLabel })
   const savedPayload = useRef<string | null>(null)
   const saving = useRef(false)
+  const [address = '', ...additionalAddress] = (record?.address ?? '').split(/\r?\n/)
   const initial = Object.fromEntries(
     patientTextFields.map((key) => [key, record?.[key] ?? '']),
   ) as Record<(typeof patientTextFields)[number], string>
@@ -213,13 +214,15 @@ export function PatientEditor({
     scope.isSuperAdmin || (!!scope.orgId && (!record || record.organisationId === scope.orgId))
   const candidate = useDeviceAssignmentCandidate(
     deviceDraft.imei,
-    createdPatient?.id,
-    owned && !record,
+    record?.id ?? createdPatient?.id,
+    owned,
   )
   return (
     <Formik<PatientValues>
       initialValues={{
         ...initial,
+        address,
+        additionalAddress: additionalAddress.join('\n'),
         organisationId: scope.isSuperAdmin ? (record?.organisationId ?? '') : (scope.orgId ?? ''),
         countryCode: splitPhoneNumber(record?.phone ?? '').countryCode,
         phone: splitPhoneNumber(record?.phone ?? '').phoneNumber,
@@ -233,7 +236,7 @@ export function PatientEditor({
         const payload = patientPayload(values)
         if (!scope.isSuperAdmin) payload.organisationId = scope.orgId
         const serialized = JSON.stringify(payload)
-        const device = !record && candidate.assignable ? candidate.device : undefined
+        const device = candidate.assignable ? candidate.device : undefined
         let patient = record ?? createdPatient
         const wasNew = !patient
         try {
@@ -295,10 +298,10 @@ export function PatientEditor({
             >
               <Save size={16} />
               {t(
-                record
-                  ? 'Save changes'
-                  : isValid && !isValidating && candidate.assignable
-                    ? 'Save and Assign Device'
+                isValid && !isValidating && candidate.assignable
+                  ? 'Save and Assign Device'
+                  : record
+                    ? 'Save changes'
                     : 'Save Patient',
               )}
             </SubmitButton>
@@ -339,12 +342,10 @@ export function PatientEditor({
                     <FileText size={16} />
                     {t('Notes')}
                   </Tabs.Tab>
-                  {!record && (
-                    <Tabs.Tab id="assign" isDisabled={pending || isSubmitting}>
-                      <MonitorSmartphone size={16} />
-                      {t('Assign Device')}
-                    </Tabs.Tab>
-                  )}
+                  <Tabs.Tab id="assign" isDisabled={pending || isSubmitting}>
+                    <MonitorSmartphone size={16} />
+                    {t('Assign Device')}
+                  </Tabs.Tab>
                 </Tabs.List>
                 <Tabs.Panel id="basic" className="patient-api-form patient-tab-panel">
                   <FormTextField
@@ -435,22 +436,20 @@ export function PatientEditor({
                     icon={<Mail size={17} className="admin-icon-blue" />}
                   />
                   <div className="patient-contact-address">
-                    {!record ? (
-                      <PatientAddressField
-                        selected={selectedAddress}
-                        onSelect={setSelectedAddress}
-                        onResolvingChange={setAddressResolving}
-                        disabled={pending || isSubmitting}
-                      />
-                    ) : (
-                      <FormTextField
-                        name="address"
-                        multiline
-                        label={t('Address')}
-                        placeholder={t('Enter Address')}
-                        icon={<MapPin size={17} className="admin-icon-teal" />}
-                      />
-                    )}
+                    <PatientAddressField
+                      selected={selectedAddress}
+                      onSelect={setSelectedAddress}
+                      onResolvingChange={setAddressResolving}
+                      disabled={pending || isSubmitting}
+                    />
+                    <FormTextField
+                      name="additionalAddress"
+                      multiline
+                      label="Additional Address (Optional)"
+                      placeholder="Apartment, suite, or unit (optional)"
+                      icon={<MapPin size={17} className="admin-icon-teal" />}
+                      disabled={pending || isSubmitting}
+                    />
                   </div>
                 </Tabs.Panel>
                 <Tabs.Panel id="notes" className="patient-tab-panel">
@@ -458,7 +457,7 @@ export function PatientEditor({
                     <PatientAllergiesEditor />
                   </Suspense>
                 </Tabs.Panel>
-                {!record && assignmentVisited && (
+                {assignmentVisited && (
                   <Tabs.Panel
                     id="assign"
                     shouldForceMount
@@ -468,7 +467,7 @@ export function PatientEditor({
                     <PatientDeviceAssignmentForm
                       values={deviceDraft}
                       onChange={setDeviceDraft}
-                      patientId={createdPatient?.id}
+                      patientId={record?.id ?? createdPatient?.id}
                       allowed={owned}
                       pending={pending || isSubmitting}
                       candidate={candidate}

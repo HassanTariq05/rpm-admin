@@ -157,7 +157,7 @@ export function DeviceEditor({
           title={t(record ? 'Edit device' : 'Add device')}
           description={t('Manage device identity, manufacturer, and inventory details.')}
           headerIcon={<Package size={25} />}
-          dialogClassName={`admin-editor-modal device-modal device-editor-modal ${record ? '' : 'device-create-modal'}`}
+          dialogClassName="admin-editor-modal device-modal device-editor-modal device-create-modal"
           className="w-full sm:max-w-[1180px] sm:p-6"
           footer={
             <SubmitButton pending={pending || isSubmitting} form="device-form">
@@ -166,11 +166,11 @@ export function DeviceEditor({
             </SubmitButton>
           }
         >
-          <div className={record ? '' : 'device-create-layout'}>
+          <div className="device-create-layout">
             <Form
               id="device-form"
               noValidate
-              className={`device-editor-form grid gap-4 sm:grid-cols-2 ${record ? 'lg:grid-cols-3' : ''}`}
+              className="device-editor-form grid gap-4 sm:grid-cols-2"
               onChangeCapture={(event) => {
                 const target = event.target
                 if (
@@ -233,7 +233,7 @@ export function DeviceEditor({
                 )}
               />
               <FormStatusField disabled={pending || isSubmitting} />
-              {!record && (captured.gtin || captured.serialNumber) && (
+              {(captured.gtin || captured.serialNumber) && (
                 <section
                   className="device-captured-label sm:col-span-2"
                   aria-label={t('Captured label details')}
@@ -252,32 +252,34 @@ export function DeviceEditor({
                 </section>
               )}
               {status && (
-                <p role="alert" className="text-sm text-danger sm:col-span-2 lg:col-span-3">
+                <p role="alert" className="text-sm text-danger sm:col-span-2">
                   {t(status)}
                 </p>
               )}
             </Form>
-            {!record && (
-              <DeviceScanHandoff
-                sourceType="device_creation"
-                disabled={pending || isSubmitting}
-                onReceived={(fields) => {
-                  if (pending || isSubmitting) return
-                  setCaptured(fields)
-                  void setValues((current) => ({
-                    ...current,
-                    ...(!edited.current.has('deviceModel')
-                      ? { deviceModel: fields.name ?? '' }
-                      : {}),
-                    ...(!edited.current.has('imei') ? { imei: fields.imei ?? '' } : {}),
-                    ...(!edited.current.has('vendor') ? { vendor: fields.vendor ?? '' } : {}),
-                    ...(!edited.current.has('deviceType')
-                      ? { deviceType: fields.deviceType ?? '' }
-                      : {}),
-                  }))
-                }}
-              />
-            )}{' '}
+            <DeviceScanHandoff
+              sourceType="device_creation"
+              disabled={pending || isSubmitting}
+              onReceived={(fields) => {
+                if (pending || isSubmitting) return
+                setCaptured(fields)
+                void setValues((current) => ({
+                  ...current,
+                  ...(!edited.current.has('deviceModel')
+                    ? { deviceModel: fields.name ?? (record ? current.deviceModel : '') }
+                    : {}),
+                  ...(!edited.current.has('imei')
+                    ? { imei: fields.imei ?? (record ? current.imei : '') }
+                    : {}),
+                  ...(!edited.current.has('vendor')
+                    ? { vendor: fields.vendor ?? (record ? current.vendor : '') }
+                    : {}),
+                  ...(!edited.current.has('deviceType')
+                    ? { deviceType: fields.deviceType ?? (record ? current.deviceType : '') }
+                    : {}),
+                }))
+              }}
+            />
           </div>
         </FormModal>
       )}

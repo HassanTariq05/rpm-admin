@@ -176,7 +176,7 @@ function ScanHandoffView({
           <p>
             {t(
               sourceType === 'device_creation'
-                ? 'Review the populated fields, then add the device.'
+                ? 'Review the populated fields, then save the device.'
                 : 'Review the device details, then assign the device.',
             )}
           </p>

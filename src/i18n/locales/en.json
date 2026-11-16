@@ -1573,8 +1573,11 @@
   "No orders match your filters.": "No orders match your filters.",
   "Shipment": "Shipment",
   "This scan link has already been used. Check the original screen.": "This scan link has already been used. Check the original screen.",
-  "Review the populated fields, then add the device.": "Review the populated fields, then add the device.",
-  "Return to Add Device to review and save the device.": "Return to Add Device to review and save the device.",
   "Scan a valid QR code from Add Device or the patient assignment screen to continue.": "Scan a valid QR code from Add Device or the patient assignment screen to continue.",
-  "Captured label details": "Captured label details"
+  "Captured label details": "Captured label details",
+  "Additional Address (Optional)": "Additional Address (Optional)",
+  "ZIP / Postal code": "ZIP / Postal code",
+  "Choose a suggestion to fill city, state, country and ZIP/postal code, or enter the address manually.": "Choose a suggestion to fill city, state, country and ZIP/postal code, or enter the address manually.",
+  "Review the populated fields, then save the device.": "Review the populated fields, then save the device.",
+  "Return to the device form to review and save the device.": "Return to the device form to review and save the device."
 }

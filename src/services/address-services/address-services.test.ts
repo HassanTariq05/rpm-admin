@@ -23,6 +23,7 @@ const components = [
   component('Berlin', 'locality'),
   component('Berlin State', 'administrative_area_level_1'),
   component('Germany', 'country'),
+  component('00123', 'postal_code'),
 ]
 beforeEach(() => {
   vi.clearAllMocks()
@@ -51,13 +52,15 @@ it('extracts location components and supports postal towns without inventing mis
     city: 'Berlin',
     state: 'Berlin State',
     country: 'Germany',
+    postalCode: '00123',
   })
   expect(placeAddressFields([component('London', 'postal_town')])).toEqual({
     city: 'London',
     state: '',
     country: '',
+    postalCode: '',
   })
-  expect(placeAddressFields()).toEqual({ city: '', state: '', country: '' })
+  expect(placeAddressFields()).toEqual({ city: '', state: '', country: '', postalCode: '' })
 })
 it('uses the new autocomplete API, reuses the session and fetches only address details on selection', async () => {
   const session: AddressSearchSession = {}
@@ -74,6 +77,7 @@ it('uses the new autocomplete API, reuses the session and fetches only address d
     city: 'Berlin',
     state: 'Berlin State',
     country: 'Germany',
+    postalCode: '00123',
   })
   expect(api.fields).toHaveBeenCalledWith({ fields: ['formattedAddress', 'addressComponents'] })
   expect(session.token).toBeUndefined()
@@ -99,4 +103,12 @@ it('provides an error when no browser API key is configured', async () => {
     'Address search is not configured',
   )
   expect(api.fetch).not.toHaveBeenCalled()
+})
+
+it('extracts extended ZIP codes and keeps missing postal codes empty', () => {
+  expect(
+    placeAddressFields([component('01234', 'postal_code'), component('5678', 'postal_code_suffix')])
+      .postalCode,
+  ).toBe('01234-5678')
+  expect(placeAddressFields([component('5678', 'postal_code_suffix')]).postalCode).toBe('')
 })

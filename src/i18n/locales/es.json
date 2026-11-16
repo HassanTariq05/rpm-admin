@@ -1573,8 +1573,11 @@
   "No orders match your filters.": "Ningún pedido coincide con los filtros.",
   "Shipment": "Envío",
   "This scan link has already been used. Check the original screen.": "Este enlace de escaneo ya se utilizó. Revisa la pantalla original.",
-  "Review the populated fields, then add the device.": "Revisa los campos completados y añade el dispositivo.",
-  "Return to Add Device to review and save the device.": "Vuelve a Añadir dispositivo para revisarlo y guardarlo.",
   "Scan a valid QR code from Add Device or the patient assignment screen to continue.": "Escanea un código QR válido desde Añadir dispositivo o desde la pantalla de asignación al paciente para continuar.",
-  "Captured label details": "Datos de la etiqueta capturada"
+  "Captured label details": "Datos de la etiqueta capturada",
+  "Additional Address (Optional)": "Dirección adicional (opcional)",
+  "ZIP / Postal code": "Código postal",
+  "Choose a suggestion to fill city, state, country and ZIP/postal code, or enter the address manually.": "Elija una sugerencia para completar la ciudad, el estado, el país y el código postal, o introduzca la dirección manualmente.",
+  "Review the populated fields, then save the device.": "Revisa los campos completados y guarda el dispositivo.",
+  "Return to the device form to review and save the device.": "Vuelve al formulario del dispositivo para revisarlo y guardarlo."
 }

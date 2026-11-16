@@ -65,10 +65,13 @@ export const patientTextFields = [
 export type PatientValues = Record<(typeof patientTextFields)[number], string> & {
   status: string
   countryCode: string
+  additionalAddress?: string
 }
 export function patientPayload(values: PatientValues): PatientWrite {
   return {
     ...Object.fromEntries(patientTextFields.map((key) => [key, values[key].trim() || null])),
+    address:
+      [values.address.trim(), values.additionalAddress?.trim()].filter(Boolean).join('\n') || null,
     phone: values.phone.trim() ? joinPhoneNumber(values.countryCode, values.phone) : null,
     isActive: values.status === 'active',
   }

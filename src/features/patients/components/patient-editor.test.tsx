@@ -97,6 +97,10 @@ it('creates using documented fields and the current organization, without mock c
   await fillDemographics()
   fireEvent.click(screen.getByRole('tab', { name: 'Contact' }))
   fireEvent.change(screen.getByLabelText('Phone number'), { target: { value: '5551234567' } })
+  fireEvent.change(screen.getByLabelText('Address'), { target: { value: '10 Main Street' } })
+  fireEvent.change(screen.getByLabelText('Additional Address (Optional)'), {
+    target: { value: ' Suite 401 ' },
+  })
   expect(screen.queryByRole('button', { name: /Organization/ })).not.toBeInTheDocument()
   fireEvent.submit(document.getElementById('patient-api-form')!)
   await waitFor(() => expect(state.create).toHaveBeenCalled())
@@ -106,6 +110,7 @@ it('creates using documented fields and the current organization, without mock c
     dob: today(getLocalTimeZone()).toString(),
     gender: 'male',
     phone: '+15551234567',
+    address: '10 Main Street\nSuite 401',
     isActive: true,
     organisationId: '223e4567-e89b-42d3-a456-426614174000',
   })
@@ -279,4 +284,56 @@ it('offers Save Patient until a valid device is supplied and enables QR scanning
   expect(close).not.toHaveBeenCalled()
   expect(state.create).toHaveBeenCalledOnce()
   expect(state.assign).not.toHaveBeenCalled()
+})
+
+it('uses the shared contact fields on edit and preserves existing additional address lines', async () => {
+  const record = {
+    ...savedPatient,
+    dob: '2000-01-01',
+    gender: 'female',
+    address: '10 Main Street\nSuite 401\nBuilding B',
+  }
+  render(<PatientEditor record={record} onSaved={vi.fn()} onClose={vi.fn()} />)
+  fireEvent.click(screen.getByRole('tab', { name: 'Contact' }))
+  expect(screen.getByRole('combobox', { name: 'Address' })).toHaveValue('10 Main Street')
+  expect(screen.getByRole('textbox', { name: 'Additional Address (Optional)' })).toHaveValue(
+    'Suite 401\nBuilding B',
+  )
+  expect(screen.getByText('ZIP / Postal code')).toBeInTheDocument()
+  fireEvent.change(screen.getByRole('textbox', { name: 'Additional Address (Optional)' }), {
+    target: { value: 'Suite 402\nBuilding B' },
+  })
+  fireEvent.submit(document.getElementById('patient-api-form')!)
+  await waitFor(() =>
+    expect(state.update).toHaveBeenCalledWith({
+      id: record.id,
+      payload: expect.objectContaining({ address: '10 Main Street\nSuite 402\nBuilding B' }),
+    }),
+  )
+  expect(state.create).not.toHaveBeenCalled()
+  expect(state.update.mock.calls[0]![0].payload).not.toHaveProperty('additionalAddress')
+})
+
+it('offers the same assignment tab on edit and updates the patient before assigning to its existing ID', async () => {
+  const record = { ...savedPatient, dob: '2000-01-01', gender: 'female' }
+  const user = userEvent.setup()
+  const onClose = vi.fn()
+  render(<PatientEditor record={record} onSaved={vi.fn()} onClose={onClose} />)
+  await user.click(screen.getByRole('tab', { name: 'Assign Device' }))
+  expect(await screen.findByText(`QR scan ready for ${record.id}`)).toBeInTheDocument()
+  fireEvent.change(screen.getByRole('textbox', { name: 'IMEI' }), {
+    target: { value: '864370061571354' },
+  })
+  await user.click(await screen.findByRole('button', { name: 'Save and Assign Device' }))
+  await waitFor(() =>
+    expect(state.assign).toHaveBeenCalledWith({
+      id: '423e4567-e89b-42d3-a456-426614174000',
+      patientId: record.id,
+    }),
+  )
+  expect(state.update.mock.invocationCallOrder[0]).toBeLessThan(
+    state.assign.mock.invocationCallOrder[0]!,
+  )
+  expect(state.create).not.toHaveBeenCalled()
+  expect(onClose).toHaveBeenCalled()
 })
