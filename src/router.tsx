@@ -92,14 +92,56 @@ const dashboardRoute = createRoute({
 const patientsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/patients',
-  component: PatientsPage,
+  validateSearch: (search: Record<string, unknown>): { patientId?: string } => ({
+    patientId:
+      typeof search.patientId === 'string' &&
+      search.patientId.trim().length > 0 &&
+      search.patientId.length <= 200
+        ? search.patientId.trim()
+        : undefined,
+  }),
+  component: PatientsRoutePage,
 })
+
+function PatientsRoutePage() {
+  const { patientId } = patientsRoute.useSearch()
+  const navigate = patientsRoute.useNavigate()
+  return (
+    <PatientsPage
+      linkedPatientId={patientId}
+      onLinkedPatientClose={() => {
+        void navigate({ search: {}, replace: true })
+      }}
+    />
+  )
+}
 
 const devicesRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/devices',
-  component: DevicesPage,
+  validateSearch: (search: Record<string, unknown>): { deviceId?: string } => ({
+    deviceId:
+      typeof search.deviceId === 'string' &&
+      search.deviceId.trim().length > 0 &&
+      search.deviceId.length <= 200
+        ? search.deviceId.trim()
+        : undefined,
+  }),
+  component: DevicesRoutePage,
 })
+
+function DevicesRoutePage() {
+  const { deviceId } = devicesRoute.useSearch()
+  const navigate = devicesRoute.useNavigate()
+  return (
+    <DevicesPage
+      linkedDeviceId={deviceId}
+      onLinkedDeviceClose={() => {
+        void navigate({ search: {}, replace: true })
+      }}
+    />
+  )
+}
 
 const ordersRoute = createRoute({
   getParentRoute: () => appLayoutRoute,

@@ -11,6 +11,9 @@ const state = vi.hoisted(() => ({
   deleting: false,
   superAdmin: true,
   refetch: vi.fn(),
+  detail: vi.fn(),
+  detailPending: false,
+  detailError: null as unknown,
 }))
 vi.mock('@/hooks/use-device-assignment-tokens', () => ({
   useCreateAssignmentToken: () => ({
@@ -29,6 +32,25 @@ vi.mock('@/hooks/use-device-assignment-tokens', () => ({
   useAssignmentToken: () => ({ data: undefined, isError: false }),
 }))
 vi.mock('@/hooks/use-patients', () => ({
+  usePatient: (id: string) => {
+    state.detail(id)
+    return {
+      data:
+        state.detailPending || state.detailError
+          ? undefined
+          : {
+              id,
+              firstName: 'Linked',
+              lastName: 'Patient',
+              isActive: true,
+              organisationId: 'org-a',
+            },
+      isFetching: state.detailPending,
+      isError: !!state.detailError,
+      error: state.detailError,
+      refetch: state.refetch,
+    }
+  },
   usePatients: () => ({
     data: [
       {
@@ -74,6 +96,8 @@ beforeEach(() => {
   useAuthStore.getState().auth.setAccessToken('synthetic-test-token')
 })
 afterEach(() => {
+  state.detailPending = false
+  state.detailError = null
   cleanup()
   useAuthStore.getState().auth.reset()
 })
@@ -186,4 +210,34 @@ it('opens patient details by selecting the first-column patient name', () => {
       name: 'Alex Rivera',
     }),
   ).toBeInTheDocument()
+})
+
+it('fetches and opens a linked patient outside the patient list and dismisses it through the route callback', async () => {
+  const close = vi.fn()
+  const id = '223e4567-e89b-42d3-a456-426614174000'
+  const view = render(<PatientsPage linkedPatientId={id} onLinkedPatientClose={close} />)
+  expect(await screen.findByRole('dialog', { name: 'View patient' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Linked Patient' })).toBeInTheDocument()
+  expect(state.detail).toHaveBeenCalledWith(id)
+  await userEvent
+    .setup()
+    .click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Close' })[0]!)
+  expect(close).toHaveBeenCalledOnce()
+  view.rerender(<PatientsPage />)
+  expect(screen.queryByRole('dialog', { name: 'View patient' })).not.toBeInTheDocument()
+})
+it('shows loading and retry states for a linked patient without fabricating patient data', async () => {
+  state.detailPending = true
+  const id = '223e4567-e89b-42d3-a456-426614174000'
+  const view = render(<PatientsPage linkedPatientId={id} onLinkedPatientClose={vi.fn()} />)
+  expect(screen.getByText('Loading patient details…')).toBeInTheDocument()
+  expect(screen.queryByRole('heading', { name: 'Linked Patient' })).not.toBeInTheDocument()
+  state.detailPending = false
+  state.detailError = new Error('failed')
+  view.rerender(<PatientsPage linkedPatientId={id} onLinkedPatientClose={vi.fn()} />)
+  expect(within(screen.getByRole('dialog')).getByRole('alert')).toBeInTheDocument()
+  await userEvent
+    .setup()
+    .click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Try again' }))
+  expect(state.refetch).toHaveBeenCalled()
 })

@@ -21,6 +21,24 @@ const state = vi.hoisted(() => ({
   refetch: vi.fn(),
   detail: vi.fn(),
 }))
+vi.mock('@tanstack/react-router', async (original) => ({
+  ...(await original<typeof import('@tanstack/react-router')>()),
+  Link: ({
+    to,
+    search,
+    children,
+    className,
+  }: {
+    to: string
+    search: { patientId: string }
+    children: React.ReactNode
+    className: string
+  }) => (
+    <a href={`${to}?patientId=${search.patientId}`} className={className}>
+      {children}
+    </a>
+  ),
+}))
 vi.mock('@/features/patients/components/device-scan-handoff', () => ({
   DeviceScanHandoff: () => null,
 }))
@@ -308,4 +326,33 @@ it('displays the embedded assigned patient name in both grid and list views', as
   const row = screen.getByText('Hassan Tariq').closest('tr')!
   expect(within(row).getAllByRole('cell')[1]).toHaveTextContent('Hassan Tariq')
   expect(within(row).getAllByRole('cell')[1]).not.toHaveTextContent('Not provided')
+})
+
+it('opens linked device details without requiring the device in the current list and clears the link on close', async () => {
+  const close = vi.fn()
+  const view = render(<DevicesPage linkedDeviceId={deviceFixture.id} onLinkedDeviceClose={close} />)
+  expect(await screen.findByRole('dialog', { name: 'Device details' })).toBeInTheDocument()
+  expect(state.detail).toHaveBeenCalledWith(deviceFixture.id)
+  await userEvent
+    .setup()
+    .click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Close' })[0]!)
+  expect(close).toHaveBeenCalledOnce()
+  view.rerender(<DevicesPage />)
+  expect(screen.queryByRole('dialog', { name: 'Device details' })).not.toBeInTheDocument()
+})
+
+it('links assigned patient names from the device list and illustration card to patient details', async () => {
+  const user = userEvent.setup()
+  render(<DevicesPage />)
+  await user.click(screen.getByRole('button', { name: 'List view' }))
+  expect(screen.getByRole('link', { name: 'Hassan Tariq' })).toHaveAttribute(
+    'href',
+    '/patients?patientId=f8d5c3ab-5402-4ecb-a393-e8650d86b984',
+  )
+  await user.click(screen.getByRole('button', { name: 'View LS802-GA, IMEI 860000000000000' }))
+  const dialog = within(await screen.findByRole('dialog', { name: 'Device details' }))
+  expect(dialog.getByRole('link', { name: 'Hassan Tariq' })).toHaveAttribute(
+    'href',
+    '/patients?patientId=f8d5c3ab-5402-4ecb-a393-e8650d86b984',
+  )
 })

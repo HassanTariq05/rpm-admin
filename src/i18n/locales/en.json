@@ -1579,5 +1579,8 @@
   "ZIP / Postal code": "ZIP / Postal code",
   "Choose a suggestion to fill city, state, country and ZIP/postal code, or enter the address manually.": "Choose a suggestion to fill city, state, country and ZIP/postal code, or enter the address manually.",
   "Review the populated fields, then save the device.": "Review the populated fields, then save the device.",
-  "Return to the device form to review and save the device.": "Return to the device form to review and save the device."
+  "Return to the device form to review and save the device.": "Return to the device form to review and save the device.",
+  "View device": "View device",
+  "Loading patient details…": "Loading patient details…",
+  "Waiting for a connection to load patient details.": "Waiting for a connection to load patient details."
 }

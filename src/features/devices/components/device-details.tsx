@@ -21,6 +21,7 @@ import { useDevice, useDeleteDevice } from '@/hooks/use-devices'
 import type { ApiDevice } from '@/services/device-services/device-services'
 import { translate as t, useAppTranslation, locale } from '@/i18n'
 import { deviceView, deviceErrorMessage } from '../devices'
+import { DevicePatientInfo } from './device-patient-info'
 import { DevicePicture } from './device-picture'
 const metadataIcons: Record<string, { icon: LucideIcon; tone: string }> = {
   IMEI: { icon: Barcode, tone: 'blue' },
@@ -42,8 +43,10 @@ export function DeviceDetails({
   id,
   onClose,
   onEdit,
+  patient,
 }: {
   id: string
+  patient?: ApiDevice['patient']
   onClose: () => void
   onEdit: (record: ApiDevice) => void
 }) {
@@ -146,6 +149,11 @@ export function DeviceDetails({
                 <span />
                 {t(device.status)}
               </span>
+              <div className="device-detail-patient">
+                <DevicePatientInfo
+                  device={{ ...query.data, patient: query.data.patient ?? patient }}
+                />
+              </div>
             </div>
           </div>
           <div className="device-details-content">

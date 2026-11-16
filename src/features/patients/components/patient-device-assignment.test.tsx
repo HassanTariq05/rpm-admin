@@ -9,11 +9,31 @@ import { deviceFixture } from '@/features/devices/devices.fixtures'
 
 const api = vi.hoisted(() => ({
   getAll: vi.fn(),
+  navigate: vi.fn(),
   getPatientDevices: vi.fn(),
   assign: vi.fn(),
   unassign: vi.fn(),
   createScan: vi.fn(),
   getScan: vi.fn(),
+}))
+vi.mock('@tanstack/react-router', async (original) => ({
+  ...(await original<typeof import('@tanstack/react-router')>()),
+  useNavigate: () => api.navigate,
+  Link: ({
+    to,
+    search,
+    children,
+    className,
+  }: {
+    to: string
+    search: { deviceId: string }
+    children: React.ReactNode
+    className: string
+  }) => (
+    <a href={`${to}?deviceId=${encodeURIComponent(search.deviceId)}`} className={className}>
+      {children}
+    </a>
+  ),
 }))
 vi.mock('@/services/patient-services/device-assignment-tokens', async (original) => ({
   ...(await original<typeof import('@/services/patient-services/device-assignment-tokens')>()),
@@ -108,7 +128,11 @@ it('requires unassign confirmation, supports cancel and failed retry, then refre
   show(<PatientDetails record={patient} onClose={vi.fn()} />)
   expect(api.getPatientDevices).not.toHaveBeenCalled()
   await user.click(screen.getByRole('tab', { name: 'Devices' }))
-  expect(await screen.findByText(device.deviceModel!)).toBeInTheDocument()
+  expect(await screen.findByRole('link', { name: device.deviceModel! })).toHaveAttribute(
+    'href',
+    `/devices?deviceId=${device.id}`,
+  )
+  expect(screen.getByRole('list', { name: 'Assigned devices' })).toBeInTheDocument()
   async function openConfirmation() {
     await user.click(screen.getByRole('button', { name: /Device actions for/ }))
     await user.click(await screen.findByRole('menuitem', { name: 'Unassign' }))
@@ -178,4 +202,15 @@ it('applies a remote scan to the assignment form and preserves manual edits on a
     expect(screen.getByRole('textbox', { name: 'IMEI' })).toHaveValue('868369084111269'),
   )
   expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('My monitor')
+})
+
+it('offers View device beside Unassign and opens the selected device through navigation', async () => {
+  const user = userEvent.setup()
+  show(<PatientDetails record={patient} onClose={vi.fn()} />)
+  await user.click(screen.getByRole('tab', { name: 'Devices' }))
+  await user.click(await screen.findByRole('button', { name: /Device actions for/ }))
+  expect(screen.getByRole('menuitem', { name: 'Unassign' })).toBeInTheDocument()
+  await user.click(screen.getByRole('menuitem', { name: 'View device' }))
+  expect(api.navigate).toHaveBeenCalledWith({ to: '/devices', search: { deviceId: device.id } })
+  expect(api.unassign).not.toHaveBeenCalled()
 })

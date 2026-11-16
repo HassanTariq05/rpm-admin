@@ -35,6 +35,7 @@ import { useAdminScope } from '@/hooks/use-administration'
 import { useAuthStore } from '@/stores/auth-store'
 import type { PatientRecord } from '@/services/patient-services/patient-services'
 import { PatientAssignDeviceDialog } from '../components/patient-assign-device-dialog'
+import { LinkedPatientDetails } from '../components/linked-patient-details'
 import { PatientDetails } from '../components/patient-details'
 import { PatientEditor } from '../components/patient-editor'
 import { PatientsSkeleton, PatientSkeletonBlock } from '../components/patients-skeleton'
@@ -52,7 +53,13 @@ const groups = ['All patients', 'Active', 'Inactive'] as const
 const groupIcons = [UsersRound, ShieldCheck, UserRound]
 const tones = ['violet', 'teal', 'rose']
 
-export function PatientsPage() {
+export function PatientsPage({
+  linkedPatientId,
+  onLinkedPatientClose,
+}: {
+  linkedPatientId?: string
+  onLinkedPatientClose?: () => void
+} = {}) {
   useAppTranslation()
 
   const query = usePatients()
@@ -592,6 +599,14 @@ export function PatientsPage() {
           key={assigning.id}
           record={assigning}
           onClose={() => setAssigning(null)}
+        />
+      )}
+      {!viewing && linkedPatientId && (
+        <LinkedPatientDetails
+          key={linkedPatientId}
+          id={linkedPatientId}
+          organizationNames={organizationNames}
+          onClose={() => onLinkedPatientClose?.()}
         />
       )}
       {viewing && (
