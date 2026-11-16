@@ -1,0 +1,104 @@
+/* Shared dialog chrome stays quieter than the form or details it contains.
+   The dialog root adds specificity over individual screen styles. */
+.app-dialog.modal__dialog {
+  --dialog-heading-size: 16px;
+  --dialog-icon-size: 30px;
+  --dialog-action-size: 12px;
+}
+
+.app-dialog.modal__dialog .modal__header {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.app-dialog.modal__dialog .modal__header > div {
+  gap: 10px;
+}
+
+.app-dialog.modal__dialog .modal__heading {
+  font-size: var(--dialog-heading-size);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+
+.app-dialog.modal__dialog .modal__header p {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.app-dialog.modal__dialog .modal-header-icon {
+  width: var(--dialog-icon-size);
+  height: var(--dialog-icon-size);
+  border-radius: 9px;
+}
+
+.app-dialog.modal__dialog .modal-header-icon svg,
+.app-dialog.modal__dialog .modal__header > svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.app-dialog.modal__dialog .dialog-inline-heading {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-dialog.modal__dialog:not(.patient-camera-dialog) {
+  padding-bottom: 0;
+}
+
+.app-dialog.modal__dialog:not(.patient-camera-dialog) .modal__footer {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.app-dialog.modal__dialog:not(.patient-camera-dialog) .modal__footer button {
+  height: 32px;
+  min-height: 32px;
+  padding: 6px 12px;
+  gap: 6px;
+  font-size: var(--dialog-action-size);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.app-dialog.modal__dialog:not(.patient-camera-dialog) .modal__footer button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.app-dialog.modal__dialog .modal__close-trigger svg {
+  width: 14px;
+  height: 14px;
+}
+
+.app-dialog.modal__dialog.patient-camera-dialog .patient-camera-footer {
+  gap: 10px;
+  padding-top: 10px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+.app-dialog.modal__dialog .patient-camera-cancel,
+.app-dialog.modal__dialog .patient-camera-switch {
+  font-size: var(--dialog-action-size);
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .app-dialog.modal__dialog:not(.patient-camera-dialog) .modal__footer button {
+    height: auto;
+    min-height: 40px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    white-space: normal;
+  }
+}

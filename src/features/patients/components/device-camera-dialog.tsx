@@ -57,7 +57,7 @@ export function DeviceCameraDialog({
         scroll="inside"
         className="patient-camera-container"
       >
-        <Modal.Dialog className="patient-camera-dialog">
+        <Modal.Dialog className="app-dialog patient-camera-dialog">
           <Modal.Header className="patient-camera-header">
             <ScanLine size={24} aria-hidden="true" />
             <div>

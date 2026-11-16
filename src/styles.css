@@ -12,6 +12,7 @@
 @import './themes/astro-vista.css';
 @import './themes/whatsapp.css';
 @import './styles/controls.css';
+@import './styles/dialogs.css';
 
 @custom-variant dark (&:where(.dark, .dark *));
 

@@ -323,7 +323,7 @@ export function FormModal({
         placement="center"
         scroll={scroll}
       >
-        <Modal.Dialog className={cn('bg-surface text-foreground', dialogClassName)}>
+        <Modal.Dialog className={cn('app-dialog bg-surface text-foreground', dialogClassName)}>
           <Modal.Header>
             {headerIcon ? (
               <div className="flex items-center gap-4">
