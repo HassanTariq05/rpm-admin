@@ -79,6 +79,7 @@ it('populates Add Device from a creation scan and only saves documented device f
   expect(screen.getByRole('textbox', { name: 'Model' })).toHaveValue(fields.name)
   expect(screen.getByText(fields.gtin)).toBeInTheDocument()
   expect(screen.getByText(fields.serialNumber)).toBeInTheDocument()
+  expect(screen.queryByRole('textbox', { name: 'External device ID' })).not.toBeInTheDocument()
   expect(api.createToken).toHaveBeenCalledOnce()
   expect(api.createToken).toHaveBeenCalledWith()
   await waitFor(() =>
@@ -95,7 +96,7 @@ it('populates Add Device from a creation scan and only saves documented device f
     expect(api.save).toHaveBeenCalledWith({
       deviceModel: fields.name,
       imei: fields.imei,
-      externalDeviceId: null,
+      externalDeviceId: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f-]{27}$/i),
       vendor: 'smart_meter',
       deviceType: 'bp-cuff',
       isActive: true,
@@ -182,4 +183,18 @@ it('replaces previous scan details rather than retaining identifiers from anothe
   expect(screen.getByRole('textbox', { name: 'Model' })).toHaveValue('Second monitor')
   expect(screen.queryByText(fields.serialNumber)).not.toBeInTheDocument()
   expect(screen.queryByText(fields.gtin)).not.toBeInTheDocument()
+})
+
+it('keeps the generated external ID when retrying a failed create', async () => {
+  api.save.mockRejectedValueOnce(new Error('failed')).mockResolvedValueOnce(deviceFixture)
+  const user = userEvent.setup()
+  show()
+  await screen.findByText('Scan received')
+  await user.click(screen.getByRole('button', { name: 'Add device' }))
+  await screen.findByRole('alert')
+  const externalId = api.save.mock.calls[0]![0].externalDeviceId
+  expect(externalId).toMatch(/^[0-9a-f]{8}-[0-9a-f-]{27}$/i)
+  await user.click(screen.getByRole('button', { name: 'Add device' }))
+  await waitFor(() => expect(api.save).toHaveBeenCalledTimes(2))
+  expect(api.save.mock.calls[1]![0].externalDeviceId).toBe(externalId)
 })

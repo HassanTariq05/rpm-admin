@@ -20,11 +20,55 @@ export const scanCompanies = companies.map((label) => ({
   label,
 }))
 export const scanDeviceTypes = deviceTypes.map((label) => ({ id: typeValues[label], label }))
+function editDistance(left: string, right: string) {
+  let previous = Array.from({ length: right.length + 1 }, (_, index) => index)
+  for (let i = 0; i < left.length; i++) {
+    const current = [i + 1]
+    for (let j = 0; j < right.length; j++)
+      current.push(
+        Math.min(
+          current[j]! + 1,
+          previous[j + 1]! + 1,
+          previous[j]! + Number(left[i] !== right[j]),
+        ),
+      )
+    previous = current
+  }
+  return previous[right.length]!
+}
+export function recognizeLabelCompany(text: string): string | undefined {
+  const matches = new Set<string>()
+  if (/\bsmart[\s_-]*meter\b/i.test(text)) matches.add('smart_meter')
+  // Search every line, including manufacturer/address text, rather than only the product name.
+  for (const line of text.split(/\r?\n/)) {
+    const words =
+      line
+        .toLowerCase()
+        .replace(/[01|5]/g, (glyph) => ({ '0': 'o', '1': 'l', '|': 'l', '5': 's' })[glyph]!)
+        .match(/[a-z]+/g) ?? []
+    const manufacturerLine = /manufactur|company|vendor|brand|distribut/i.test(line)
+    for (let start = 0; start < words.length; start++) {
+      for (let count = 1; count <= 4 && start + count <= words.length; count++) {
+        const candidate = words.slice(start, start + count).join('')
+        if (
+          candidate.length >= 8 &&
+          candidate.length <= 12 &&
+          editDistance(candidate.replace(/rn/g, 'm'), 'smartmeter') <= 2
+        )
+          matches.add('smart_meter')
+        // Pylo is short: accept common OCR glyph errors everywhere, and other single-letter
+        // mistakes only on manufacturer lines to avoid matching unrelated label text.
+        if (
+          candidate.replace(/i/g, 'l') === 'pylo' ||
+          (manufacturerLine && candidate.length === 4 && editDistance(candidate, 'pylo') === 1)
+        )
+          matches.add('pylo')
+      }
+    }
+  }
+  return matches.size === 1 ? [...matches][0] : undefined
+}
 export function recognizeDeviceClassification(text: string): Partial<DeviceLabelFields> {
-  const vendors = [
-    [/\bsmart[\s_-]*meter\b/i, 'smart_meter'],
-    [/\bpylo\b/i, 'pylo'],
-  ] as const
   const types = [
     [/\b(?:i?blood[\s_-]*pressure|sphygmomanometer|bp[\s_-]*(?:cuff|monitor))\b/i, 'bp-cuff'],
     [/\b(?:i?blood[\s_-]*glucose|i?glucose|glucometer)\b/i, 'glucometer'],
@@ -33,10 +77,10 @@ export function recognizeDeviceClassification(text: string): Partial<DeviceLabel
     [/\b(?:thermometer|i?temperature)\b/i, 'thermometer'],
   ] as const
   // Conflicting matches are left for review rather than guessing.
-  const vendor = vendors.filter(([pattern]) => pattern.test(text))
+  const vendor = recognizeLabelCompany(text)
   const deviceType = types.filter(([pattern]) => pattern.test(text))
   return {
-    ...(vendor.length === 1 ? { vendor: vendor[0]![1] } : {}),
+    ...(vendor ? { vendor } : {}),
     ...(deviceType.length === 1 ? { deviceType: deviceType[0]![1] } : {}),
   }
 }

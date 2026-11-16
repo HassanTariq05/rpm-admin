@@ -79,3 +79,28 @@ it('does not guess an unknown or ambiguous company or device type', () => {
   expect(ambiguous.vendor).toBeUndefined()
   expect(ambiguous.deviceType).toBeUndefined()
 })
+
+it.each([
+  'Manufactured for Smart Meter, LLC',
+  'Manufactured for Srnart Meter, LLC',
+  'Manufactured for Smart Metor, LLC',
+  'Manufactured for Srnart Metor, LLC',
+  'Manufacturer: SmartMeter LLC',
+  'SMART-METER',
+])('recognizes SmartMeter throughout manufacturer text: %s', (text) => {
+  expect(
+    parseDeviceLabel([], 'Model: ABC123\nFCC ID: XYZ\n' + text + '\nMADE IN CHINA').vendor,
+  ).toBe('smart_meter')
+})
+it.each(['PYLO', 'PyI0', 'Py|o', 'Manufacturer: PvLO'])(
+  'recognizes Pylo OCR variants: %s',
+  (text) => {
+    expect(parseDeviceLabel([], text).vendor).toBe('pylo')
+  },
+)
+it('avoids loose short-word and unrelated company matches', () => {
+  expect(
+    parseDeviceLabel([], 'Pilot light\nPolo shirt\nSmart monitor\nMeter reading').vendor,
+  ).toBeUndefined()
+  expect(parseDeviceLabel([], 'Manufactured for Smart Meter and Pylo').vendor).toBeUndefined()
+})

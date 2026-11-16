@@ -4,7 +4,7 @@ import { DeviceScanHandoff } from '@/features/patients/components/device-scan-ha
 import type { DeviceLabelFields } from '@/features/patients/device-scanning/label-parser'
 import { Autocomplete, FieldError, Label, ListBox, SearchField } from '@heroui/react'
 import * as Yup from 'yup'
-import { Barcode, Building2, Fingerprint, MonitorSmartphone, Package, Save } from 'lucide-react'
+import { Barcode, Building2, MonitorSmartphone, Package, Save } from 'lucide-react'
 import {
   FormStatusField,
   FormModal,
@@ -26,7 +26,6 @@ import type { ApiDevice } from '@/services/device-services/device-services'
 const schema = Yup.object({
   deviceModel: Yup.string().trim(),
   imei: Yup.string().trim(),
-  externalDeviceId: Yup.string().trim(),
   vendor: Yup.string().trim(),
   deviceType: Yup.string().trim(),
   status: Yup.string().oneOf(['active', 'inactive']).required('Choose a status.'),
@@ -117,6 +116,7 @@ export function DeviceEditor({
 }) {
   useAppTranslation()
   const edited = useRef(new Set<string>())
+  const generatedExternalId = useRef<string | null>(null)
   const [captured, setCaptured] = useState<Partial<DeviceLabelFields>>({})
   const create = useCreateDevice()
   const update = useUpdateDevice()
@@ -136,6 +136,10 @@ export function DeviceEditor({
         helpers.setStatus(undefined)
         try {
           const payload = devicePayload(values)
+          if (!payload.externalDeviceId) {
+            generatedExternalId.current ??= crypto.randomUUID()
+            payload.externalDeviceId = generatedExternalId.current
+          }
           if (record) await update.mutateAsync({ id: record.id, payload })
           else await create.mutateAsync(payload)
           onSaved()
@@ -190,13 +194,13 @@ export function DeviceEditor({
                 icon={<Barcode size={17} className="admin-icon-blue" />}
                 disabled={pending || isSubmitting}
               />
+              {/* External device ID is generated on submission for now.
               <FormTextField
                 name="externalDeviceId"
                 label="External device ID"
                 placeholder="Vendor or external device ID"
-                icon={<Fingerprint size={17} className="admin-icon-teal" />}
                 disabled={pending || isSubmitting}
-              />
+              /> */}
               <DeviceChoiceField
                 disabled={pending || isSubmitting}
                 icon={<Building2 size={17} className="admin-icon-amber" />}

@@ -155,7 +155,7 @@ it('retains entered values and shows mutation errors rather than closing', async
     expect(state.create).toHaveBeenCalledWith({
       deviceModel: null,
       imei: 'PY-123T',
-      externalDeviceId: null,
+      externalDeviceId: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f-]{27}$/i),
       vendor: null,
       deviceType: null,
       isActive: true,

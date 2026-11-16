@@ -5,11 +5,17 @@ const mock = vi.hoisted(() => ({
   barcodes: vi.fn(),
   regions: vi.fn(),
   enhanced: {},
+  parameters: vi.fn(),
 }))
 vi.mock('./enhance-identifier-line', () => ({ enhanceIdentifierLine: () => mock.enhanced }))
 vi.mock('tesseract.js', () => ({
   OEM: { LSTM_ONLY: 1 },
-  createWorker: async () => ({ recognize: mock.recognize, terminate: vi.fn() }),
+  PSM: { SPARSE_TEXT: '11', AUTO: '3' },
+  createWorker: async () => ({
+    recognize: mock.recognize,
+    setParameters: mock.parameters,
+    terminate: vi.fn(),
+  }),
 }))
 vi.mock('zxing-wasm/reader', () => ({ readBarcodes: mock.barcodes, prepareZXingModule: vi.fn() }))
 vi.mock('./label-text-regions', () => ({ labelTextRegions: mock.regions }))
@@ -118,6 +124,7 @@ it('reads company and type from additional text regions even when identifiers ar
   ])
   mock.recognize
     .mockResolvedValueOnce({ data: { text: 'Model: ABC123' } })
+    .mockResolvedValueOnce({ data: { text: 'Model: ABC123' } })
     .mockResolvedValueOnce({ data: { text: 'Manufactured for Smart Meter, LLC' } })
     .mockResolvedValueOnce({ data: { text: 'Cellular Blood Pressure Monitor' } })
   const scanner = createLabelScanner()
@@ -126,6 +133,27 @@ it('reads company and type from additional text regions even when identifiers ar
     deviceType: 'bp-cuff',
     imei: '864370061571354',
   })
-  expect(mock.recognize).toHaveBeenCalledTimes(3)
+  expect(mock.recognize).toHaveBeenCalledTimes(4)
+  scanner.dispose()
+})
+
+it('finds OCR-misspelled manufacturer text in a second whole-image pass', async () => {
+  mock.barcodes.mockResolvedValue([
+    { text: '(01)00869876000084(21)10E234602640' },
+    { text: '864370061571354' },
+  ])
+  mock.recognize
+    .mockResolvedValueOnce({ data: { text: 'iBloodPressure Classic' } })
+    .mockResolvedValueOnce({ data: { text: 'Manufactured for Srnart Metor, LLC' } })
+  const scanner = createLabelScanner()
+  expect((await scanner.scan(canvas, vi.fn(), true)).fields).toMatchObject({
+    vendor: 'smart_meter',
+    deviceType: 'bp-cuff',
+    imei: '864370061571354',
+  })
+  expect(mock.recognize).toHaveBeenNthCalledWith(2, canvas)
+  expect(mock.parameters).toHaveBeenNthCalledWith(1, { tessedit_pageseg_mode: '11' })
+  expect(mock.parameters).toHaveBeenLastCalledWith({ tessedit_pageseg_mode: '3' })
+  expect(mock.regions).not.toHaveBeenCalled()
   scanner.dispose()
 })

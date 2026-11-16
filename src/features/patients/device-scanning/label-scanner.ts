@@ -1,4 +1,10 @@
-import { parseDeviceLabel, validGtin, validImei, type DeviceLabelFields } from './label-parser'
+import {
+  parseDeviceLabel,
+  recognizeLabelCompany,
+  validGtin,
+  validImei,
+  type DeviceLabelFields,
+} from './label-parser'
 import { labelTextRegions } from './label-text-regions'
 import { enhanceIdentifierLine } from './enhance-identifier-line'
 import type { Worker } from 'tesseract.js'
@@ -82,6 +88,31 @@ export function createLabelScanner() {
         // Barcode values remain useful if text recognition could not start.
       }
       const fields = parseDeviceLabel(barcodes, text)
+      if (readClassification && textRead && !fields.vendor) {
+        const ocr = await worker()
+        try {
+          // Sparse-text segmentation reads small manufacturer print among graphics that
+          // automatic page segmentation can skip. Keep the entire captured label in view.
+          const { PSM } = await import('tesseract.js')
+          await ocr.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT })
+          const sparse = await ocr.recognize(image)
+          if (disposed) throw new Error('Scanner closed')
+          text += '\n' + sparse.data.text
+          fields.vendor = recognizeLabelCompany(text)
+        } catch (error) {
+          if (disposed) throw error
+          // Preserve barcode and OCR results if the extra company pass fails.
+        } finally {
+          if (!disposed) {
+            try {
+              const { PSM } = await import('tesseract.js')
+              await ocr.setParameters({ tessedit_pageseg_mode: PSM.AUTO })
+            } catch {
+              /* Retain the results if resetting OCR parameters fails. */
+            }
+          }
+        }
+      }
       const hasIdentifiers = () =>
         validGtin(fields.gtin ?? '') && !!fields.serialNumber && validImei(fields.imei ?? '')
       const complete = () =>
@@ -151,7 +182,9 @@ export function createLabelScanner() {
             )
               fields.serialNumber = candidate.serialNumber
             fields.name ||= candidate.name
-            fields.vendor ||= candidate.vendor
+            text += '\n' + result.data.text
+            if (readClassification) fields.vendor = recognizeLabelCompany(text)
+            else fields.vendor ||= candidate.vendor
             fields.deviceType ||= candidate.deviceType
             if (complete()) break
           }
