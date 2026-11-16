@@ -42,7 +42,11 @@ export function createLabelScanner() {
     return workerPromise
   }
   return {
-    async scan(image: HTMLCanvasElement, onProgress: (value: number) => void): Promise<ScanResult> {
+    async scan(
+      image: HTMLCanvasElement,
+      onProgress: (value: number) => void,
+      readClassification = false,
+    ): Promise<ScanResult> {
       if (disposed) throw new Error('Scanner closed')
       progress = onProgress
       progressStart = 0.2
@@ -80,9 +84,11 @@ export function createLabelScanner() {
       const fields = parseDeviceLabel(barcodes, text)
       const hasIdentifiers = () =>
         validGtin(fields.gtin ?? '') && !!fields.serialNumber && validImei(fields.imei ?? '')
+      const complete = () =>
+        hasIdentifiers() && (!readClassification || (!!fields.vendor && !!fields.deviceType))
       // Dense graphics can prevent whole-image OCR from finding the small identifier lines.
       // Locate rows of text and read them separately, without assuming a vendor's label layout.
-      if (textRead && !hasIdentifiers()) {
+      if (textRead && !complete()) {
         try {
           const regions = labelTextRegions(context.getImageData(0, 0, image.width, image.height))
           const ocr = await worker()
@@ -145,7 +151,9 @@ export function createLabelScanner() {
             )
               fields.serialNumber = candidate.serialNumber
             fields.name ||= candidate.name
-            if (hasIdentifiers()) break
+            fields.vendor ||= candidate.vendor
+            fields.deviceType ||= candidate.deviceType
+            if (complete()) break
           }
         } catch (error) {
           if (disposed) throw error

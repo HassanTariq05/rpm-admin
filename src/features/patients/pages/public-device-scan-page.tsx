@@ -76,6 +76,7 @@ function ScanSession({
       </header>
       <Suspense fallback={<p role="status">{t('Loading device scanner…')}</p>}>
         <Scanner
+          showClassification={handoff.sourceType === 'device_creation'}
           values={draft}
           onChange={setDraft}
           pending={submit.isPending}
@@ -104,6 +105,12 @@ function ScanSession({
                     gtin: draft.gtin.trim(),
                     serialNumber: draft.serialNumber.trim(),
                     imei: draft.imei.trim(),
+                    ...(handoff.sourceType === 'device_creation'
+                      ? {
+                          ...(draft.vendor ? { vendor: draft.vendor } : {}),
+                          ...(draft.deviceType ? { deviceType: draft.deviceType } : {}),
+                        }
+                      : {}),
                   })
                 }}
               >

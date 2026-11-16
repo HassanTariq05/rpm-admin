@@ -147,6 +147,8 @@ it('verifies device-creation scans anonymously while rejecting the other flow', 
   const { client, requests } = setup(response)
   const fields = {
     token: token.token,
+    vendor: 'smart_meter',
+    deviceType: 'bp-cuff',
     name: 'Monitor',
     gtin: '00869876000084',
     serialNumber: '10E234602640',

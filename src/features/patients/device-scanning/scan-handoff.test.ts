@@ -44,3 +44,14 @@ it('identifies device-creation links without exposing a patient ID and rejects u
   expect(url.hash).not.toContain('patientId')
   expect(readScanHandoff(url.hash.replace('device_creation', 'unrecognized'))).toBeNull()
 })
+
+it('preserves only supported classification values and infers type from legacy label names', () => {
+  expect(scanPayloadFields({ vendor: 'smart_meter', deviceType: 'bp-cuff' })).toEqual({
+    vendor: 'smart_meter',
+    deviceType: 'bp-cuff',
+  })
+  expect(scanPayloadFields({ vendor: 'unknown', deviceType: 'other' })).toEqual({})
+  expect(scanPayloadFields({ name: 'iBloodPressure Classic' })).toMatchObject({
+    deviceType: 'bp-cuff',
+  })
+})

@@ -1,14 +1,44 @@
+import { companies, deviceTypes, typeValues } from '@/lib/device-catalog'
+
 export interface DeviceLabelFields {
   name: string
   gtin: string
   serialNumber: string
   imei: string
+  vendor?: string
+  deviceType?: string
 }
 export const emptyDeviceLabel: DeviceLabelFields = {
   name: '',
   gtin: '',
   serialNumber: '',
   imei: '',
+}
+// Values match the existing device-create API and dropdown options.
+export const scanCompanies = companies.map((label) => ({
+  id: label === 'SmartMeter' ? 'smart_meter' : 'pylo',
+  label,
+}))
+export const scanDeviceTypes = deviceTypes.map((label) => ({ id: typeValues[label], label }))
+export function recognizeDeviceClassification(text: string): Partial<DeviceLabelFields> {
+  const vendors = [
+    [/\bsmart[\s_-]*meter\b/i, 'smart_meter'],
+    [/\bpylo\b/i, 'pylo'],
+  ] as const
+  const types = [
+    [/\b(?:i?blood[\s_-]*pressure|sphygmomanometer|bp[\s_-]*(?:cuff|monitor))\b/i, 'bp-cuff'],
+    [/\b(?:i?blood[\s_-]*glucose|i?glucose|glucometer)\b/i, 'glucometer'],
+    [/\b(?:i?weight|(?:body|weighing|digital|smart)[\s_-]*scale|scale)\b/i, 'scale'],
+    [/\b(?:oximeter|oximetry|pulse[\s_-]*ox|spo2)\b/i, 'oximeter'],
+    [/\b(?:thermometer|i?temperature)\b/i, 'thermometer'],
+  ] as const
+  // Conflicting matches are left for review rather than guessing.
+  const vendor = vendors.filter(([pattern]) => pattern.test(text))
+  const deviceType = types.filter(([pattern]) => pattern.test(text))
+  return {
+    ...(vendor.length === 1 ? { vendor: vendor[0]![1] } : {}),
+    ...(deviceType.length === 1 ? { deviceType: deviceType[0]![1] } : {}),
+  }
 }
 export type LabelBarcode = { text: string; format?: string }
 
@@ -126,5 +156,9 @@ export function parseDeviceLabel(barcodes: LabelBarcode[], text = ''): Partial<D
       .replace(/\s+/g, ' ')
       .trim()
       .slice(0, 100)
+  Object.assign(
+    fields,
+    recognizeDeviceClassification([text, ...barcodes.map(({ text }) => text)].join('\n')),
+  )
   return Object.fromEntries(Object.entries(fields).filter(([, value]) => !!value))
 }

@@ -11,9 +11,12 @@ import {
   RotateCcw,
   ScanLine,
 } from 'lucide-react'
+import { ChoiceField } from '@/app/components/administration/admin-ui'
 import { translate as t, useAppTranslation } from '@/i18n'
 import {
   emptyDeviceLabel,
+  scanCompanies,
+  scanDeviceTypes,
   validGtin,
   validImei,
   type DeviceLabelFields,
@@ -35,6 +38,7 @@ export function PatientAssignDevice({
   actions,
   pending = false,
   scannerPanel,
+  showClassification = false,
 }: {
   values: DeviceLabelFields
   onChange: (
@@ -42,6 +46,7 @@ export function PatientAssignDevice({
   ) => void
   actions?: ReactNode | ((scanning: boolean) => ReactNode)
   pending?: boolean
+  showClassification?: boolean
   scannerPanel?:
     ReactNode | ((applyFields: (fields: Partial<DeviceLabelFields>) => void) => ReactNode)
 }) {
@@ -109,9 +114,13 @@ export function PatientAssignDevice({
     try {
       scanner.current?.dispose()
       scanner.current = createLabelScanner()
-      const output = await scanner.current.scan(canvas, (value) => {
-        if (request === run.current) setProgress(value)
-      })
+      const output = await scanner.current.scan(
+        canvas,
+        (value) => {
+          if (request === run.current) setProgress(value)
+        },
+        showClassification,
+      )
       if (request !== run.current) return
       const found = Object.keys(output.fields).length
       if (!found) {
@@ -243,6 +252,24 @@ export function PatientAssignDevice({
               </TextField>
             )
           })}
+          {showClassification &&
+            [
+              { name: 'vendor' as const, label: 'Company', options: scanCompanies },
+              { name: 'deviceType' as const, label: 'Device type', options: scanDeviceTypes },
+            ].map(({ name, label, options }) => (
+              <ChoiceField
+                key={name}
+                label={label}
+                value={values[name] ?? ''}
+                options={options}
+                placeholder="Select an option"
+                disabled={pending || busy}
+                onChange={(value) => {
+                  edited.current.add(name)
+                  onChange((current) => ({ ...current, [name]: value }))
+                }}
+              />
+            ))}
         </div>
         <p className="patient-assignment-hint">
           {t(

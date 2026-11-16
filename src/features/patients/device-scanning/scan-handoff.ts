@@ -1,5 +1,11 @@
 import type { ScanTokenSource } from '@/services/patient-services/device-assignment-tokens'
-import { emptyDeviceLabel, type DeviceLabelFields } from './label-parser'
+import {
+  emptyDeviceLabel,
+  scanCompanies,
+  scanDeviceTypes,
+  recognizeDeviceClassification,
+  type DeviceLabelFields,
+} from './label-parser'
 export const deviceScanPath = '/device-assignment/scan'
 export function scanHandoffUrl(
   origin: string,
@@ -33,7 +39,7 @@ export function readScanHandoff(hash: string) {
 export function scanPayloadFields(
   payload: Record<string, unknown> | null | undefined,
 ): Partial<DeviceLabelFields> {
-  return Object.fromEntries(
+  const fields = Object.fromEntries(
     Object.keys(emptyDeviceLabel).flatMap((key) => {
       const value = payload?.[key]
       return typeof value === 'string' && value.trim() && value.length <= 200
@@ -41,4 +47,14 @@ export function scanPayloadFields(
         : []
     }),
   )
+  return {
+    ...fields,
+    ...recognizeDeviceClassification(typeof fields.name === 'string' ? fields.name : ''),
+    ...(scanCompanies.some(({ id }) => id === payload?.vendor)
+      ? { vendor: payload!.vendor as string }
+      : {}),
+    ...(scanDeviceTypes.some(({ id }) => id === payload?.deviceType)
+      ? { deviceType: payload!.deviceType as string }
+      : {}),
+  }
 }

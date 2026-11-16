@@ -42,12 +42,14 @@ function DeviceChoiceField({
   options,
   icon,
   disabled,
+  onManualChange,
 }: {
   name: string
   label: string
   options: { id: string; label: string }[]
   icon: ReactNode
   disabled: boolean
+  onManualChange?: () => void
 }) {
   const [field, meta, helpers] = useField<string>(name)
   return (
@@ -56,7 +58,10 @@ function DeviceChoiceField({
       value={field.value || null}
       isDisabled={disabled}
       onChange={(key) => {
-        if (key != null) void helpers.setValue(String(key))
+        if (key != null) {
+          onManualChange?.()
+          void helpers.setValue(String(key))
+        }
       }}
       onBlur={() => void helpers.setTouched(true)}
       isInvalid={meta.touched && !!meta.error}
@@ -195,6 +200,7 @@ export function DeviceEditor({
               <DeviceChoiceField
                 disabled={pending || isSubmitting}
                 icon={<Building2 size={17} className="admin-icon-amber" />}
+                onManualChange={() => edited.current.add('vendor')}
                 name="vendor"
                 label="Company"
                 options={choices(
@@ -211,6 +217,7 @@ export function DeviceEditor({
               <DeviceChoiceField
                 disabled={pending || isSubmitting}
                 icon={<MonitorSmartphone size={17} className="admin-icon-violet" />}
+                onManualChange={() => edited.current.add('deviceType')}
                 name="deviceType"
                 label="Device type"
                 options={choices(
@@ -259,6 +266,10 @@ export function DeviceEditor({
                       ? { deviceModel: fields.name ?? '' }
                       : {}),
                     ...(!edited.current.has('imei') ? { imei: fields.imei ?? '' } : {}),
+                    ...(!edited.current.has('vendor') ? { vendor: fields.vendor ?? '' } : {}),
+                    ...(!edited.current.has('deviceType')
+                      ? { deviceType: fields.deviceType ?? '' }
+                      : {}),
                   }))
                 }}
               />

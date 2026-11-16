@@ -12,6 +12,7 @@ it('reads the sample GS1 Data Matrix and IMEI barcode, preserving leading zeros'
     ),
   ).toEqual({
     name: 'iBloodPressure Classic',
+    deviceType: 'bp-cuff',
     gtin: '00869876000084',
     serialNumber: '10E234602640',
     imei: '864370061571354',
@@ -59,4 +60,22 @@ it('corrects OCR lookalikes only in a labelled, complete IMEI with a valid check
   expect(parseDeviceLabel([], 'IMEI 8647006157 1384').imei).toBeUndefined()
   expect(parseDeviceLabel([], 'B64370061571354').imei).toBeUndefined()
   expect(parseDeviceLabel([], 'IMEI 864370061571354\n2023-11').imei).toBe('864370061571354')
+})
+
+it.each([
+  ['Smart Meter LLC\nCellular Blood Pressure Monitor', 'smart_meter', 'bp-cuff'],
+  ['PYLO\nBlood Glucose Meter', 'pylo', 'glucometer'],
+  ['SmartMeter\nDigital Weight Scale', 'smart_meter', 'scale'],
+  ['Pylo\nPulse Oximeter', 'pylo', 'oximeter'],
+  ['Smart-Meter\nInfrared Thermometer', 'smart_meter', 'thermometer'],
+])('recognizes company and device type from %s', (text, vendor, deviceType) => {
+  expect(parseDeviceLabel([], text)).toMatchObject({ vendor, deviceType })
+})
+it('does not guess an unknown or ambiguous company or device type', () => {
+  const unknown = parseDeviceLabel([], 'Acme Monitor\nModel: ABC123')
+  expect(unknown.vendor).toBeUndefined()
+  expect(unknown.deviceType).toBeUndefined()
+  const ambiguous = parseDeviceLabel([], 'Pylo Smart Meter\nBlood Pressure and Blood Glucose')
+  expect(ambiguous.vendor).toBeUndefined()
+  expect(ambiguous.deviceType).toBeUndefined()
 })

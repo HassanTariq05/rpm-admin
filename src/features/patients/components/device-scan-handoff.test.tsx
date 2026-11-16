@@ -226,10 +226,18 @@ it('supports anonymous mobile capture for a device-creation link', async () => {
   api.verify.mockResolvedValue({ ...creation, usedAt: new Date().toISOString() })
   show(<PublicDeviceScanPage />)
   await user.type(await screen.findByRole('textbox', { name: 'IMEI' }), '864370061571354')
+  await user.click(screen.getByRole('button', { name: /Company/ }))
+  await user.click(await screen.findByRole('option', { name: 'Pylo' }))
+  await user.click(screen.getByRole('button', { name: /Device type/ }))
+  await user.click(await screen.findByRole('option', { name: 'Weight' }))
   await user.click(screen.getByRole('button', { name: 'Send device details' }))
   expect(
     await screen.findByText('Return to Add Device to review and save the device.'),
   ).toBeInTheDocument()
+  expect(api.verify).toHaveBeenCalledWith(
+    expect.objectContaining({ vendor: 'pylo', deviceType: 'scale' }),
+    expect.anything(),
+  )
   expect(api.create).not.toHaveBeenCalled()
   expect(api.get).not.toHaveBeenCalled()
 })

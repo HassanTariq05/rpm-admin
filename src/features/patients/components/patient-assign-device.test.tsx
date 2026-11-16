@@ -9,9 +9,15 @@ vi.mock('../device-scanning/label-scanner', () => ({
   loadLabelImage: state.load,
   imageCanvas: vi.fn(),
 }))
-function Form() {
+function Form({ showClassification = false }: { showClassification?: boolean }) {
   const [values, setValues] = useState({ ...emptyDeviceLabel })
-  return <PatientAssignDevice values={values} onChange={setValues} />
+  return (
+    <PatientAssignDevice
+      values={values}
+      onChange={setValues}
+      showClassification={showClassification}
+    />
+  )
 }
 const image = new File(['photo'], 'device.jpg', { type: 'image/jpeg' })
 beforeEach(() => {
@@ -95,4 +101,19 @@ it('disposes the scanner and ignores recognition that finishes after closing', a
   )
   expect(state.dispose).toHaveBeenCalledOnce()
   expect(change).not.toHaveBeenCalled()
+})
+
+it('shows detected company and type for a device-creation scan', async () => {
+  state.scan.mockResolvedValue({
+    fields: { name: 'Monitor', vendor: 'pylo', deviceType: 'oximeter', imei: '864370061571354' },
+    barcodeCount: 1,
+    textRead: true,
+  })
+  render(<Form showClassification />)
+  fireEvent.change(screen.getByLabelText('Upload device label'), { target: { files: [image] } })
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /Company/ })).toHaveTextContent('Pylo'),
+  )
+  expect(screen.getByRole('button', { name: /Device type/ })).toHaveTextContent('Oximeter')
+  expect(state.scan).toHaveBeenCalledWith(expect.anything(), expect.any(Function), true)
 })

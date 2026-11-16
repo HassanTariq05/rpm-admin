@@ -35,6 +35,7 @@ it('recovers identifiers from text regions when whole-frame OCR only reads the p
   const output = await scanner.scan(canvas, vi.fn())
   expect(output.fields).toEqual({
     name: 'iBloodPressure Classic',
+    deviceType: 'bp-cuff',
     gtin: '00869876000084',
     serialNumber: '10E234602640',
     imei: '864370061571354',
@@ -59,7 +60,10 @@ it('preserves a partial read if a fallback pass fails', async () => {
     .mockResolvedValueOnce({ data: { text: 'iBloodPressure’ Classic' } })
     .mockRejectedValueOnce(new Error('OCR failed'))
   const scanner = createLabelScanner()
-  expect((await scanner.scan(canvas, vi.fn())).fields).toEqual({ name: 'iBloodPressure Classic' })
+  expect((await scanner.scan(canvas, vi.fn())).fields).toEqual({
+    name: 'iBloodPressure Classic',
+    deviceType: 'bp-cuff',
+  })
   scanner.dispose()
 })
 
@@ -104,5 +108,24 @@ it('tries a less cropped, neutral-contrast variant when stronger contrast still 
   const scanner = createLabelScanner()
   expect((await scanner.scan(canvas, vi.fn())).fields.imei).toBe('864370061571354')
   expect(mock.recognize).toHaveBeenCalledTimes(5)
+  scanner.dispose()
+})
+
+it('reads company and type from additional text regions even when identifiers are complete', async () => {
+  mock.barcodes.mockResolvedValue([
+    { text: '(01)00869876000084(21)10E234602640' },
+    { text: '864370061571354' },
+  ])
+  mock.recognize
+    .mockResolvedValueOnce({ data: { text: 'Model: ABC123' } })
+    .mockResolvedValueOnce({ data: { text: 'Manufactured for Smart Meter, LLC' } })
+    .mockResolvedValueOnce({ data: { text: 'Cellular Blood Pressure Monitor' } })
+  const scanner = createLabelScanner()
+  expect((await scanner.scan(canvas, vi.fn(), true)).fields).toMatchObject({
+    vendor: 'smart_meter',
+    deviceType: 'bp-cuff',
+    imei: '864370061571354',
+  })
+  expect(mock.recognize).toHaveBeenCalledTimes(3)
   scanner.dispose()
 })
