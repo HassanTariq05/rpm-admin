@@ -3,13 +3,15 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { AppShell } from './app-shell'
 import { useAuthStore } from '@/stores/auth-store'
 
+const route = vi.hoisted(() => ({ pathname: '/' }))
+
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => (
     <a href={to} {...props}>
       {children}
     </a>
   ),
-  useLocation: () => ({ pathname: '/' }),
+  useLocation: () => route,
   useNavigate: () => vi.fn(),
 }))
 vi.mock('@/app/context/preferences-context', () => ({
@@ -24,6 +26,7 @@ vi.mock('@/app/components/theme-picker', () => ({ ThemePicker: () => null }))
 
 afterEach(() => {
   cleanup()
+  route.pathname = '/'
   useAuthStore.getState().auth.setUser(null)
 })
 
@@ -66,10 +69,27 @@ it.each([
     expect(navigation.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/')
     expect(navigation.getByRole('link', { name: 'Patients' })).toHaveAttribute('href', '/patients')
     expect(navigation.getByRole('link', { name: 'Devices' })).toHaveAttribute('href', '/devices')
-    for (const label of ['Overview', 'Reports']) {
-      expect(navigation.queryByRole('link', { name: label })).not.toBeInTheDocument()
-    }
+    expect(navigation.getByRole('link', { name: 'Reports' })).toHaveAttribute('href', '/reports')
+    expect(navigation.queryByRole('link', { name: 'Overview' })).not.toBeInTheDocument()
   }
   if (allowed) expect(screen.getByText('Administration')).toBeInTheDocument()
   else expect(screen.queryByText('Administration')).not.toBeInTheDocument()
+})
+
+it.each([
+  ['/reports/blood-glucose', 'Blood Glucose'],
+  ['/reports/blood-pressure', 'Blood pressure'],
+  ['/reports/pulse-oximetry', 'Pulse oximetry'],
+])('links both levels of the report breadcrumb for %s', (pathname, name) => {
+  route.pathname = pathname
+  render(
+    <AppShell>
+      <p>Page content</p>
+    </AppShell>,
+  )
+  const breadcrumb = within(screen.getByRole('navigation', { name: 'Breadcrumb' }))
+  expect(breadcrumb.getByRole('link', { name: 'Reports' })).toHaveAttribute('href', '/reports')
+  const current = breadcrumb.getByRole('link', { name })
+  expect(current).toHaveAttribute('href', pathname)
+  expect(current).toHaveAttribute('aria-current', 'page')
 })

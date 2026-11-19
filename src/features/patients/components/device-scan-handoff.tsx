@@ -3,7 +3,7 @@ import '../device-scanning/device-scan-handoff.css'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, Input, Label, TextField } from '@heroui/react'
 import { QRCodeSVG } from 'qrcode.react'
-import { CheckCircle2, Copy, LoaderCircle, QrCode, RefreshCw, Smartphone } from 'lucide-react'
+import { CheckCircle2, Copy, Link, LoaderCircle, QrCode, RefreshCw, Smartphone } from 'lucide-react'
 import {
   useCreateAssignmentToken,
   useAssignmentToken,
@@ -215,7 +215,15 @@ function ScanHandoffView({
           </ol>
           <TextField className="w-full" value={url} isReadOnly>
             <Label>{t('Scan link')}</Label>
-            <Input onFocus={(event) => event.target.select()} />
+            <div className="relative w-full">
+              <span
+                className="pointer-events-none absolute inset-y-0 start-3 z-10 flex items-center text-muted"
+                aria-hidden="true"
+              >
+                <Link size={17} />
+              </span>
+              <Input className="w-full ps-10" onFocus={(event) => event.target.select()} />
+            </div>
           </TextField>
           <Button
             variant="outline"

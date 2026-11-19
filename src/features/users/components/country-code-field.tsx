@@ -1,5 +1,5 @@
 import { translate as t, useAppTranslation } from '@/i18n'
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { ComboBox, Input, Label, ListBox } from '@heroui/react'
 import {
   countryCodeOptions,
@@ -11,10 +11,12 @@ export function CountryCodeField({
   value,
   onChange,
   disabled = false,
+  icon,
 }: {
   value: string
   onChange: (value: string) => void
   disabled?: boolean
+  icon?: ReactNode
 }) {
   useAppTranslation()
 
@@ -51,10 +53,18 @@ export function CountryCodeField({
       allowsEmptyCollection
     >
       <Label className="text-xs font-semibold">{t('Country code')}</Label>
-      <ComboBox.InputGroup>
+      <ComboBox.InputGroup className={icon ? 'relative' : undefined}>
+        {icon && (
+          <span
+            className="pointer-events-none absolute inset-y-0 start-2 z-10 flex items-center"
+            aria-hidden="true"
+          >
+            {icon}
+          </span>
+        )}
         <Input
-          className="w-full"
-          placeholder={t('Search…')}
+          className={icon ? 'w-full ps-7' : 'w-full'}
+          placeholder={t(icon ? 'Code' : 'Search…')}
           autoComplete="off"
           onKeyDownCapture={(event) => {
             if (event.key === 'Escape') reverting.current = inputValue !== value

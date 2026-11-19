@@ -5,6 +5,7 @@ import { EditorContent, useEditor, useEditorState, type JSONContent } from '@tip
 import StarterKit from '@tiptap/starter-kit'
 import {
   Bold,
+  ClipboardList,
   Italic,
   Underline,
   Strikethrough,
@@ -166,6 +167,11 @@ export function PatientAllergiesEditor() {
           ))}
         </div>
         <div className="patient-rich-text-surface">
+          <ClipboardList
+            size={17}
+            className="pointer-events-none absolute start-4 top-5 admin-icon-violet"
+            aria-hidden="true"
+          />
           <EditorContent editor={editor} />
           {editor?.isEmpty && (
             <span className="patient-rich-text-placeholder" aria-hidden="true">

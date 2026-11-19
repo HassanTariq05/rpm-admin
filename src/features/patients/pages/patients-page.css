@@ -1007,6 +1007,7 @@
 .patient-rich-text-content {
   min-height: 220px;
   padding: 16px;
+  padding-inline-start: 42px;
   outline: none;
   font-size: 14px;
   line-height: 1.75;
@@ -1043,7 +1044,7 @@
 .patient-rich-text-placeholder {
   position: absolute;
   top: 16px;
-  left: 16px;
+  inset-inline-start: 42px;
   pointer-events: none;
   color: var(--muted);
   font-size: 14px;

@@ -13,6 +13,8 @@ export const patientRecordSchema = z
     lastName: text,
     dob: text,
     gender: text,
+    height: z.number().nullish(),
+    weight: z.number().nullish(),
     phone: text,
     email: text,
     address: text,
@@ -33,6 +35,8 @@ export interface PatientWrite {
   lastName?: string | null
   dob?: string | null
   gender?: string | null
+  height?: number | null
+  weight?: number | null
   phone?: string | null
   email?: string | null
   address?: string | null

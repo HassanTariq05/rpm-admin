@@ -1,0 +1,333 @@
+.monitoring-report {
+  display: grid;
+  gap: 16px;
+  --monitoring-header-accent: #10967d;
+}
+
+.monitoring-report[data-vital='blood-pressure'] {
+  --monitoring-header-accent: #d64869;
+}
+
+.monitoring-report[data-vital='pulse-oximetry'] {
+  --monitoring-header-accent: #4189db;
+}
+
+.monitoring-report > .admin-page-header {
+  margin-bottom: 0;
+  padding: 22px 24px;
+  border-inline-start: 1px solid var(--monitoring-header-accent);
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      ellipse at top right,
+      color-mix(in srgb, var(--monitoring-header-accent) 9%, transparent),
+      transparent 65%
+    ),
+    var(--panel);
+}
+
+.monitoring-report .admin-header-icon {
+  width: 48px;
+  height: 48px;
+  border: 1px solid color-mix(in srgb, var(--monitoring-header-accent) 20%, var(--border));
+  border-radius: 14px;
+  color: color-mix(in srgb, var(--monitoring-header-accent) 80%, var(--text));
+  background: color-mix(in srgb, var(--monitoring-header-accent) 9%, var(--panel));
+}
+
+.monitoring-report .admin-header-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.monitoring-report .admin-page-header .eyebrow {
+  color: color-mix(in srgb, var(--monitoring-header-accent) 80%, var(--text));
+}
+
+.monitoring-report > .admin-page-header > :last-child {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.monitoring-card {
+  padding: 20px;
+}
+
+.monitoring-chart-heading,
+.monitoring-period,
+.monitoring-tooltip-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.monitoring-chart-heading,
+.monitoring-tooltip-heading {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.monitoring-report h3 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.monitoring-chart-heading p,
+.monitoring-range-note,
+.monitoring-insights dd,
+.monitoring-tooltip p {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.monitoring-header-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.monitoring-patient-picker {
+  flex: 0 1 240px;
+  width: 240px;
+  min-width: 0;
+}
+
+.monitoring-metrics dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.monitoring-metrics dl > div {
+  padding: 14px 20px;
+}
+
+.monitoring-metrics dl > div + div {
+  border-inline-start: 1px solid var(--border);
+}
+
+.monitoring-metrics dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.monitoring-metric-icon {
+  display: grid;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--admin-tone);
+  background: color-mix(in srgb, var(--admin-tone) 12%, var(--panel));
+}
+
+.monitoring-metrics dd {
+  margin: 5px 0 0;
+  font-size: clamp(1.125rem, 3vw, 1.625rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.monitoring-range-metric {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.monitoring-range-meter {
+  flex: 1;
+  max-width: 96px;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--admin-tone) 15%, var(--panel));
+}
+
+.monitoring-range-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-tone);
+}
+
+.monitoring-metrics small,
+.monitoring-tooltip small {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.monitoring-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 290px);
+  gap: 16px;
+  align-items: start;
+}
+
+.monitoring-plot {
+  height: clamp(250px, 36vw, 365px);
+  margin: 12px 0;
+}
+
+.monitoring-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-block-start: 12px;
+  font-size: 0.75rem;
+}
+
+.monitoring-legend li,
+.monitoring-band,
+.monitoring-insights dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.monitoring-legend small {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.monitoring-swatch {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.glucose-high {
+  background: #c77d19;
+}
+.glucose-low {
+  background: #3996dc;
+}
+
+.monitoring-tooltip {
+  max-width: 250px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  box-shadow: 0 4px 16px #0002;
+}
+
+.monitoring-tooltip-heading span,
+.monitoring-insights dt {
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.monitoring-insights > div {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.monitoring-insights dd {
+  margin: 3px 0 0;
+}
+
+.monitoring-insights strong {
+  color: var(--text);
+}
+
+.monitoring-range-note {
+  margin-top: 14px;
+}
+
+.monitoring-log summary {
+  padding: 14px 20px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.monitoring-log summary span {
+  margin-inline-start: 6px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.monitoring-table-wrap {
+  overflow-x: auto;
+}
+
+.monitoring-log table {
+  width: 100%;
+  text-align: start;
+  font-size: 0.8125rem;
+}
+
+.monitoring-log :is(th, td) {
+  padding: 9px 20px;
+  text-align: start;
+  border-top: 1px solid var(--border);
+}
+
+.monitoring-log-value,
+.monitoring-log-range {
+  color: color-mix(in srgb, var(--monitoring-row-accent) 65%, var(--text));
+  font-weight: 650;
+}
+
+.monitoring-log-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.monitoring-log-range {
+  padding-inline: 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--monitoring-row-accent) 10%, var(--panel));
+  white-space: nowrap;
+}
+
+.monitoring-log-range svg {
+  display: inline-block;
+  color: var(--monitoring-row-accent);
+  margin-inline-end: 3px;
+  vertical-align: -2px;
+}
+
+@media (max-width: 920px) {
+  .monitoring-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .monitoring-report > .admin-page-header {
+    padding: 16px;
+  }
+
+  .monitoring-report .admin-header-icon {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (max-width: 540px) {
+  .monitoring-metrics dl > div {
+    padding-inline: 12px;
+  }
+
+  .monitoring-metrics dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .monitoring-metrics dl > div:nth-child(3) {
+    border-inline-start: 0;
+  }
+  .monitoring-metrics dl > div:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+}
+
+.pressure-series-swatch {
+  width: 18px;
+  border-top-width: 2px;
+}

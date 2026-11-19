@@ -95,6 +95,14 @@ it('creates using documented fields and the current organization, without mock c
     onClose = vi.fn()
   render(<PatientEditor onSaved={onSaved} onClose={onClose} />)
   await fillDemographics()
+  const height = screen.getByRole('spinbutton', { name: 'Height (in)' })
+  const weight = screen.getByRole('spinbutton', { name: 'Weight (lb)' })
+  fireEvent.change(height, { target: { value: '68.5' } })
+  fireEvent.change(weight, { target: { value: '152.4' } })
+  expect(fireEvent.keyDown(height, { key: 'e' })).toBe(false)
+  expect(fireEvent.keyDown(weight, { key: 'E' })).toBe(false)
+  expect(fireEvent.paste(height, { clipboardData: { getData: () => '6e1' } })).toBe(false)
+  fireEvent.change(weight, { target: { value: '1E2' } })
   fireEvent.click(screen.getByRole('tab', { name: 'Contact' }))
   fireEvent.change(screen.getByLabelText('Phone number'), { target: { value: '5551234567' } })
   fireEvent.change(screen.getByLabelText('Address'), { target: { value: '10 Main Street' } })
@@ -109,6 +117,8 @@ it('creates using documented fields and the current organization, without mock c
     lastName: 'Rivera',
     dob: today(getLocalTimeZone()).toString(),
     gender: 'male',
+    height: 68.5,
+    weight: 152.4,
     phone: '+15551234567',
     address: '10 Main Street\nSuite 401',
     isActive: true,
@@ -198,7 +208,7 @@ it.each(['creating', 'updating'] as const)('shows a busy saving button while %s'
   expect(button.querySelector('.animate-spin')).toBeInTheDocument()
 })
 
-it('labels nationalId as Driver License and saves the device-style status toggle through isActive', async () => {
+it('loads and updates patient measurements, driver license and status', async () => {
   const user = userEvent.setup()
   state.update.mockResolvedValue({})
   render(
@@ -209,6 +219,8 @@ it('labels nationalId as Driver License and saves the device-style status toggle
         lastName: 'Rivera',
         dob: '2000-01-01',
         gender: 'female',
+        height: 68.5,
+        weight: 152.4,
         isActive: true,
         nationalId: 'DL-123',
         organisationId: '223e4567-e89b-42d3-a456-426614174000',
@@ -219,6 +231,10 @@ it('labels nationalId as Driver License and saves the device-style status toggle
   )
   expect(screen.queryByLabelText('National ID')).not.toBeInTheDocument()
   expect(screen.getByRole('textbox', { name: "Driver's License #" })).toHaveValue('DL-123')
+  expect(screen.getByLabelText('Height (in)')).toHaveValue(68.5)
+  expect(screen.getByLabelText('Weight (lb)')).toHaveValue(152.4)
+  fireEvent.change(screen.getByLabelText('Height (in)'), { target: { value: '' } })
+  fireEvent.change(screen.getByLabelText('Weight (lb)'), { target: { value: '150.2' } })
   fireEvent.change(screen.getByRole('textbox', { name: "Driver's License #" }), {
     target: { value: 'DL-456' },
   })
@@ -227,7 +243,12 @@ it('labels nationalId as Driver License and saves the device-style status toggle
   await waitFor(() =>
     expect(state.update).toHaveBeenCalledWith({
       id: '123e4567-e89b-42d3-a456-426614174000',
-      payload: expect.objectContaining({ nationalId: 'DL-456', isActive: false }),
+      payload: expect.objectContaining({
+        height: null,
+        weight: 150.2,
+        nationalId: 'DL-456',
+        isActive: false,
+      }),
     }),
   )
   expect(state.update.mock.calls[0]![0].payload).not.toHaveProperty('drivingLicence')

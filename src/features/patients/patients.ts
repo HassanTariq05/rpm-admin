@@ -63,6 +63,8 @@ export const patientTextFields = [
   'organisationId',
 ] as const
 export type PatientValues = Record<(typeof patientTextFields)[number], string> & {
+  height: string
+  weight: string
   status: string
   countryCode: string
   additionalAddress?: string
@@ -70,6 +72,8 @@ export type PatientValues = Record<(typeof patientTextFields)[number], string> &
 export function patientPayload(values: PatientValues): PatientWrite {
   return {
     ...Object.fromEntries(patientTextFields.map((key) => [key, values[key].trim() || null])),
+    height: values.height.trim() ? Number(values.height) : null,
+    weight: values.weight.trim() ? Number(values.weight) : null,
     address:
       [values.address.trim(), values.additionalAddress?.trim()].filter(Boolean).join('\n') || null,
     phone: values.phone.trim() ? joinPhoneNumber(values.countryCode, values.phone) : null,

@@ -15,6 +15,9 @@ import { PatientsPage } from '@/features/patients/pages/patients-page'
 import { DeviceReadingsPage } from '@/features/device-readings'
 import { OrdersPage } from '@/features/orders/pages/orders-page'
 import { DevicesPage } from '@/features/devices/pages/devices-page'
+import { BloodGlucoseReportPage } from '@/features/reports/pages/blood-glucose-report-page'
+import { BloodPressureReportPage } from '@/features/reports/pages/blood-pressure-report-page'
+import { PulseOximetryReportPage } from '@/features/reports/pages/pulse-oximetry-report-page'
 import { ReportsPage } from '@/features/reports/pages/reports-page'
 import { UsersPage } from '@/features/users'
 import { OrganizationsPage } from '@/features/organizations'
@@ -161,6 +164,24 @@ const reportsRoute = createRoute({
   component: ReportsPage,
 })
 
+const bloodGlucoseReportRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/reports/blood-glucose',
+  component: BloodGlucoseReportPage,
+})
+
+const bloodPressureReportRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/reports/blood-pressure',
+  component: BloodPressureReportPage,
+})
+
+const pulseOximetryReportRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/reports/pulse-oximetry',
+  component: PulseOximetryReportPage,
+})
+
 const usersRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/users',
@@ -236,6 +257,9 @@ const routeTree = rootRoute.addChildren([
     ordersRoute,
     deviceReadingsRoute,
     reportsRoute,
+    bloodGlucoseReportRoute,
+    bloodPressureReportRoute,
+    pulseOximetryReportRoute,
     usersRoute,
     organizationsRoute,
     rolesRoute,

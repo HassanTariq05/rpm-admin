@@ -19,7 +19,7 @@ import {
   Package,
   Sun,
   UsersRound,
-  // ChartNoAxesCombined,
+  ChartNoAxesCombined,
   type LucideIcon,
 } from 'lucide-react'
 import { Button, Dropdown } from '@heroui/react'
@@ -41,6 +41,9 @@ type AppPath =
   | '/orders'
   | '/device-readings'
   | '/reports'
+  | '/reports/blood-glucose'
+  | '/reports/blood-pressure'
+  | '/reports/pulse-oximetry'
   | '/users'
   | '/organizations'
   | '/roles'
@@ -59,7 +62,7 @@ const navItems: {
 
   { label: 'Device Readings', to: '/device-readings', icon: Activity },
   { label: 'Orders', to: '/orders', icon: Package },
-  // { label: 'Reports', to: '/reports', icon: ChartNoAxesCombined },
+  { label: 'Reports', to: '/reports', icon: ChartNoAxesCombined },
   { label: 'Users', to: '/users', administration: true, icon: UserRoundCog },
   { label: 'Organizations', to: '/organizations', administration: true, icon: Building2 },
   { label: 'Roles', to: '/roles', administration: true, icon: Shield },
@@ -73,6 +76,9 @@ const pageTitles: Record<AppPath, string> = {
   '/device-readings': 'Device Readings',
   '/orders': 'Orders',
   '/reports': 'Reports',
+  '/reports/blood-glucose': 'Blood Glucose',
+  '/reports/blood-pressure': 'Blood pressure',
+  '/reports/pulse-oximetry': 'Pulse oximetry',
   '/users': 'Users',
   '/organizations': 'Organizations',
   '/roles': 'Roles',
@@ -92,9 +98,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation()
   const navigate = useNavigate()
   const pathname = location.pathname as AppPath
-  const pageTitle = pathname.startsWith('/manage-roles/')
-    ? 'Manage roles'
-    : (pageTitles[pathname] ?? 'Workspace')
+  const roleDetail = pathname.startsWith('/manage-roles/')
+  const pageTitle = roleDetail ? 'Role details' : (pageTitles[pathname] ?? 'Workspace')
+  const parentPath = pathname.startsWith('/reports/')
+    ? '/reports'
+    : roleDetail
+      ? '/manage-roles'
+      : null
 
   const { auth } = useAuthStore()
   const organizationName =
@@ -236,17 +246,22 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Building2 size={19} strokeWidth={1.8} />
               </span>
               <div className="organization-copy">
-                <span className="organization-label">
-                  {t(' Organization')}
-                  <span className="md:hidden"> · {t(pageTitle)}</span>
-                </span>
+                <span className="organization-label">{t(' Organization')}</span>
                 <span className="organization-name">{t(organizationName)}</span>
               </div>
             </div>
-            <div className="header-page-context">
-              <ChevronRight size={14} aria-hidden="true" />
-              <span>{t(pageTitle)}</span>
-            </div>
+            <nav className="header-page-context" aria-label={t('Breadcrumb')}>
+              <ChevronRight className="header-organization-divider" size={14} aria-hidden="true" />
+              {parentPath && (
+                <>
+                  <Link to={parentPath}>{t(pageTitles[parentPath])}</Link>
+                  <ChevronRight size={14} aria-hidden="true" />
+                </>
+              )}
+              <Link to={pageTitles[pathname] ? pathname : '.'} aria-current="page">
+                {t(pageTitle)}
+              </Link>
+            </nav>
           </div>
 
           {/* Header actions */}

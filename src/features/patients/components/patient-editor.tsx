@@ -1,5 +1,5 @@
 import { useDeviceAssignmentCandidate } from '@/hooks/use-device-assignment-candidate'
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import { PatientBirthDateField } from './patient-birth-date-field'
 import { PatientAddressField } from './patient-address-field'
 import type { AddressSuggestion } from '@/services/address-services/address-services'
@@ -7,12 +7,17 @@ import { useField, Form, Formik } from 'formik'
 import * as Yup from 'yup'
 import { Autocomplete, FieldError, Label, ListBox, SearchField, Tabs } from '@heroui/react'
 import {
+  Building2,
+  Droplet,
   FileText,
+  Globe,
   Mail,
   MapPin,
   MonitorSmartphone,
   Phone,
+  Ruler,
   Save,
+  Scale,
   ShieldCheck,
   UserPlus,
   UserRound,
@@ -54,6 +59,14 @@ const schema = Yup.object({
   lastName: Yup.string().trim().required('Last name is required'),
   email: Yup.string().trim().email('Enter a valid email address'),
   gender: Yup.string().trim().required('Gender is required'),
+  height: Yup.number()
+    .typeError('Enter a valid height in inches.')
+    .positive('Enter a valid height in inches.')
+    .max(Number.MAX_VALUE, 'Enter a valid height in inches.'),
+  weight: Yup.number()
+    .typeError('Enter a valid weight in pounds.')
+    .positive('Enter a valid weight in pounds.')
+    .max(Number.MAX_VALUE, 'Enter a valid weight in pounds.'),
   dob: Yup.string()
     .required('Date of birth is required')
     .test(
@@ -68,11 +81,13 @@ function PatientChoice({
   name,
   label,
   options,
+  icon,
   required = true,
 }: {
   name: string
   label: string
   options: { id: string; label: string }[]
+  icon: ReactNode
   required?: boolean
 }) {
   useAppTranslation()
@@ -91,7 +106,12 @@ function PatientChoice({
     >
       <Label>{t(label)}</Label>
       <Autocomplete.Trigger>
-        <Autocomplete.Value />
+        <span className="flex min-w-0 items-center gap-2">
+          <span aria-hidden="true" className="shrink-0">
+            {icon}
+          </span>
+          <Autocomplete.Value className="min-w-0 truncate" />
+        </span>
         <Autocomplete.Indicator />
       </Autocomplete.Trigger>
       <Autocomplete.Popover className="patient-options-popover">
@@ -131,6 +151,7 @@ function PatientPhoneField() {
     <div className="grid min-w-0 grid-cols-[minmax(0,7rem)_minmax(0,1fr)] gap-2">
       <CountryCodeField
         value={values.countryCode}
+        icon={<Globe size={15} className="admin-icon-blue" />}
         onChange={(value) => void setFieldValue('countryCode', value)}
       />
       <FormTextField
@@ -221,6 +242,8 @@ export function PatientEditor({
     <Formik<PatientValues>
       initialValues={{
         ...initial,
+        height: record?.height?.toString() ?? '',
+        weight: record?.weight?.toString() ?? '',
         address,
         additionalAddress: additionalAddress.join('\n'),
         organisationId: scope.isSuperAdmin ? (record?.organisationId ?? '') : (scope.orgId ?? ''),
@@ -381,15 +404,35 @@ export function PatientEditor({
                     placeholder={t('Enter External ID')}
                     icon={<FileText size={17} className="admin-icon-violet" />}
                   />
+                  <FormTextField
+                    name="height"
+                    label="Height (in)"
+                    placeholder="Enter height in inches"
+                    icon={<Ruler size={17} className="admin-icon-blue" />}
+                    type="number"
+                    step="any"
+                    allowExponent={false}
+                  />
+                  <FormTextField
+                    name="weight"
+                    label="Weight (lb)"
+                    placeholder="Enter weight in pounds"
+                    icon={<Scale size={17} className="admin-icon-teal" />}
+                    type="number"
+                    step="any"
+                    allowExponent={false}
+                  />
                   <PatientChoice
                     name="gender"
                     label="Gender"
+                    icon={<UserRound size={17} className="admin-icon-violet" />}
                     required
                     options={choiceOptions(genders, record?.gender)}
                   />
                   <PatientChoice
                     name="bloodGroup"
                     label="Blood group"
+                    icon={<Droplet size={17} className="admin-icon-teal" />}
                     required={false}
                     options={choiceOptions(bloodGroups, record?.bloodGroup)}
                   />
@@ -398,6 +441,7 @@ export function PatientEditor({
                     <PatientChoice
                       name="organisationId"
                       label="Organization"
+                      icon={<Building2 size={17} className="admin-icon-amber" />}
                       options={(organizations.data ?? []).map((org) => ({
                         id: org.id,
                         label: org.name,
