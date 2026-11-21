@@ -34,8 +34,8 @@ export function LinkedPatientDetails({
       onClose={onClose}
       cancelLabel="Close"
       headerIcon={<UserRound size={18} />}
-      dialogClassName="admin-editor-modal"
-      className="w-full sm:max-w-xl"
+      dialogClassName="admin-editor-modal patient-editor-modal patient-details-modal"
+      className="patient-details-container w-full sm:max-w-xl"
       footer={null}
     >
       {query.isError ? (

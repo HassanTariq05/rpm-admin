@@ -4,6 +4,14 @@ import { PatientDetails } from './patient-details'
 import type { PatientContact } from '@/services/patient-services/patient-contact-services'
 
 const state = vi.hoisted(() => ({ contacts: [] as PatientContact[] }))
+vi.mock('@/hooks/use-saved-address-details', () => ({
+  useSavedAddressDetails: (address: string) => ({
+    details: address
+      ? { address, city: 'Berlin', state: 'Berlin State', country: 'Germany', postalCode: '00123' }
+      : null,
+    isLoading: false,
+  }),
+}))
 vi.mock('@/hooks/use-patient-contacts', () => ({
   usePatientContacts: () => ({ data: state.contacts }),
 }))
@@ -86,6 +94,21 @@ it('shows the saved demographics, measurements, emergency contacts, notes and id
     />,
   )
   const dialog = within(screen.getByRole('dialog', { name: 'View patient' }))
+  const personal = within(dialog.getByRole('region', { name: 'Personal information' }))
+  const lastName = personal.getByText('Last name').closest('.patient-detail-field')
+  const sex = personal.getByText('Sex').closest('.patient-detail-field')
+  expect(lastName?.parentElement).toHaveClass('patient-basic-row--three')
+  expect(sex?.parentElement).toHaveClass('patient-basic-row--three')
+  expect(lastName?.previousElementSibling).toHaveTextContent('First name')
+  expect(sex?.previousElementSibling).toHaveTextContent('Date of birth')
+  expect(dialog.getByRole('region', { name: 'Measurements' })).toHaveTextContent('22.84')
+  const identifiers = within(dialog.getByRole('region', { name: 'Identifiers' }))
+  expect(identifiers.getByText('•••-••-3123')).toBeInTheDocument()
+  expect(dialog.queryByText('000-12-3123')).not.toBeInTheDocument()
+  fireEvent.click(identifiers.getByRole('button', { name: 'Show SSN' }))
+  expect(identifiers.getByText('000-12-3123')).toBeInTheDocument()
+  fireEvent.click(identifiers.getByRole('button', { name: 'Hide SSN' }))
+  expect(identifiers.queryByText('000-12-3123')).not.toBeInTheDocument()
   for (const value of [
     'Choose not to disclose',
     'Urdu',
@@ -101,7 +124,13 @@ it('shows the saved demographics, measurements, emergency contacts, notes and id
 
   fireEvent.click(dialog.getByRole('tab', { name: 'Contact' }))
   expect(dialog.getByText('Suite 401')).toBeInTheDocument()
+  expect(dialog.getByText('10 Main Street')).toBeInTheDocument()
+  expect(dialog.getByText('Berlin State')).toBeInTheDocument()
+  expect(dialog.getByText('00123')).toBeInTheDocument()
   const contact = within(dialog.getByRole('region', { name: 'Emergency contact 1' }))
+  expect(
+    contact.getByRole('heading', { name: 'Emergency contact 1' }).querySelector('svg'),
+  ).toHaveClass('admin-icon-rose')
   for (const value of ['Sam', 'Rivera', 'Sibling', '20 Park Avenue', 'Apartment 2']) {
     expect(contact.getByText(value)).toBeInTheDocument()
   }
@@ -122,10 +151,4 @@ it('shows the saved demographics, measurements, emergency contacts, notes and id
 
   fireEvent.click(dialog.getByRole('tab', { name: 'Record details' }))
   expect(dialog.getByText('21.5')).toBeInTheDocument()
-  expect(dialog.getByText('•••-••-3123')).toBeInTheDocument()
-  expect(dialog.queryByText('000-12-3123')).not.toBeInTheDocument()
-  fireEvent.click(dialog.getByRole('button', { name: 'Show SSN' }))
-  expect(dialog.getByText('000-12-3123')).toBeInTheDocument()
-  fireEvent.click(dialog.getByRole('button', { name: 'Hide SSN' }))
-  expect(dialog.queryByText('000-12-3123')).not.toBeInTheDocument()
 })

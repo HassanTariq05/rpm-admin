@@ -3,23 +3,31 @@ import { useField } from 'formik'
 import { ComboBox, Input, Label, ListBox, ListBoxItem, Popover } from 'react-aria-components'
 import { LoaderCircle, MapPin } from 'lucide-react'
 import { useAddressSuggestions } from '@/hooks/use-address-suggestions'
-import type { AddressSuggestion } from '@/services/address-services/address-services'
+import { useSavedAddressDetails } from '@/hooks/use-saved-address-details'
+import type { AddressDetails } from '@/services/address-services/address-services'
 import { translate as t, useAppTranslation } from '@/i18n'
+import { PatientAddressSummary } from './patient-address-summary'
+
 export function PatientAddressField({
+  savedAddress = '',
   selected,
   onSelect,
   disabled = false,
   onResolvingChange,
 }: {
-  selected: AddressSuggestion | null
-  onSelect: (address: AddressSuggestion | null) => void
+  savedAddress?: string
+  selected: AddressDetails | null
+  onSelect: (address: AddressDetails | null) => void
   disabled?: boolean
   onResolvingChange?: (pending: boolean) => void
 }) {
   useAppTranslation()
   const [field, meta, helpers] = useField<string>('address')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [query, setQuery] = useState(() =>
+    selected || field.value === savedAddress ? '' : field.value,
+  )
   const [focused, setFocused] = useState(false)
-  const selectedRef = useRef(selected)
   const [resolving, setResolving] = useState(false)
   const [detailsError, setDetailsError] = useState(false)
   const request = useRef(0)
@@ -27,50 +35,47 @@ export function PatientAddressField({
   useEffect(
     () => () => {
       request.current++
-      if (pendingDetails.current) {
-        onSelect(null)
-        onResolvingChange?.(false)
-      }
+      if (pendingDetails.current) onResolvingChange?.(false)
     },
-    [onSelect, onResolvingChange],
+    [onResolvingChange],
   )
   function setDetailsPending(pending: boolean) {
     pendingDetails.current = pending
     setResolving(pending)
     onResolvingChange?.(pending)
   }
-  const searching = focused && !disabled && !resolving && selected?.address !== field.value
-  const suggestions = useAddressSuggestions(field.value, searching)
-  const select = (item: AddressSuggestion | null) => {
-    selectedRef.current = item
-    onSelect(item)
+  const searching = focused && !disabled && !resolving
+  const suggestions = useAddressSuggestions(query, searching)
+  const saved = !query && !selected && field.value === savedAddress ? savedAddress : ''
+  const savedLocation = useSavedAddressDetails(saved)
+
+  function enterAddress(value: string) {
+    request.current++
+    setDetailsPending(false)
+    setDetailsError(false)
+    onSelect(null)
+    setQuery(value)
+    void helpers.setValue(value)
   }
   return (
     <div className="patient-address-search">
       <ComboBox
-        inputValue={field.value}
-        selectedKey={selected?.id ?? null}
+        inputValue={query}
+        selectedKey={null}
         items={suggestions.data}
         allowsCustomValue
         allowsEmptyCollection
         menuTrigger="input"
         isDisabled={disabled}
         isInvalid={meta.touched && !!meta.error}
-        onInputChange={(value) => {
-          if (selectedRef.current?.address !== value) {
-            request.current++
-            setDetailsPending(false)
-            setDetailsError(false)
-            select(null)
-          }
-          void helpers.setValue(value)
-        }}
+        onInputChange={enterAddress}
         onSelectionChange={(key) => {
           const item = suggestions.data.find((item) => item.id === key)
           if (!item) return
           const generation = ++request.current
           setDetailsError(false)
-          select(item)
+          onSelect(item)
+          setQuery('')
           void helpers.setValue(item.address)
           void helpers.setTouched(true)
           if (item.resolve) {
@@ -79,12 +84,11 @@ export function PatientAddressField({
               .resolve()
               .then((address) => {
                 if (generation !== request.current) return
-                select(address)
+                onSelect(address)
                 void helpers.setValue(address.address)
               })
               .catch(() => {
                 if (generation !== request.current) return
-                select(null)
                 setDetailsError(true)
               })
               .finally(() => {
@@ -101,12 +105,20 @@ export function PatientAddressField({
         <Label className="patient-address-label">{t('Address')}</Label>
         <div className="patient-address-input">
           <MapPin size={17} aria-hidden="true" />
-          <Input placeholder={t('Search for a street, building or address…')} autoComplete="off" />
-          {(suggestions.isLoading || resolving) && (
+          <Input
+            ref={inputRef}
+            placeholder={t('Search for a street, building or address…')}
+            autoComplete="off"
+          />
+          {(suggestions.isLoading || resolving || savedLocation.isLoading) && (
             <LoaderCircle
               size={16}
               className="patient-address-loading animate-spin"
-              aria-label={t(resolving ? 'Loading address details…' : 'Searching addresses…')}
+              aria-label={t(
+                resolving || savedLocation.isLoading
+                  ? 'Loading address details…'
+                  : 'Searching addresses…',
+              )}
             />
           )}
         </div>
@@ -114,7 +126,7 @@ export function PatientAddressField({
           className="patient-address-popover"
           placement="bottom start"
           offset={6}
-          isOpen={searching && field.value.trim().length >= 3 ? undefined : false}
+          isOpen={searching && query.trim().length >= 3 ? undefined : false}
         >
           <ListBox
             items={suggestions.data}
@@ -160,21 +172,15 @@ export function PatientAddressField({
           'Choose a suggestion to fill city, state, country and ZIP/postal code, or enter the address manually.',
         )}
       </p>
-      <dl className="patient-address-components">
-        {(
-          [
-            { label: 'City', value: selected?.city },
-            { label: 'State / Province', value: selected?.state },
-            { label: 'Country', value: selected?.country },
-            { label: 'ZIP / Postal code', value: selected?.postalCode },
-          ] as const
-        ).map(({ label, value }) => (
-          <div key={label}>
-            <dt>{t(label)}</dt>
-            <dd>{value || '—'}</dd>
-          </div>
-        ))}
-      </dl>
+      <PatientAddressSummary
+        address={selected?.address || saved}
+        details={selected ?? savedLocation.details}
+        disabled={disabled}
+        onClear={() => {
+          enterAddress('')
+          inputRef.current?.focus()
+        }}
+      />
     </div>
   )
 }

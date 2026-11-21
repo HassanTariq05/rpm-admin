@@ -1,15 +1,17 @@
 import { importLibrary, setOptions } from '@googlemaps/js-api-loader'
 import { env } from '@/lib/env'
-export interface AddressSuggestion {
-  id: string
-  title: string
-  description: string
+export interface AddressDetails {
   address: string
   city: string
   state: string
   country: string
   postalCode?: string
-  resolve?: () => Promise<AddressSuggestion>
+}
+export interface AddressSuggestion extends AddressDetails {
+  id: string
+  title: string
+  description: string
+  resolve?: () => Promise<AddressDetails>
 }
 export interface AddressSearchSession {
   token?: google.maps.places.AutocompleteSessionToken
@@ -37,6 +39,26 @@ export function placeAddressFields(
     country: part('country'),
   }
 }
+export async function lookupSavedAddress(address: string, signal: AbortSignal) {
+  if (!env.googleMapsApiKey || !address.trim() || signal.aborted) return null
+  const { Place } = await placesLibrary()
+  if (signal.aborted) return null
+  const { places } = await Place.searchByText({
+    textQuery: address,
+    fields: ['formattedAddress', 'addressComponents'],
+  })
+  if (signal.aborted) return null
+  const normalize = (value: string) =>
+    value
+      .normalize('NFKC')
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .trim()
+  const saved = normalize(address)
+  const match = places.find((place) => normalize(place.formattedAddress ?? '') === saved)
+  return match ? { address, ...placeAddressFields(match.addressComponents) } : null
+}
+
 export async function searchAddresses(
   input: string,
   signal: AbortSignal,

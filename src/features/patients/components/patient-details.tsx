@@ -18,11 +18,13 @@ import {
   Ruler,
   Scale,
   ShieldCheck,
+  Siren,
   UserRound,
   UsersRound,
   type LucideIcon,
 } from 'lucide-react'
 import { FormModal } from '@/app/components/administration/admin-ui'
+import { useSavedAddressDetails } from '@/hooks/use-saved-address-details'
 import { usePatientContacts } from '@/hooks/use-patient-contacts'
 import { StatusBadge } from '@/app/components/status-badge'
 import type { PatientRecord } from '@/services/patient-services/patient-services'
@@ -36,6 +38,8 @@ import {
   patientName,
   patientRichTextToPlainText,
 } from '../patients'
+import { PatientAddressSummary } from './patient-address-summary'
+import { PatientBasicSection } from './patient-basic-section'
 import { PatientDevices } from './patient-devices'
 
 function Detail({
@@ -97,6 +101,20 @@ function PatientSsn({ value }: { value: string }) {
   )
 }
 
+function PatientReadOnlyAddress({ address }: { address: string }) {
+  const location = useSavedAddressDetails(address)
+  return (
+    <>
+      <PatientAddressSummary address={address} details={location.details} label="Address" />
+      {location.isLoading && (
+        <p role="status" className="mt-2 text-xs text-muted">
+          {t('Loading address details…')}
+        </p>
+      )}
+    </>
+  )
+}
+
 function PatientContactDetails({ patientId }: { patientId: string }) {
   const contacts = usePatientContacts(patientId)
   return (
@@ -121,7 +139,10 @@ function PatientContactDetails({ patientId }: { patientId: string }) {
             aria-labelledby={headingId}
             className="rounded-xl border border-border p-4"
           >
-            <h5 id={headingId} className="mb-4 text-xs font-semibold">
+            <h5 id={headingId} className="mb-4 flex items-center gap-1.5 text-xs font-semibold">
+              {contact.contactType === 'emergency' && (
+                <Siren size={15} className="admin-icon-rose" aria-hidden="true" />
+              )}
               {t(patientContactHeadings[contact.contactType], { number: index + 1 })}
             </h5>
             <dl className="patient-details-grid">
@@ -179,7 +200,7 @@ export function PatientDetails({
   const name = patientName(record)
   const age = patientAge(record.dob)
   const bmi = calculatePatientBmi(record.height?.toString() ?? '', record.weight?.toString() ?? '')
-  const [address, ...additionalAddress] = (record.address ?? '').split(/\r?\n/)
+  const [address = '', ...additionalAddress] = (record.address ?? '').split(/\r?\n/)
   const formatNumber = numberFormatter({ maximumFractionDigits: 20 })
   const gender = record.gender
     ? t(
@@ -211,7 +232,6 @@ export function PatientDetails({
         </span>
         <div>
           <h3>{name}</h3>
-          <p>{record.mrn ? `${t('MRN')}: ${record.mrn}` : t('Patient details')}</p>
         </div>
         <StatusBadge status={record.isActive ? 'Active' : 'Inactive'} />
       </div>
@@ -243,83 +263,115 @@ export function PatientDetails({
           </Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel id="basic" className="patient-details-panel patient-detail-tone-basic">
-          <dl className="patient-details-grid">
-            <Detail label="First name" icon={UserRound}>
-              {record.firstName}
-            </Detail>
-            <Detail label="Last name" icon={UserRound}>
-              {record.lastName}
-            </Detail>
-            <Detail label="Date of birth" icon={CalendarDays}>
-              {age !== null ? (
-                <>
-                  {dateFormatter({ dateStyle: 'medium' }).format(
-                    new Date(`${record.dob}T00:00:00`),
+          <div className="patient-basic-info">
+            <PatientBasicSection title="Personal information">
+              <dl className="patient-basic-row patient-basic-row--three">
+                <Detail label="First name" icon={UserRound}>
+                  {record.firstName}
+                </Detail>
+                <Detail label="Last name" icon={UserRound}>
+                  {record.lastName}
+                </Detail>
+              </dl>
+              <dl className="patient-basic-row patient-basic-row--three">
+                <Detail label="Date of birth" icon={CalendarDays}>
+                  {age !== null ? (
+                    <>
+                      {dateFormatter({ dateStyle: 'medium' }).format(
+                        new Date(`${record.dob}T00:00:00`),
+                      )}
+                      <span className="patient-detail-secondary">
+                        {age} {t('yrs')}
+                      </span>
+                    </>
+                  ) : (
+                    record.dob
                   )}
-                  <span className="patient-detail-secondary">
-                    {age} {t('yrs')}
-                  </span>
-                </>
-              ) : (
-                record.dob
-              )}
-            </Detail>
-            <Detail label="Gender" icon={UserRound}>
-              {gender}
-            </Detail>
-            <Detail label="Gender identity" icon={UserRound}>
-              {t(record.genderIdentity)}
-            </Detail>
-            <Detail label="Blood group" icon={HeartPulse}>
-              {record.bloodGroup === 'unknown' ? t('Unknown') : record.bloodGroup}
-            </Detail>
-            <Detail label="Preferred language" icon={Languages}>
-              {t(record.preferredLang)}
-            </Detail>
-            <Detail label="Ethnicity" icon={Globe}>
-              {t(record.ethnicity)}
-            </Detail>
-            <Detail label="Race" icon={UsersRound}>
-              {t(record.race)}
-            </Detail>
-            <Detail label="Other demographics" icon={FileText}>
-              {record.otherDemographics}
-            </Detail>
-            <Detail label="Driver's License #" icon={IdCard}>
-              {record.nationalId}
-            </Detail>
-            <Detail label="MRN" icon={FileText}>
-              {record.mrn}
-            </Detail>
-            <Detail label="Organization" icon={Building2}>
-              {organization || record.organisationId}
-            </Detail>
-            <Detail label="Height (in)" icon={Ruler}>
-              {record.height != null && formatNumber.format(record.height)}
-            </Detail>
-            <Detail label="Weight (lb)" icon={Scale}>
-              {record.weight != null && formatNumber.format(record.weight)}
-            </Detail>
-            <Detail label="BMI" icon={Calculator}>
-              {bmi != null && formatNumber.format(bmi)}
-            </Detail>
-          </dl>
+                </Detail>
+                <Detail label="Sex" icon={UserRound}>
+                  {gender}
+                </Detail>
+                <Detail label="Gender identity" icon={UserRound}>
+                  {t(record.genderIdentity)}
+                </Detail>
+              </dl>
+            </PatientBasicSection>
+            <PatientBasicSection title="Identifiers">
+              <dl className="patient-basic-row patient-basic-row--three">
+                <Detail label="SSN" icon={ShieldCheck}>
+                  {record.ssn?.trim() && <PatientSsn value={record.ssn} />}
+                </Detail>
+                <Detail label="MRN" icon={FileText}>
+                  {record.mrn}
+                </Detail>
+                <Detail label="Driver's License #" icon={IdCard}>
+                  {record.nationalId}
+                </Detail>
+              </dl>
+              <dl className="patient-basic-row patient-basic-row--three">
+                <Detail label="External ID" icon={IdCard}>
+                  {record.externalId}
+                </Detail>
+                <Detail label="Organization" icon={Building2}>
+                  {organization || record.organisationId}
+                </Detail>
+              </dl>
+            </PatientBasicSection>
+            <PatientBasicSection title="Measurements">
+              <dl className="patient-basic-row patient-basic-row--three">
+                <Detail label="Weight (lb)" icon={Scale}>
+                  {record.weight != null && formatNumber.format(record.weight)}
+                </Detail>
+                <Detail label="Height (in)" icon={Ruler}>
+                  {record.height != null && formatNumber.format(record.height)}
+                </Detail>
+                <Detail label="BMI" icon={Calculator}>
+                  {bmi != null && formatNumber.format(bmi)}
+                </Detail>
+              </dl>
+              <dl className="patient-basic-row patient-basic-row--three">
+                <Detail label="Blood group" icon={HeartPulse}>
+                  {record.bloodGroup === 'unknown' ? t('Unknown') : record.bloodGroup}
+                </Detail>
+              </dl>
+            </PatientBasicSection>
+            <PatientBasicSection title="Demographics">
+              <dl className="patient-basic-row patient-basic-row--three">
+                <Detail label="Race" icon={UsersRound}>
+                  {t(record.race)}
+                </Detail>
+                <Detail label="Ethnicity" icon={Globe}>
+                  {t(record.ethnicity)}
+                </Detail>
+                <Detail label="Preferred language" icon={Languages}>
+                  {t(record.preferredLang)}
+                </Detail>
+              </dl>
+              <dl>
+                <Detail label="Other demographics" icon={FileText}>
+                  {record.otherDemographics}
+                </Detail>
+              </dl>
+            </PatientBasicSection>
+          </div>
         </Tabs.Panel>
         <Tabs.Panel id="contact" className="patient-details-panel patient-detail-tone-contact">
-          <dl className="patient-details-grid">
+          <dl className="patient-basic-row patient-basic-row--two">
             <Detail label="Email" icon={Mail}>
               {emailLink(record.email)}
             </Detail>
             <Detail label="Phone number" icon={Phone}>
               {phoneLink(record.phone)}
             </Detail>
-            <Detail label="Address" icon={MapPin}>
-              {address}
-            </Detail>
-            <Detail label="Additional address" icon={MapPin}>
-              {additionalAddress.join('\n')}
-            </Detail>
           </dl>
+          <PatientReadOnlyAddress address={address} />
+          {additionalAddress.length > 0 && (
+            <dl className="mt-4">
+              <Detail label="Additional address" icon={MapPin}>
+                {additionalAddress.join('\n')}
+              </Detail>
+            </dl>
+          )}
           <PatientContactDetails patientId={record.id} />
         </Tabs.Panel>
         <Tabs.Panel id="allergies" className="patient-details-panel patient-detail-tone-allergies">
@@ -338,12 +390,6 @@ export function PatientDetails({
           <dl className="patient-details-grid">
             <Detail label="Patient ID" icon={Fingerprint}>
               {record.id}
-            </Detail>
-            <Detail label="External ID" icon={IdCard}>
-              {record.externalId}
-            </Detail>
-            <Detail label="SSN" icon={ShieldCheck}>
-              {record.ssn?.trim() && <PatientSsn value={record.ssn} />}
             </Detail>
             <Detail label="Initial BMI" icon={Calculator}>
               {record.initialBMI != null && formatNumber.format(record.initialBMI)}

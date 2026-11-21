@@ -1,8 +1,9 @@
 import { useDeviceAssignmentCandidate } from '@/hooks/use-device-assignment-candidate'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { PatientBasicSection } from './patient-basic-section'
 import { PatientBirthDateField } from './patient-birth-date-field'
 import { PatientAddressField } from './patient-address-field'
-import type { AddressSuggestion } from '@/services/address-services/address-services'
+import type { AddressDetails } from '@/services/address-services/address-services'
 import { useField, Form, Formik } from 'formik'
 import * as Yup from 'yup'
 import {
@@ -104,7 +105,7 @@ const schema = Yup.object({
       is: true,
       then: (field) => field.required('Enter the known allergies.'),
     }),
-  gender: Yup.string().trim().required('Gender is required'),
+  gender: Yup.string().trim().required('Sex is required'),
   ssn: Yup.string()
     .trim()
     .matches(/^(?:\d{9}|\d{3}-\d{2}-\d{4})$/, {
@@ -176,7 +177,7 @@ function PatientChoice({
       isRequired={required}
       placeholder={t('Select {{value0}}', { value0: t(label).toLowerCase() })}
     >
-      <Label>{t(label)}</Label>
+      <Label className="text-xs font-semibold">{t(label)}</Label>
       <Autocomplete.Trigger>
         <span className="flex min-w-0 items-center gap-2">
           <span aria-hidden="true" className="shrink-0">
@@ -334,7 +335,7 @@ export function PatientEditor({
   useAppTranslation()
   const [selectedTab, setSelectedTab] = useState<PatientTab>('basic')
   const [assignmentVisited, setAssignmentVisited] = useState(false)
-  const [selectedAddress, setSelectedAddress] = useState<AddressSuggestion | null>(null)
+  const [selectedAddress, setSelectedAddress] = useState<AddressDetails | null>(null)
   const [addressResolving, setAddressResolving] = useState(false)
   const scrollToAllergies = useRef(false)
   const [initialContacts] = useState(() => {
@@ -546,182 +547,211 @@ export function PatientEditor({
                     {t('Assign Device')}
                   </Tabs.Tab>
                 </Tabs.List>
-                <Tabs.Panel id="basic" className="patient-api-form patient-tab-panel">
-                  <FormTextField
-                    name="firstName"
-                    required
-                    label={t('First name')}
-                    placeholder={t('Enter First Name')}
-                    icon={<UserRound size={17} className="admin-icon-violet" />}
-                  />
-                  <FormTextField
-                    name="lastName"
-                    required
-                    label={t('Last name')}
-                    placeholder={t('Enter Last Name')}
-                    icon={<UserRound size={17} className="admin-icon-violet" />}
-                  />
-                  <PatientBirthDateField />
-                  <FormTextField
-                    name="mrn"
-                    label="MRN"
-                    placeholder={t('Enter Medical Record Number')}
-                    icon={<FileText size={17} className="admin-icon-teal" />}
-                  />
-                  <FormTextField
-                    name="nationalId"
-                    label={t("Driver's License #")}
-                    placeholder={t("Enter Driver's License #")}
-                    icon={<ShieldCheck size={17} className="admin-icon-blue" />}
-                  />
-                  <FormTextField
-                    name="externalId"
-                    label={t('External ID')}
-                    placeholder={t('Enter External ID')}
-                    icon={<FileText size={17} className="admin-icon-violet" />}
-                  />
-                  <FormTextField
-                    name="ssn"
-                    label="SSN"
-                    placeholder="123-12-3123"
-                    icon={<ShieldCheck size={17} className="admin-icon-amber" />}
-                  />
-                  <FormTextField
-                    name="height"
-                    label="Height (in)"
-                    placeholder="Enter height in inches"
-                    icon={<Ruler size={17} className="admin-icon-blue" />}
-                    type="number"
-                    step="any"
-                    allowExponent={false}
-                  />
-                  <FormTextField
-                    name="weight"
-                    label="Weight (lb)"
-                    placeholder="Enter weight in pounds"
-                    icon={<Scale size={17} className="admin-icon-teal" />}
-                    type="number"
-                    step="any"
-                    allowExponent={false}
-                  />
-                  <TextField
-                    isReadOnly
-                    value={calculatePatientBmi(values.height, values.weight)?.toString() ?? ''}
-                  >
-                    <Label className="text-xs font-semibold">{t('BMI')}</Label>
-                    <div className="relative w-full">
-                      <Calculator
-                        size={17}
-                        aria-hidden="true"
-                        className="pointer-events-none absolute start-3 top-1/2 z-10 -translate-y-1/2 admin-icon-teal"
-                      />
-                      <Input className="w-full ps-10" placeholder={t('Enter height and weight')} />
-                    </div>
-                  </TextField>
-                  <PatientChoice
-                    name="gender"
-                    label="Gender"
-                    icon={<UserRound size={17} className="admin-icon-violet" />}
-                    required
-                    options={choiceOptions(genders, record?.gender)}
-                  />
-                  <PatientChoice
-                    name="genderIdentity"
-                    label="Gender identity"
-                    icon={<UserRound size={17} className="admin-icon-violet" />}
-                    required={false}
-                    clearable
-                    options={choiceOptions(genderIdentities, record?.genderIdentity)}
-                  />
-                  <PatientChoice
-                    name="bloodGroup"
-                    label="Blood group"
-                    icon={<Droplet size={17} className="admin-icon-teal" />}
-                    required={false}
-                    options={choiceOptions(bloodGroups, record?.bloodGroup)}
-                  />
-                  <PatientChoice
-                    name="preferredLang"
-                    label="Preferred language"
-                    icon={<Languages size={17} className="admin-icon-blue" />}
-                    required={false}
-                    clearable
-                    options={choiceOptions(preferredLanguages, record?.preferredLang)}
-                  />
-                  <PatientChoice
-                    name="ethnicity"
-                    label="Ethnicity"
-                    icon={<Globe size={17} className="admin-icon-teal" />}
-                    required={false}
-                    clearable
-                    options={choiceOptions(ethnicities, record?.ethnicity)}
-                  />
-                  <PatientChoice
-                    name="race"
-                    label="Race"
-                    icon={<UsersRound size={17} className="admin-icon-violet" />}
-                    required={false}
-                    clearable
-                    options={choiceOptions(races, record?.race)}
-                  />
-                  <FormTextField
-                    name="otherDemographics"
-                    label="Other demographics"
-                    placeholder="Enter other demographics"
-                    icon={<FileText size={17} className="admin-icon-blue" />}
-                  />
-                  <FormStatusField disabled={pending} />
-                  {scope.isSuperAdmin ? (
-                    <PatientChoice
-                      name="organisationId"
-                      label="Organization"
-                      icon={<Building2 size={17} className="admin-icon-amber" />}
-                      options={(organizations.data ?? []).map((org) => ({
-                        id: org.id,
-                        label: org.name,
-                      }))}
-                    />
-                  ) : null}
-                  <div className="flex min-h-11 items-center self-end rounded-xl border border-border px-3">
-                    <CheckField
-                      label="Any Known Allergies"
-                      icon={<TriangleAlert size={17} className="admin-icon-amber" />}
-                      selected={values.hasKnownAllergies}
-                      disabled={pending || isSubmitting}
-                      onChange={(selected) => {
-                        scrollToAllergies.current = selected
-                        void setFieldValue('hasKnownAllergies', selected)
-                      }}
-                    />
-                  </div>
-                  {values.hasKnownAllergies && (
-                    <div
-                      className="col-span-full scroll-mt-2"
-                      ref={(field) => {
-                        if (field && scrollToAllergies.current) {
-                          scrollToAllergies.current = false
-                          scrollPatientFieldIntoView(field)
-                        }
-                      }}
-                    >
+                <Tabs.Panel id="basic" className="patient-tab-panel patient-basic-info">
+                  <PatientBasicSection title="Personal information">
+                    <div className="patient-basic-row patient-basic-row--two">
                       <FormTextField
-                        name="allergies"
-                        label="Allergies"
-                        placeholder="Enter Allergies"
-                        icon={<TriangleAlert size={17} className="admin-icon-rose" />}
-                        multiline
+                        name="firstName"
                         required
+                        label={t('First name')}
+                        placeholder={t('Enter First Name')}
+                        icon={<UserRound size={17} className="admin-icon-violet" />}
+                      />
+                      <FormTextField
+                        name="lastName"
+                        required
+                        label={t('Last name')}
+                        placeholder={t('Enter Last Name')}
+                        icon={<UserRound size={17} className="admin-icon-violet" />}
                       />
                     </div>
-                  )}
-                  {organizations.isError && scope.isSuperAdmin && (
-                    <p role="alert" className="text-sm text-danger">
-                      {t('Organization choices could not be loaded.')}{' '}
-                      <button type="button" onClick={() => void organizations.refetch()}>
-                        {t('Try again')}
-                      </button>
-                    </p>
-                  )}
+                    <div className="patient-basic-row patient-basic-row--three">
+                      <PatientBirthDateField />
+                      <PatientChoice
+                        name="gender"
+                        label="Sex"
+                        icon={<UserRound size={17} className="admin-icon-violet" />}
+                        required
+                        options={choiceOptions(genders, record?.gender)}
+                      />
+                      <PatientChoice
+                        name="genderIdentity"
+                        label="Gender identity"
+                        icon={<UserRound size={17} className="admin-icon-violet" />}
+                        required={false}
+                        clearable
+                        options={choiceOptions(genderIdentities, record?.genderIdentity)}
+                      />
+                    </div>
+                  </PatientBasicSection>
+                  <PatientBasicSection title="Identifiers">
+                    <div className="patient-basic-row patient-basic-row--three">
+                      <FormTextField
+                        name="ssn"
+                        label="SSN"
+                        placeholder="123-12-3123"
+                        icon={<ShieldCheck size={17} className="admin-icon-amber" />}
+                      />
+                      <FormTextField
+                        name="mrn"
+                        label="MRN"
+                        placeholder={t('Enter Medical Record Number')}
+                        icon={<FileText size={17} className="admin-icon-teal" />}
+                      />
+                      <FormTextField
+                        name="nationalId"
+                        label={t("Driver's License #")}
+                        placeholder={t("Enter Driver's License #")}
+                        icon={<ShieldCheck size={17} className="admin-icon-blue" />}
+                      />
+                    </div>
+                    <div className="patient-basic-row patient-basic-row--two">
+                      <FormTextField
+                        name="externalId"
+                        label={t('External ID')}
+                        placeholder={t('Enter External ID')}
+                        icon={<FileText size={17} className="admin-icon-violet" />}
+                      />
+                      {scope.isSuperAdmin ? (
+                        <PatientChoice
+                          name="organisationId"
+                          label="Organization"
+                          icon={<Building2 size={17} className="admin-icon-amber" />}
+                          options={(organizations.data ?? []).map((org) => ({
+                            id: org.id,
+                            label: org.name,
+                          }))}
+                        />
+                      ) : null}
+                    </div>
+                    {organizations.isError && scope.isSuperAdmin && (
+                      <p role="alert" className="text-sm text-danger">
+                        {t('Organization choices could not be loaded.')}{' '}
+                        <button type="button" onClick={() => void organizations.refetch()}>
+                          {t('Try again')}
+                        </button>
+                      </p>
+                    )}
+                  </PatientBasicSection>
+                  <PatientBasicSection title="Measurements">
+                    <div className="patient-basic-row patient-basic-row--three">
+                      <FormTextField
+                        name="weight"
+                        label="Weight (lb)"
+                        placeholder="Enter weight in pounds"
+                        icon={<Scale size={17} className="admin-icon-teal" />}
+                        type="number"
+                        step="any"
+                        allowExponent={false}
+                      />
+                      <FormTextField
+                        name="height"
+                        label="Height (in)"
+                        placeholder="Enter height in inches"
+                        icon={<Ruler size={17} className="admin-icon-blue" />}
+                        type="number"
+                        step="any"
+                        allowExponent={false}
+                      />
+                      <TextField
+                        isReadOnly
+                        value={calculatePatientBmi(values.height, values.weight)?.toString() ?? ''}
+                      >
+                        <Label className="text-xs font-semibold">{t('BMI')}</Label>
+                        <div className="relative w-full">
+                          <Calculator
+                            size={17}
+                            aria-hidden="true"
+                            className="pointer-events-none absolute start-3 top-1/2 z-10 -translate-y-1/2 admin-icon-teal"
+                          />
+                          <Input
+                            className="w-full ps-10"
+                            placeholder={t('Enter height and weight')}
+                          />
+                        </div>
+                      </TextField>
+                    </div>
+                    <div className="patient-basic-row patient-basic-row--three">
+                      <PatientChoice
+                        name="bloodGroup"
+                        label="Blood group"
+                        icon={<Droplet size={17} className="admin-icon-teal" />}
+                        required={false}
+                        options={choiceOptions(bloodGroups, record?.bloodGroup)}
+                      />
+                    </div>
+                  </PatientBasicSection>
+                  <PatientBasicSection title="Demographics">
+                    <div className="patient-basic-row patient-basic-row--three">
+                      <PatientChoice
+                        name="race"
+                        label="Race"
+                        icon={<UsersRound size={17} className="admin-icon-violet" />}
+                        required={false}
+                        clearable
+                        options={choiceOptions(races, record?.race)}
+                      />
+                      <PatientChoice
+                        name="ethnicity"
+                        label="Ethnicity"
+                        icon={<Globe size={17} className="admin-icon-teal" />}
+                        required={false}
+                        clearable
+                        options={choiceOptions(ethnicities, record?.ethnicity)}
+                      />
+                      <PatientChoice
+                        name="preferredLang"
+                        label="Preferred language"
+                        icon={<Languages size={17} className="admin-icon-blue" />}
+                        required={false}
+                        clearable
+                        options={choiceOptions(preferredLanguages, record?.preferredLang)}
+                      />
+                    </div>
+                    <FormTextField
+                      name="otherDemographics"
+                      label="Other demographics"
+                      placeholder="Enter other demographics"
+                      icon={<FileText size={17} className="admin-icon-blue" />}
+                    />
+                  </PatientBasicSection>
+                  <PatientBasicSection title="Status and allergies">
+                    <div className="patient-basic-row patient-basic-row--two">
+                      <div className="patient-allergies-card flex min-h-16 items-center rounded-xl border px-4 py-3">
+                        <CheckField
+                          label="Any Known Allergies"
+                          icon={<TriangleAlert size={17} className="admin-icon-amber" />}
+                          selected={values.hasKnownAllergies}
+                          disabled={pending || isSubmitting}
+                          onChange={(selected) => {
+                            scrollToAllergies.current = selected
+                            void setFieldValue('hasKnownAllergies', selected)
+                          }}
+                        />
+                      </div>
+                      <FormStatusField disabled={pending} />
+                    </div>
+                    {values.hasKnownAllergies && (
+                      <div
+                        className="scroll-mt-2"
+                        ref={(field) => {
+                          if (field && scrollToAllergies.current) {
+                            scrollToAllergies.current = false
+                            scrollPatientFieldIntoView(field)
+                          }
+                        }}
+                      >
+                        <FormTextField
+                          name="allergies"
+                          label="Allergies"
+                          placeholder="Enter Allergies"
+                          icon={<TriangleAlert size={17} className="admin-icon-rose" />}
+                          multiline
+                          required
+                        />
+                      </div>
+                    )}
+                  </PatientBasicSection>
                   {!owned && (
                     <p role="alert" className="text-sm text-danger">
                       {t('You do not have permission to manage these patients.')}
@@ -747,6 +777,7 @@ export function PatientEditor({
                   />
                   <div className="patient-contact-address">
                     <PatientAddressField
+                      savedAddress={address}
                       selected={selectedAddress}
                       onSelect={setSelectedAddress}
                       onResolvingChange={setAddressResolving}

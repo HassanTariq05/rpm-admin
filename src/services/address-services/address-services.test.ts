@@ -1,8 +1,14 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import { placeAddressFields, searchAddresses, type AddressSearchSession } from './address-services'
+import {
+  lookupSavedAddress,
+  placeAddressFields,
+  searchAddresses,
+  type AddressSearchSession,
+} from './address-services'
 const api = vi.hoisted(() => ({
   fetch: vi.fn(),
   fields: vi.fn(),
+  searchByText: vi.fn(),
   setOptions: vi.fn(),
   env: { googleMapsApiKey: 'browser-test-key' },
 }))
@@ -12,6 +18,7 @@ vi.mock('@googlemaps/js-api-loader', () => ({
   importLibrary: vi.fn(async () => ({
     AutocompleteSessionToken: class {},
     AutocompleteSuggestion: { fetchAutocompleteSuggestions: api.fetch },
+    Place: { searchByText: api.searchByText },
   })),
 }))
 const component = (longText: string, type: string) => ({
@@ -111,4 +118,27 @@ it('extracts extended ZIP codes and keeps missing postal codes empty', () => {
       .postalCode,
   ).toBe('01234-5678')
   expect(placeAddressFields([component('5678', 'postal_code_suffix')]).postalCode).toBe('')
+})
+
+it('restores location parts only from a result that matches the saved address', async () => {
+  api.searchByText.mockResolvedValue({
+    places: [
+      { formattedAddress: '11 Main Street, Berlin, Germany', addressComponents: [] },
+      { formattedAddress: '10 MAIN Street, Berlin, Germany', addressComponents: components },
+    ],
+  })
+  const address = '10 Main Street, Berlin, Germany'
+  const signal = new AbortController().signal
+  expect(await lookupSavedAddress(address, signal)).toEqual({
+    address,
+    city: 'Berlin',
+    state: 'Berlin State',
+    country: 'Germany',
+    postalCode: '00123',
+  })
+  expect(api.searchByText).toHaveBeenCalledWith({
+    textQuery: address,
+    fields: ['formattedAddress', 'addressComponents'],
+  })
+  expect(await lookupSavedAddress('20 Main Street, Berlin, Germany', signal)).toBeNull()
 })

@@ -1,6 +1,6 @@
 import { Button, Label, TextArea, TextField } from '@heroui/react'
 import { FieldArray, useFormikContext } from 'formik'
-import { Mail, MapPin, Phone, Plus, Trash2, UserRound, UsersRound } from 'lucide-react'
+import { Mail, MapPin, Phone, Plus, Siren, Trash2, UserRound, UsersRound } from 'lucide-react'
 import { useRef } from 'react'
 import { CheckField, ChoiceField, FormTextField } from '@/app/components/administration/admin-ui'
 import type { SavedPatientContacts } from '@/hooks/use-patient-contacts'
@@ -49,7 +49,14 @@ export function PatientContactsFields({ savedContacts }: { savedContacts: SavedP
                     }
                   }}
                 >
-                  <legend className="px-1 text-xs font-semibold">{label}</legend>
+                  <legend className="px-1 text-xs font-semibold">
+                    <span className="inline-flex items-center gap-1.5">
+                      {contact.contactType === 'emergency' && (
+                        <Siren size={15} className="admin-icon-rose" aria-hidden="true" />
+                      )}
+                      {label}
+                    </span>
+                  </legend>
                   <div className="patient-api-form">
                     <ChoiceField
                       label="Contact type"

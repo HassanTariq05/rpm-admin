@@ -91,7 +91,7 @@ async function fillDemographics() {
   fireEvent.change(screen.getByLabelText(/Last name/), { target: { value: 'Rivera' } })
   await user.click(screen.getByRole('button', { name: /Choose date of birth/ }))
   await user.click(screen.getByRole('button', { name: /Today,/ }))
-  await user.click(screen.getByRole('button', { name: 'Select gender Gender' }))
+  await user.click(screen.getByRole('button', { name: 'Select sex Sex' }))
   await user.click(screen.getByRole('option', { name: 'Male' }))
 }
 it('creates an inactive patient with calculated BMI, allergies and emergency contacts', async () => {
@@ -159,6 +159,9 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
     target: { value: ' Suite 401 ' },
   })
   const firstContact = within(screen.getByRole('group', { name: 'Emergency contact 1' }))
+  expect(
+    screen.getByRole('group', { name: 'Emergency contact 1' }).querySelector('legend svg'),
+  ).toHaveClass('admin-icon-rose')
   fireEvent.change(firstContact.getByRole('textbox', { name: 'First name' }), {
     target: { value: 'Sam' },
   })
@@ -319,8 +322,8 @@ it('uses textareas and searchable gender and blood group menus', async () => {
   expect(screen.getByRole('combobox', { name: 'Address' }).tagName).toBe('INPUT')
   expect(screen.getByRole('combobox', { name: 'Country code' })).toHaveValue('+1')
   await user.click(screen.getByRole('tab', { name: 'Basic Info' }))
-  await user.click(screen.getByRole('button', { name: 'Select gender Gender' }))
-  await user.type(screen.getByRole('searchbox', { name: /Search Gender/ }), 'female')
+  await user.click(screen.getByRole('button', { name: 'Select sex Sex' }))
+  await user.type(screen.getByRole('searchbox', { name: /Search Sex/ }), 'female')
   expect(screen.getByRole('option', { name: 'Female' })).toBeInTheDocument()
   expect(screen.queryByRole('option', { name: 'Male' })).not.toBeInTheDocument()
   await user.click(screen.getByRole('option', { name: 'Female' }))
@@ -340,6 +343,33 @@ it('offers every organization to Super Admin', async () => {
   await user.click(organization)
   expect(screen.getByRole('option', { name: 'North Clinic' })).toBeInTheDocument()
   expect(screen.getByRole('option', { name: 'South Clinic' })).toBeInTheDocument()
+})
+
+it('puts each requested group of basic information fields in its own row', () => {
+  render(<PatientEditor onSaved={vi.fn()} onClose={vi.fn()} />)
+  const row = (field: HTMLElement) => field.closest('.patient-basic-row')
+  const textbox = (name: string) => screen.getByRole('textbox', { name })
+  const choice = (name: RegExp) => screen.getByRole('button', { name })
+  const firstName = textbox('First name')
+  expect(row(firstName)).toBe(row(textbox('Last name')))
+  expect(row(firstName)).toHaveClass('patient-basic-row--two')
+  expect(row(firstName)?.children).toHaveLength(2)
+
+  const ssn = textbox('SSN')
+  expect(row(ssn)).toBe(row(textbox('MRN')))
+  expect(row(ssn)).toBe(row(textbox("Driver's License #")))
+  const bmi = textbox('BMI')
+  expect(row(bmi)).toBe(row(screen.getByRole('spinbutton', { name: 'Weight (lb)' })))
+  expect(row(bmi)).toBe(row(screen.getByRole('spinbutton', { name: 'Height (in)' })))
+
+  const demographics = within(screen.getByRole('region', { name: 'Demographics' }))
+  const race = choice(/Race$/)
+  expect(row(race)).toBe(row(choice(/Ethnicity$/)))
+  expect(row(race)).toBe(row(choice(/Preferred language$/i)))
+  expect(row(demographics.getByRole('textbox', { name: 'Other demographics' }))).toBeNull()
+  expect(row(screen.getByRole('checkbox', { name: 'Any Known Allergies' }))).toBe(
+    row(screen.getByRole('switch', { name: 'Status' })),
+  )
 })
 
 it('shows validation for a partially entered emergency contact', async () => {
@@ -363,13 +393,13 @@ it('shows validation for a partially entered emergency contact', async () => {
   expect(state.create).not.toHaveBeenCalled()
 })
 
-it('blocks submission until names, date of birth and gender are supplied', async () => {
+it('blocks submission until names, date of birth and sex are supplied', async () => {
   render(<PatientEditor onSaved={vi.fn()} onClose={vi.fn()} />)
   fireEvent.submit(document.getElementById('patient-api-form')!)
   await waitFor(() => expect(screen.getByText('First name is required')).toBeInTheDocument())
   expect(screen.getByText('Last name is required')).toBeInTheDocument()
   expect(screen.getByText('Date of birth is required')).toBeInTheDocument()
-  expect(screen.getByText('Gender is required')).toBeInTheDocument()
+  expect(screen.getByText('Sex is required')).toBeInTheDocument()
   expect(state.create).not.toHaveBeenCalled()
 })
 
@@ -542,7 +572,8 @@ it('uses the shared contact fields on edit and preserves existing additional add
   }
   render(<PatientEditor record={record} onSaved={vi.fn()} onClose={vi.fn()} />)
   fireEvent.click(screen.getByRole('tab', { name: 'Contact' }))
-  expect(screen.getByRole('combobox', { name: 'Address' })).toHaveValue('10 Main Street')
+  expect(screen.getByRole('combobox', { name: 'Address' })).toHaveValue('')
+  expect(screen.getByText('Selected address').closest('div')).toHaveTextContent('10 Main Street')
   expect(screen.getByRole('textbox', { name: 'Additional Address (Optional)' })).toHaveValue(
     'Suite 401\nBuilding B',
   )

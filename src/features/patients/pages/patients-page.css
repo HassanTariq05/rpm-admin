@@ -957,6 +957,51 @@
 .patient-tab-panel {
   padding: 2px;
 }
+.patient-basic-info,
+.patient-basic-section,
+.patient-basic-row {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.patient-basic-info {
+  gap: 24px;
+}
+.patient-basic-section + .patient-basic-section {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+.patient-basic-heading {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--foreground);
+}
+.patient-basic-row {
+  align-items: start;
+}
+.patient-basic-row :is([data-slot='date-input-group'], [data-slot='autocomplete-trigger']) {
+  min-height: 40px;
+}
+.patient-basic-row--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.patient-basic-row--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.patient-allergies-card {
+  border-color: color-mix(in srgb, var(--editor-amber) 24%, var(--border));
+  background: color-mix(in srgb, var(--editor-amber) 7%, var(--panel));
+}
+@media (max-width: 600px) {
+  .patient-basic-row--three {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 460px) {
+  .patient-basic-row--two {
+    grid-template-columns: 1fr;
+  }
+}
 .patient-contact-address {
   display: grid;
   gap: 16px;
@@ -1188,7 +1233,8 @@
   flex-direction: column;
   width: 100%;
   max-width: 1120px;
-  height: auto;
+  height: 90vh;
+  height: 90dvh;
   max-height: 90vh;
   max-height: 90dvh;
   overflow: hidden;
@@ -1209,7 +1255,7 @@
   margin-top: 2px;
 }
 .patient-details-modal .modal__body {
-  flex: 0 1 auto;
+  flex: 1;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1681,8 +1727,6 @@
   .patient-details-modal {
     width: 100vw !important;
     max-width: 100vw !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
     margin: 0 !important;
     border-radius: 0 !important;
     display: flex;
@@ -1876,6 +1920,9 @@
   border-radius: 10px;
   background: var(--surface-muted);
   min-width: 0;
+}
+.patient-address-components > .patient-address-selected {
+  grid-column: 1 / -1;
 }
 .patient-address-components dt {
   color: var(--muted);
