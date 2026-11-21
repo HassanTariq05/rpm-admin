@@ -1,16 +1,29 @@
 import { useDeviceAssignmentCandidate } from '@/hooks/use-device-assignment-candidate'
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PatientBirthDateField } from './patient-birth-date-field'
 import { PatientAddressField } from './patient-address-field'
 import type { AddressSuggestion } from '@/services/address-services/address-services'
 import { useField, Form, Formik } from 'formik'
 import * as Yup from 'yup'
-import { Autocomplete, FieldError, Label, ListBox, SearchField, Tabs } from '@heroui/react'
+import {
+  Autocomplete,
+  Button,
+  FieldError,
+  Input,
+  Label,
+  ListBox,
+  SearchField,
+  Tabs,
+  TextField,
+} from '@heroui/react'
 import {
   Building2,
+  Calculator,
   Droplet,
   FileText,
   Globe,
+  Languages,
+  LoaderCircle,
   Mail,
   MapPin,
   MonitorSmartphone,
@@ -21,8 +34,11 @@ import {
   ShieldCheck,
   UserPlus,
   UserRound,
+  UsersRound,
+  TriangleAlert,
 } from 'lucide-react'
 import {
+  CheckField,
   FormModal,
   FormTextField,
   FormStatusField,
@@ -33,32 +49,68 @@ import { CountryCodeField } from '@/features/users/components/country-code-field
 import { splitPhoneNumber } from '@/features/users/phone-number'
 import { useOrganizations } from '@/hooks/use-organizations'
 import { useAdminScope } from '@/hooks/use-administration'
-import { useCreatePatient, useUpdatePatient } from '@/hooks/use-patients'
+import { useCreatePatient, usePatient, useUpdatePatient } from '@/hooks/use-patients'
+import {
+  usePatientContacts,
+  useSavePatientContacts,
+  type SavedPatientContacts,
+} from '@/hooks/use-patient-contacts'
+import {
+  patientContactTypes,
+  type PatientContact,
+} from '@/services/patient-services/patient-contact-services'
 import type { PatientRecord } from '@/services/patient-services/patient-services'
 import {
+  calculatePatientBmi,
+  formatPatientSsn,
+  hasPatientContactDetails,
   patientAge,
+  patientContactPayload,
+  patientContactValues,
+  patientRichTextToPlainText,
   patientErrorMessage,
   patientName,
   patientPayload,
   patientTextFields,
+  scrollPatientFieldIntoView,
   type PatientValues,
 } from '../patients'
 import { translate as t, useAppTranslation } from '@/i18n'
 import { useAssignDevice } from '@/hooks/use-devices'
 import { emptyDeviceLabel } from '../device-scanning/label-parser'
 import { PatientDeviceAssignmentForm } from './patient-device-assignment-form'
+import { PatientContactsFields } from './patient-contacts-fields'
 
-const PatientAllergiesEditor = lazy(() =>
-  import('./patient-allergies-editor').then((module) => ({
-    default: module.PatientAllergiesEditor,
+const PatientNotesEditor = lazy(() =>
+  import('./patient-notes-editor').then((module) => ({
+    default: module.PatientNotesEditor,
   })),
 )
+
+const patientEditorLayout = {
+  scroll: 'inside',
+  className: 'w-full sm:w-full sm:max-w-[1180px] sm:p-6',
+  dialogClassName: 'admin-editor-modal patient-editor-modal patient-api-editor',
+} as const
 
 const schema = Yup.object({
   firstName: Yup.string().trim().required('First name is required'),
   lastName: Yup.string().trim().required('Last name is required'),
   email: Yup.string().trim().email('Enter a valid email address'),
+  hasKnownAllergies: Yup.boolean(),
+  allergies: Yup.string()
+    .trim()
+    .when('hasKnownAllergies', {
+      is: true,
+      then: (field) => field.required('Enter the known allergies.'),
+    }),
   gender: Yup.string().trim().required('Gender is required'),
+  ssn: Yup.string()
+    .trim()
+    .matches(/^(?:\d{9}|\d{3}-\d{2}-\d{4})$/, {
+      message: 'Enter a nine-digit SSN, such as 123-12-3123.',
+      excludeEmptyString: true,
+    }),
   height: Yup.number()
     .typeError('Enter a valid height in inches.')
     .positive('Enter a valid height in inches.')
@@ -77,18 +129,38 @@ const schema = Yup.object({
   organisationId: Yup.string().uuid('Choose an organization.').required('Choose an organization.'),
   status: Yup.string().oneOf(['active', 'inactive']).required('Choose a status.'),
 })
+const contactSchema = Yup.object({
+  key: Yup.string().required(),
+  contactType: Yup.string().oneOf(patientContactTypes).required('Choose a contact type.'),
+  firstName: Yup.string().trim(),
+  lastName: Yup.string().trim(),
+  relationship: Yup.string(),
+  address1: Yup.string(),
+  address2: Yup.string(),
+  sameAsPatientAddress: Yup.boolean(),
+  phone: Yup.string()
+    .trim()
+    .test('phone-number', 'Enter a valid phone number (7–15 digits).', (value) => {
+      return !value || /^\+?\d{7,15}$/.test(value.replace(/[\s().-]/g, ''))
+    }),
+  email: Yup.string().trim().email('Enter a valid email address'),
+})
+const unsetChoice = '__unset__'
+
 function PatientChoice({
   name,
   label,
   options,
   icon,
   required = true,
+  clearable = false,
 }: {
   name: string
   label: string
   options: { id: string; label: string }[]
   icon: ReactNode
   required?: boolean
+  clearable?: boolean
 }) {
   useAppTranslation()
   const [field, meta, helpers] = useField<string>(name)
@@ -97,7 +169,7 @@ function PatientChoice({
       fullWidth
       value={field.value || null}
       onChange={(key) => {
-        if (key != null) void helpers.setValue(String(key))
+        if (key != null) void helpers.setValue(key === unsetChoice ? '' : String(key))
       }}
       onBlur={() => void helpers.setTouched(true)}
       isInvalid={meta.touched && !!meta.error}
@@ -126,7 +198,11 @@ function PatientChoice({
             </SearchField.Group>
           </SearchField>
           <ListBox
-            items={options}
+            items={
+              clearable && field.value
+                ? [...options, { id: unsetChoice, label: t('Not specified') }]
+                : options
+            }
             aria-label={t(label)}
             renderEmptyState={() => (
               <p className="p-4 text-sm text-muted">{t('No matches found.')}</p>
@@ -166,6 +242,46 @@ function PatientPhoneField() {
 }
 const genders = ['male', 'female', 'other', 'unknown']
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'unknown']
+const genderIdentities = [
+  'Identifies as male',
+  'Identifies as female',
+  'Transgender Male/Female-to-Male (FTM)',
+  'Transgender Female/Male-to-Female (MTF)',
+  'Gender non-conforming (neither exclusively male nor female)',
+  'Choose not to disclose',
+]
+const preferredLanguages = [
+  'English',
+  'Mandarin Chinese',
+  'Hindi',
+  'Spanish',
+  'French',
+  'Arabic',
+  'Bengali',
+  'Russian',
+  'Portuguese',
+  'Urdu',
+]
+const ethnicities = [
+  'Central American',
+  'Cuban',
+  'Dominican',
+  'Hispanic or Latino',
+  'Latin American',
+  'Not Hispanic or Latino',
+  'Puerto Rican',
+  'South American',
+  'Spaniard',
+]
+const races = [
+  'American Indian or Alaska Native',
+  'Asian',
+  'Black or African American',
+  'Native Hawaiian or Other Pacific Islander',
+  'White',
+  'Hispanic or Latino',
+  'Other',
+]
 function choiceOptions(choices: string[], current?: string | null) {
   return [
     ...new Set([...choices, ...(current && !choices.includes(current) ? [current] : [])]),
@@ -185,6 +301,7 @@ function choiceOptions(choices: string[], current?: string | null) {
   }))
 }
 type PatientTab = 'basic' | 'contact' | 'notes' | 'assign'
+const contactFields = new Set(['phone', 'email', 'address', 'contacts'])
 function PatientTabValidation({ onSelect }: { onSelect: (tab: PatientTab) => void }) {
   const { submitCount, errors, isValidating, isSubmitting } = useFormikContext<PatientValues>()
   const handled = useRef(0)
@@ -194,9 +311,9 @@ function PatientTabValidation({ onSelect }: { onSelect: (tab: PatientTab) => voi
     const fields = Object.keys(errors)
     if (!fields.length) return
     onSelect(
-      fields.some((field) => !['phone', 'email', 'address', 'allergies'].includes(field))
+      fields.some((field) => field !== 'notes' && !contactFields.has(field))
         ? 'basic'
-        : fields.some((field) => ['phone', 'email', 'address'].includes(field))
+        : fields.some((field) => contactFields.has(field))
           ? 'contact'
           : 'notes',
     )
@@ -205,10 +322,12 @@ function PatientTabValidation({ onSelect }: { onSelect: (tab: PatientTab) => voi
 }
 export function PatientEditor({
   record,
+  contacts,
   onClose,
   onSaved,
 }: {
   record?: PatientRecord
+  contacts?: PatientContact[]
   onClose: () => void
   onSaved: () => void
 }) {
@@ -217,6 +336,38 @@ export function PatientEditor({
   const [assignmentVisited, setAssignmentVisited] = useState(false)
   const [selectedAddress, setSelectedAddress] = useState<AddressSuggestion | null>(null)
   const [addressResolving, setAddressResolving] = useState(false)
+  const scrollToAllergies = useRef(false)
+  const [initialContacts] = useState(() => {
+    return contacts?.length ? contacts.map(patientContactValues) : [patientContactValues()]
+  })
+  const [savedContacts] = useState<SavedPatientContacts>(() => {
+    return new Map(
+      (contacts ?? []).map((contact) => [
+        contact.id,
+        { id: contact.id, payload: patientContactPayload(patientContactValues(contact)) },
+      ]),
+    )
+  })
+  const validationSchema = useMemo(
+    () =>
+      schema.shape({
+        contacts: Yup.array().of(
+          contactSchema.test('contact-name', (contact, context) => {
+            if (!savedContacts.has(contact.key) && !hasPatientContactDetails(contact)) return true
+            return (
+              Boolean(contact.firstName) ||
+              context.createError({
+                path: `${context.path}.firstName`,
+                message: 'First name is required',
+              })
+            )
+          }),
+        ),
+      }),
+    [savedContacts],
+  )
+  const saveContacts = useSavePatientContacts()
+  const [contactError, setContactError] = useState(false)
   const scope = useAdminScope()
   const organizations = useOrganizations(scope.isSuperAdmin)
   const create = useCreatePatient()
@@ -228,6 +379,7 @@ export function PatientEditor({
   const savedPayload = useRef<string | null>(null)
   const saving = useRef(false)
   const [address = '', ...additionalAddress] = (record?.address ?? '').split(/\r?\n/)
+  const allergies = patientRichTextToPlainText(record?.allergies)
   const initial = Object.fromEntries(
     patientTextFields.map((key) => [key, record?.[key] ?? '']),
   ) as Record<(typeof patientTextFields)[number], string>
@@ -242,6 +394,10 @@ export function PatientEditor({
     <Formik<PatientValues>
       initialValues={{
         ...initial,
+        ssn: formatPatientSsn(initial.ssn),
+        allergies,
+        hasKnownAllergies: Boolean(allergies.trim()),
+        contacts: initialContacts,
         height: record?.height?.toString() ?? '',
         weight: record?.weight?.toString() ?? '',
         address,
@@ -249,14 +405,15 @@ export function PatientEditor({
         organisationId: scope.isSuperAdmin ? (record?.organisationId ?? '') : (scope.orgId ?? ''),
         countryCode: splitPhoneNumber(record?.phone ?? '').countryCode,
         phone: splitPhoneNumber(record?.phone ?? '').phoneNumber,
-        status: record?.isActive === false ? 'inactive' : 'active',
+        status: record?.isActive ? 'active' : 'inactive',
       }}
-      validationSchema={schema}
+      validationSchema={validationSchema}
       validateOnMount
       onSubmit={async (values) => {
         if (!owned || pending || saving.current) return
         saving.current = true
-        const payload = patientPayload(values)
+        setContactError(false)
+        const payload = patientPayload(values, record)
         if (!scope.isSuperAdmin) payload.organisationId = scope.orgId
         const serialized = JSON.stringify(payload)
         const device = candidate.assignable ? candidate.device : undefined
@@ -268,11 +425,32 @@ export function PatientEditor({
             setCreatedPatient(patient)
             savedPayload.current = serialized
             onSaved()
-          } else if (record || savedPayload.current !== serialized) {
+          } else if (savedPayload.current !== serialized) {
             const saved = await update.mutateAsync({ id: patient.id, payload })
             if (!record) setCreatedPatient(saved)
             savedPayload.current = serialized
             onSaved()
+          }
+          const drafts = values.contacts
+            .filter(
+              (contact) => savedContacts.has(contact.key) || hasPatientContactDetails(contact),
+            )
+            .map((contact) => ({
+              key: contact.key,
+              payload: patientContactPayload(contact, values),
+            }))
+          if (drafts.length || savedContacts.size) {
+            try {
+              await saveContacts.mutateAsync({
+                patientId: patient.id,
+                drafts,
+                saved: savedContacts,
+              })
+            } catch {
+              setContactError(true)
+              setSelectedTab('contact')
+              return
+            }
           }
           if (device) {
             await assignment.mutateAsync({ id: device.id, patientId: patient!.id })
@@ -289,8 +467,9 @@ export function PatientEditor({
         }
       }}
     >
-      {({ isValid, isValidating, isSubmitting }) => (
+      {({ isValid, isValidating, isSubmitting, values, setFieldValue }) => (
         <FormModal
+          {...patientEditorLayout}
           open
           title={t(record ? 'Edit patient' : 'Add patient')}
           description={
@@ -304,9 +483,6 @@ export function PatientEditor({
           pending={pending || isSubmitting}
           cancelLabel={createdPatient ? 'Close' : 'Cancel'}
           onClose={onClose}
-          scroll="inside"
-          className="w-full sm:w-full sm:max-w-[1180px] sm:p-6"
-          dialogClassName="admin-editor-modal patient-editor-modal patient-api-editor"
           footer={
             <SubmitButton
               form="patient-api-form"
@@ -405,6 +581,12 @@ export function PatientEditor({
                     icon={<FileText size={17} className="admin-icon-violet" />}
                   />
                   <FormTextField
+                    name="ssn"
+                    label="SSN"
+                    placeholder="123-12-3123"
+                    icon={<ShieldCheck size={17} className="admin-icon-amber" />}
+                  />
+                  <FormTextField
                     name="height"
                     label="Height (in)"
                     placeholder="Enter height in inches"
@@ -422,6 +604,20 @@ export function PatientEditor({
                     step="any"
                     allowExponent={false}
                   />
+                  <TextField
+                    isReadOnly
+                    value={calculatePatientBmi(values.height, values.weight)?.toString() ?? ''}
+                  >
+                    <Label className="text-xs font-semibold">{t('BMI')}</Label>
+                    <div className="relative w-full">
+                      <Calculator
+                        size={17}
+                        aria-hidden="true"
+                        className="pointer-events-none absolute start-3 top-1/2 z-10 -translate-y-1/2 admin-icon-teal"
+                      />
+                      <Input className="w-full ps-10" placeholder={t('Enter height and weight')} />
+                    </div>
+                  </TextField>
                   <PatientChoice
                     name="gender"
                     label="Gender"
@@ -430,11 +626,49 @@ export function PatientEditor({
                     options={choiceOptions(genders, record?.gender)}
                   />
                   <PatientChoice
+                    name="genderIdentity"
+                    label="Gender identity"
+                    icon={<UserRound size={17} className="admin-icon-violet" />}
+                    required={false}
+                    clearable
+                    options={choiceOptions(genderIdentities, record?.genderIdentity)}
+                  />
+                  <PatientChoice
                     name="bloodGroup"
                     label="Blood group"
                     icon={<Droplet size={17} className="admin-icon-teal" />}
                     required={false}
                     options={choiceOptions(bloodGroups, record?.bloodGroup)}
+                  />
+                  <PatientChoice
+                    name="preferredLang"
+                    label="Preferred language"
+                    icon={<Languages size={17} className="admin-icon-blue" />}
+                    required={false}
+                    clearable
+                    options={choiceOptions(preferredLanguages, record?.preferredLang)}
+                  />
+                  <PatientChoice
+                    name="ethnicity"
+                    label="Ethnicity"
+                    icon={<Globe size={17} className="admin-icon-teal" />}
+                    required={false}
+                    clearable
+                    options={choiceOptions(ethnicities, record?.ethnicity)}
+                  />
+                  <PatientChoice
+                    name="race"
+                    label="Race"
+                    icon={<UsersRound size={17} className="admin-icon-violet" />}
+                    required={false}
+                    clearable
+                    options={choiceOptions(races, record?.race)}
+                  />
+                  <FormTextField
+                    name="otherDemographics"
+                    label="Other demographics"
+                    placeholder="Enter other demographics"
+                    icon={<FileText size={17} className="admin-icon-blue" />}
                   />
                   <FormStatusField disabled={pending} />
                   {scope.isSuperAdmin ? (
@@ -448,6 +682,38 @@ export function PatientEditor({
                       }))}
                     />
                   ) : null}
+                  <div className="flex min-h-11 items-center self-end rounded-xl border border-border px-3">
+                    <CheckField
+                      label="Any Known Allergies"
+                      icon={<TriangleAlert size={17} className="admin-icon-amber" />}
+                      selected={values.hasKnownAllergies}
+                      disabled={pending || isSubmitting}
+                      onChange={(selected) => {
+                        scrollToAllergies.current = selected
+                        void setFieldValue('hasKnownAllergies', selected)
+                      }}
+                    />
+                  </div>
+                  {values.hasKnownAllergies && (
+                    <div
+                      className="col-span-full scroll-mt-2"
+                      ref={(field) => {
+                        if (field && scrollToAllergies.current) {
+                          scrollToAllergies.current = false
+                          scrollPatientFieldIntoView(field)
+                        }
+                      }}
+                    >
+                      <FormTextField
+                        name="allergies"
+                        label="Allergies"
+                        placeholder="Enter Allergies"
+                        icon={<TriangleAlert size={17} className="admin-icon-rose" />}
+                        multiline
+                        required
+                      />
+                    </div>
+                  )}
                   {organizations.isError && scope.isSuperAdmin && (
                     <p role="alert" className="text-sm text-danger">
                       {t('Organization choices could not be loaded.')}{' '}
@@ -495,10 +761,16 @@ export function PatientEditor({
                       disabled={pending || isSubmitting}
                     />
                   </div>
+                  {contactError && (
+                    <p role="alert" className="col-span-full text-sm text-danger">
+                      {t('Some contact changes could not be saved. Save again to retry.')}
+                    </p>
+                  )}
+                  <PatientContactsFields savedContacts={savedContacts} />
                 </Tabs.Panel>
                 <Tabs.Panel id="notes" className="patient-tab-panel">
                   <Suspense fallback={<p className="text-sm text-muted">{t('Loading editor…')}</p>}>
-                    <PatientAllergiesEditor />
+                    <PatientNotesEditor />
                   </Suspense>
                 </Tabs.Panel>
                 {assignmentVisited && (
@@ -530,5 +802,66 @@ export function PatientEditor({
         </FormModal>
       )}
     </Formik>
+  )
+}
+
+export function PatientEditDialog({
+  patient,
+  onClose,
+  onSaved,
+}: {
+  patient: PatientRecord
+  onClose: () => void
+  onSaved: () => void
+}) {
+  useAppTranslation()
+  const query = usePatient(patient.id)
+  const contacts = usePatientContacts(patient.id)
+  if (query.data && contacts.data) {
+    return (
+      <PatientEditor
+        record={query.data}
+        contacts={contacts.data}
+        onClose={onClose}
+        onSaved={onSaved}
+      />
+    )
+  }
+  const failure = query.isError ? query : contacts.isError ? contacts : null
+  const loading = query.isFetching || contacts.isFetching
+
+  return (
+    <FormModal
+      {...patientEditorLayout}
+      open
+      title={t('Edit patient')}
+      description={patientName(patient)}
+      headerIcon={<UserRound size={25} />}
+      pending={false}
+      onClose={onClose}
+      footer={null}
+    >
+      {failure ? (
+        <div role="alert" className="space-y-3">
+          <p className="text-sm text-danger">{t(patientErrorMessage(failure.error))}</p>
+          <Button size="sm" variant="outline" onPress={() => void failure.refetch()}>
+            {t('Try again')}
+          </Button>
+        </div>
+      ) : (
+        <div role="status" className="flex items-center gap-3 py-8 text-sm text-muted">
+          <LoaderCircle
+            size={20}
+            aria-hidden="true"
+            className={loading ? 'animate-spin motion-reduce:animate-none' : ''}
+          />
+          {t(
+            loading
+              ? 'Loading patient details…'
+              : 'Waiting for a connection to load patient details.',
+          )}
+        </div>
+      )}
+    </FormModal>
   )
 }

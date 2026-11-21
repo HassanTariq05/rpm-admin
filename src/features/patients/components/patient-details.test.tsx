@@ -1,8 +1,16 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { PatientDetails } from './patient-details'
+import type { PatientContact } from '@/services/patient-services/patient-contact-services'
 
-afterEach(cleanup)
+const state = vi.hoisted(() => ({ contacts: [] as PatientContact[] }))
+vi.mock('@/hooks/use-patient-contacts', () => ({
+  usePatientContacts: () => ({ data: state.contacts }),
+}))
+afterEach(() => {
+  state.contacts = []
+  cleanup()
+})
 
 it('handles missing data and displays stored allergy text without executing HTML', () => {
   render(
@@ -32,4 +40,92 @@ it('handles missing data and displays stored allergy text without executing HTML
   expect(allergies.querySelector('img, script')).toBeNull()
   fireEvent.click(dialog.getByRole('tab', { name: 'Contact' }))
   expect(dialog.getAllByText('—').length).toBeGreaterThan(0)
+  expect(dialog.getByText('No patient contacts recorded.')).toBeInTheDocument()
+})
+
+it('shows the saved demographics, measurements, emergency contacts, notes and identifiers', () => {
+  state.contacts = [
+    {
+      id: 'contact-1',
+      patientId: 'patient-id',
+      contactType: 'emergency',
+      firstName: 'Sam',
+      lastName: 'Rivera',
+      relationship: 'Sibling',
+      phone: '+15551234567',
+      email: 'sam@example.test',
+      address1: '20 Park Avenue',
+      address2: 'Apartment 2',
+    },
+    {
+      id: 'contact-2',
+      patientId: 'patient-id',
+      contactType: 'primary',
+      firstName: 'Taylor',
+      lastName: 'Rivera',
+    },
+  ]
+  render(
+    <PatientDetails
+      record={{
+        id: 'patient-id',
+        isActive: true,
+        genderIdentity: 'Choose not to disclose',
+        preferredLang: 'Urdu',
+        ethnicity: 'Dominican',
+        race: 'Black or African American',
+        otherDemographics: 'Self-described background',
+        height: 68.5,
+        weight: 152.4,
+        initialBMI: 21.5,
+        ssn: '000123123',
+        address: '10 Main Street\nSuite 401',
+        notes: '<p>Intake complete</p><script>unsafe()</script><p>Call after noon.</p>',
+      }}
+      onClose={vi.fn()}
+    />,
+  )
+  const dialog = within(screen.getByRole('dialog', { name: 'View patient' }))
+  for (const value of [
+    'Choose not to disclose',
+    'Urdu',
+    'Dominican',
+    'Black or African American',
+    'Self-described background',
+    '68.5',
+    '152.4',
+    '22.84',
+  ]) {
+    expect(dialog.getByText(value)).toBeInTheDocument()
+  }
+
+  fireEvent.click(dialog.getByRole('tab', { name: 'Contact' }))
+  expect(dialog.getByText('Suite 401')).toBeInTheDocument()
+  const contact = within(dialog.getByRole('region', { name: 'Emergency contact 1' }))
+  for (const value of ['Sam', 'Rivera', 'Sibling', '20 Park Avenue', 'Apartment 2']) {
+    expect(contact.getByText(value)).toBeInTheDocument()
+  }
+  expect(contact.getByRole('link', { name: '+15551234567' })).toHaveAttribute(
+    'href',
+    'tel:%2B15551234567',
+  )
+  expect(contact.getByRole('link', { name: 'sam@example.test' })).toHaveAttribute(
+    'href',
+    'mailto:sam%40example.test',
+  )
+  expect(dialog.getByRole('region', { name: 'Primary contact 2' })).toHaveTextContent('Taylor')
+
+  fireEvent.click(dialog.getByRole('tab', { name: 'Notes' }))
+  const notes = dialog.getByRole('tabpanel', { name: 'Notes' })
+  expect(notes).toHaveTextContent('Intake complete Call after noon.')
+  expect(notes).not.toHaveTextContent('unsafe')
+
+  fireEvent.click(dialog.getByRole('tab', { name: 'Record details' }))
+  expect(dialog.getByText('21.5')).toBeInTheDocument()
+  expect(dialog.getByText('•••-••-3123')).toBeInTheDocument()
+  expect(dialog.queryByText('000-12-3123')).not.toBeInTheDocument()
+  fireEvent.click(dialog.getByRole('button', { name: 'Show SSN' }))
+  expect(dialog.getByText('000-12-3123')).toBeInTheDocument()
+  fireEvent.click(dialog.getByRole('button', { name: 'Hide SSN' }))
+  expect(dialog.queryByText('000-12-3123')).not.toBeInTheDocument()
 })

@@ -36,8 +36,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import type { PatientRecord } from '@/services/patient-services/patient-services'
 import { PatientAssignDeviceDialog } from '../components/patient-assign-device-dialog'
 import { LinkedPatientDetails } from '../components/linked-patient-details'
-import { PatientDetails } from '../components/patient-details'
-import { PatientEditor } from '../components/patient-editor'
+import { PatientEditDialog, PatientEditor } from '../components/patient-editor'
 import { PatientsSkeleton, PatientSkeletonBlock } from '../components/patients-skeleton'
 import { patientAge, patientName, patientErrorMessage } from '../patients'
 import { StatusBadge } from '@/app/components/status-badge'
@@ -91,7 +90,7 @@ export function PatientsPage({
   const [pageSize, setPageSize] = useState(10)
   const [exporting, setExporting] = useState(false)
   const [editor, setEditor] = useState<{ record?: PatientRecord } | null>(null)
-  const [viewing, setViewing] = useState<PatientRecord | null>(null)
+  const [viewingId, setViewingId] = useState<string | null>(null)
   const [assigning, setAssigning] = useState<PatientRecord | null>(null)
   const [confirmation, setConfirmation] = useState('')
   const [deleting, setDeleting] = useState<(typeof patients)[number] | null>(null)
@@ -114,6 +113,13 @@ export function PatientsPage({
     .sort((a, b) => a.name.localeCompare(b.name) * (descending ? -1 : 1))
   const currentPage = Math.min(page, Math.max(0, Math.ceil(filtered.length / pageSize) - 1))
   const visible = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize)
+  const detailId = viewingId ?? linkedPatientId
+
+  function onPatientSaved() {
+    setGroup('All patients')
+    setSearch('')
+    setPage(0)
+  }
 
   async function exportPatients(format: 'csv' | 'xlsx') {
     setExporting(true)
@@ -358,7 +364,7 @@ export function PatientsPage({
                         <td>
                           <RecordOpenButton
                             className="patient-identity"
-                            onOpen={() => setViewing(patient.record)}
+                            onOpen={() => setViewingId(patient.id)}
                           >
                             <span className="patient-avatar" aria-hidden="true">
                               {t(getInitials(patient.name))}
@@ -463,10 +469,7 @@ export function PatientsPage({
                               <Dropdown.Menu
                                 aria-label={t('Actions for {{value0}}', { value0: patient.name })}
                               >
-                                <Dropdown.Item
-                                  id="view"
-                                  onAction={() => setViewing(patient.record)}
-                                >
+                                <Dropdown.Item id="view" onAction={() => setViewingId(patient.id)}>
                                   <Eye size={15} />
                                   {t('View patient')}
                                 </Dropdown.Item>
@@ -601,32 +604,28 @@ export function PatientsPage({
           onClose={() => setAssigning(null)}
         />
       )}
-      {!viewing && linkedPatientId && (
+      {detailId && (
         <LinkedPatientDetails
-          key={linkedPatientId}
-          id={linkedPatientId}
+          key={detailId}
+          id={detailId}
           organizationNames={organizationNames}
-          onClose={() => onLinkedPatientClose?.()}
-        />
-      )}
-      {viewing && (
-        <PatientDetails
-          record={viewing}
-          organization={organizationNames.get(viewing.organisationId ?? '')}
-          onClose={() => setViewing(null)}
-        />
-      )}
-      {editor && (
-        <PatientEditor
-          record={editor.record}
-          onClose={() => setEditor(null)}
-          onSaved={() => {
-            setGroup('All patients')
-            setSearch('')
-            setPage(0)
+          onClose={() => {
+            if (viewingId) setViewingId(null)
+            else onLinkedPatientClose?.()
           }}
         />
       )}
+      {editor &&
+        (editor.record ? (
+          <PatientEditDialog
+            key={editor.record.id}
+            patient={editor.record}
+            onClose={() => setEditor(null)}
+            onSaved={onPatientSaved}
+          />
+        ) : (
+          <PatientEditor onClose={() => setEditor(null)} onSaved={onPatientSaved} />
+        ))}
       {deleting && (
         <FormModal
           open

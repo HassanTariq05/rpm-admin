@@ -1367,6 +1367,9 @@
 .patient-detail-tone-allergies {
   --detail-tone: var(--editor-rose);
 }
+.patient-detail-tone-notes {
+  --detail-tone: var(--editor-amber);
+}
 .patient-detail-tone-record {
   --detail-tone: var(--editor-teal);
 }
@@ -1403,7 +1406,7 @@
   color: var(--detail-tone);
   background: color-mix(in srgb, var(--detail-tone) 10%, var(--panel));
 }
-.patient-details-allergy-note {
+.patient-details-text-card {
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -1412,12 +1415,12 @@
   padding: 16px;
   background: color-mix(in srgb, var(--detail-tone) 5%, var(--panel));
 }
-.patient-details-allergy-note > svg {
+.patient-details-text-card > svg {
   flex-shrink: 0;
   margin-top: 3px;
   color: var(--detail-tone);
 }
-.patient-details-allergy-note > p {
+.patient-details-text-card > p {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   min-width: 0;

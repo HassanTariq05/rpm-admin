@@ -444,12 +444,14 @@ export function StatusPill({ status }: { status?: string }) {
 
 export function CheckField({
   label,
+  icon,
   selected,
   indeterminate,
   disabled,
   onChange,
 }: {
   label: string
+  icon?: ReactNode
   selected: boolean
   indeterminate?: boolean
   disabled?: boolean
@@ -468,7 +470,10 @@ export function CheckField({
         <Checkbox.Control>
           <Checkbox.Indicator />
         </Checkbox.Control>
-        <Label className="text-xs">{t(label)}</Label>
+        <Label className="flex items-center gap-2 text-xs">
+          {icon && <span aria-hidden="true">{icon}</span>}
+          {t(label)}
+        </Label>
       </Checkbox.Content>
     </Checkbox>
   )

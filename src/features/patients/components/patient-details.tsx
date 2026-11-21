@@ -1,27 +1,41 @@
-import type { ReactNode } from 'react'
-import { Tabs } from '@heroui/react'
+import { useState, type ReactNode } from 'react'
+import { Button, Tabs } from '@heroui/react'
 import {
   Building2,
+  Calculator,
   CalendarDays,
   Clock3,
   FileText,
   Fingerprint,
+  Globe,
   HeartPulse,
   IdCard,
+  Languages,
   Mail,
   MonitorSmartphone,
   MapPin,
   Phone,
+  Ruler,
+  Scale,
   ShieldCheck,
   UserRound,
+  UsersRound,
   type LucideIcon,
 } from 'lucide-react'
 import { FormModal } from '@/app/components/administration/admin-ui'
+import { usePatientContacts } from '@/hooks/use-patient-contacts'
 import { StatusBadge } from '@/app/components/status-badge'
 import type { PatientRecord } from '@/services/patient-services/patient-services'
 import { getInitials } from '@/lib/initials'
-import { dateFormatter, translate as t, useAppTranslation } from '@/i18n'
-import { patientAge, patientName } from '../patients'
+import { dateFormatter, numberFormatter, translate as t, useAppTranslation } from '@/i18n'
+import {
+  calculatePatientBmi,
+  formatPatientSsn,
+  patientAge,
+  patientContactHeadings,
+  patientName,
+  patientRichTextToPlainText,
+} from '../patients'
 import { PatientDevices } from './patient-devices'
 
 function Detail({
@@ -54,16 +68,102 @@ function timestamp(value?: string | null) {
     : dateFormatter({ dateStyle: 'medium', timeStyle: 'short' }).format(date)
 }
 
-// Display stored rich text as readable text without executing HTML or loading remote content.
-function allergyText(value?: string | null) {
-  if (!value) return '—'
-  if (!/<\/?(?:p|div|br|strong|b|em|i|u|s|ul|ol|li|blockquote)(?:\s[^>]*|\s*\/?)>/i.test(value))
-    return value
-  const document = new DOMParser().parseFromString(value, 'text/html')
-  document.querySelectorAll('script, style, iframe, object').forEach((node) => node.remove())
-  document.querySelectorAll('br').forEach((node) => node.replaceWith('\n'))
-  document.querySelectorAll('p, div, li, blockquote').forEach((node) => node.append('\n'))
-  return document.body.textContent?.trim() || '—'
+function emailLink(email?: string | null) {
+  return email && <a href={`mailto:${encodeURIComponent(email)}`}>{email}</a>
+}
+
+function phoneLink(phone?: string | null) {
+  return phone && <a href={`tel:${encodeURIComponent(phone)}`}>{phone}</a>
+}
+
+function PatientSsn({ value }: { value: string }) {
+  const [visible, setVisible] = useState(false)
+  const formatted = formatPatientSsn(value)
+  const canReveal = /^\d{3}-\d{2}-\d{4}$/.test(formatted)
+  return (
+    <div className="flex flex-wrap items-center gap-x-2">
+      <span>{visible && canReveal ? formatted : `•••-••-${formatted.slice(-4)}`}</span>
+      {canReveal && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onPress={() => setVisible((current) => !current)}
+        >
+          {t(visible ? 'Hide SSN' : 'Show SSN')}
+        </Button>
+      )}
+    </div>
+  )
+}
+
+function PatientContactDetails({ patientId }: { patientId: string }) {
+  const contacts = usePatientContacts(patientId)
+  return (
+    <section className="mt-6 grid gap-3" aria-labelledby="patient-detail-contacts">
+      <h4 id="patient-detail-contacts" className="flex items-center gap-2 text-sm font-semibold">
+        <UsersRound size={17} className="admin-icon-blue" aria-hidden="true" />
+        {t('Patient contacts')}
+      </h4>
+      {contacts.isError && (
+        <div role="alert" className="flex flex-wrap items-center gap-2 text-sm text-danger">
+          <span>{t('Could not load patient contacts.')}</span>
+          <Button size="sm" variant="outline" onPress={() => void contacts.refetch()}>
+            {t('Try again')}
+          </Button>
+        </div>
+      )}
+      {contacts.data?.map((contact, index) => {
+        const headingId = `patient-detail-contact-${contact.id}`
+        return (
+          <section
+            key={contact.id}
+            aria-labelledby={headingId}
+            className="rounded-xl border border-border p-4"
+          >
+            <h5 id={headingId} className="mb-4 text-xs font-semibold">
+              {t(patientContactHeadings[contact.contactType], { number: index + 1 })}
+            </h5>
+            <dl className="patient-details-grid">
+              <Detail label="First name" icon={UserRound}>
+                {contact.firstName}
+              </Detail>
+              <Detail label="Last name" icon={UserRound}>
+                {contact.lastName}
+              </Detail>
+              <Detail label="Relationship" icon={UsersRound}>
+                {contact.relationship}
+              </Detail>
+              <Detail label="Phone number" icon={Phone}>
+                {phoneLink(contact.phone)}
+              </Detail>
+              <Detail label="Email" icon={Mail}>
+                {emailLink(contact.email)}
+              </Detail>
+              <Detail label="Address" icon={MapPin}>
+                {contact.address1}
+              </Detail>
+              <Detail label="Additional address" icon={MapPin}>
+                {contact.address2}
+              </Detail>
+            </dl>
+          </section>
+        )
+      })}
+      {contacts.data?.length === 0 && (
+        <p className="text-sm text-muted">{t('No patient contacts recorded.')}</p>
+      )}
+      {!contacts.data && !contacts.isError && (
+        <p role="status" className="text-sm text-muted">
+          {t(
+            contacts.isFetching
+              ? 'Loading patient contacts…'
+              : 'Waiting for a connection to load patient details.',
+          )}
+        </p>
+      )}
+    </section>
+  )
 }
 
 export function PatientDetails({
@@ -78,6 +178,9 @@ export function PatientDetails({
   useAppTranslation()
   const name = patientName(record)
   const age = patientAge(record.dob)
+  const bmi = calculatePatientBmi(record.height?.toString() ?? '', record.weight?.toString() ?? '')
+  const [address, ...additionalAddress] = (record.address ?? '').split(/\r?\n/)
+  const formatNumber = numberFormatter({ maximumFractionDigits: 20 })
   const gender = record.gender
     ? t(
         (
@@ -126,6 +229,10 @@ export function PatientDetails({
             <HeartPulse size={16} aria-hidden="true" />
             {t('Allergies')}
           </Tabs.Tab>
+          <Tabs.Tab id="notes" className="patient-detail-tone-notes">
+            <FileText size={16} aria-hidden="true" />
+            {t('Notes')}
+          </Tabs.Tab>
           <Tabs.Tab id="record" className="patient-detail-tone-record">
             <ShieldCheck size={16} aria-hidden="true" />
             {t('Record details')}
@@ -160,8 +267,23 @@ export function PatientDetails({
             <Detail label="Gender" icon={UserRound}>
               {gender}
             </Detail>
+            <Detail label="Gender identity" icon={UserRound}>
+              {t(record.genderIdentity)}
+            </Detail>
             <Detail label="Blood group" icon={HeartPulse}>
               {record.bloodGroup === 'unknown' ? t('Unknown') : record.bloodGroup}
+            </Detail>
+            <Detail label="Preferred language" icon={Languages}>
+              {t(record.preferredLang)}
+            </Detail>
+            <Detail label="Ethnicity" icon={Globe}>
+              {t(record.ethnicity)}
+            </Detail>
+            <Detail label="Race" icon={UsersRound}>
+              {t(record.race)}
+            </Detail>
+            <Detail label="Other demographics" icon={FileText}>
+              {record.otherDemographics}
             </Detail>
             <Detail label="Driver's License #" icon={IdCard}>
               {record.nationalId}
@@ -172,29 +294,44 @@ export function PatientDetails({
             <Detail label="Organization" icon={Building2}>
               {organization || record.organisationId}
             </Detail>
+            <Detail label="Height (in)" icon={Ruler}>
+              {record.height != null && formatNumber.format(record.height)}
+            </Detail>
+            <Detail label="Weight (lb)" icon={Scale}>
+              {record.weight != null && formatNumber.format(record.weight)}
+            </Detail>
+            <Detail label="BMI" icon={Calculator}>
+              {bmi != null && formatNumber.format(bmi)}
+            </Detail>
           </dl>
         </Tabs.Panel>
         <Tabs.Panel id="contact" className="patient-details-panel patient-detail-tone-contact">
           <dl className="patient-details-grid">
             <Detail label="Email" icon={Mail}>
-              {record.email && (
-                <a href={`mailto:${encodeURIComponent(record.email)}`}>{record.email}</a>
-              )}
+              {emailLink(record.email)}
             </Detail>
             <Detail label="Phone number" icon={Phone}>
-              {record.phone && (
-                <a href={`tel:${encodeURIComponent(record.phone)}`}>{record.phone}</a>
-              )}
+              {phoneLink(record.phone)}
             </Detail>
             <Detail label="Address" icon={MapPin}>
-              {record.address}
+              {address}
+            </Detail>
+            <Detail label="Additional address" icon={MapPin}>
+              {additionalAddress.join('\n')}
             </Detail>
           </dl>
+          <PatientContactDetails patientId={record.id} />
         </Tabs.Panel>
         <Tabs.Panel id="allergies" className="patient-details-panel patient-detail-tone-allergies">
-          <div className="patient-details-allergy-note">
+          <div className="patient-details-text-card">
             <HeartPulse size={20} aria-hidden="true" />
-            <p>{allergyText(record.allergies)}</p>
+            <p>{patientRichTextToPlainText(record.allergies) || '—'}</p>
+          </div>
+        </Tabs.Panel>
+        <Tabs.Panel id="notes" className="patient-details-panel patient-detail-tone-notes">
+          <div className="patient-details-text-card">
+            <FileText size={20} aria-hidden="true" />
+            <p>{patientRichTextToPlainText(record.notes) || '—'}</p>
           </div>
         </Tabs.Panel>
         <Tabs.Panel id="record" className="patient-details-panel patient-detail-tone-record">
@@ -204,6 +341,12 @@ export function PatientDetails({
             </Detail>
             <Detail label="External ID" icon={IdCard}>
               {record.externalId}
+            </Detail>
+            <Detail label="SSN" icon={ShieldCheck}>
+              {record.ssn?.trim() && <PatientSsn value={record.ssn} />}
+            </Detail>
+            <Detail label="Initial BMI" icon={Calculator}>
+              {record.initialBMI != null && formatNumber.format(record.initialBMI)}
             </Detail>
             <Detail label="Created" icon={Clock3}>
               {timestamp(record.createdAt)}

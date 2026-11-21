@@ -41,9 +41,34 @@ describe('Patient service contract', () => {
     expect(await detail.service.getById(record.id)).toEqual(record)
     expect(detail.requests[0]?.url).toBe(`/patients/${record.id}`)
   })
+  it('reads preferredLang and falls back to the old response field only when it is absent', async () => {
+    const legacy = { ...record, preferredLanguage: 'Spanish' }
+    expect(await setup(legacy).service.getById(record.id)).toMatchObject({
+      preferredLang: 'Spanish',
+    })
+    expect(
+      await setup({ ...legacy, preferredLang: 'Urdu' }).service.getById(record.id),
+    ).toMatchObject({ preferredLang: 'Urdu' })
+    expect(
+      await setup({ ...legacy, preferredLang: null }).service.getById(record.id),
+    ).toMatchObject({ preferredLang: null })
+  })
   it('sends create/update fields exactly, preserves explicit null, and parses deleted records', async () => {
     const { service, requests } = setup(record)
-    const payload = { firstName: 'Alex', dob: null, isActive: false }
+    const payload = {
+      firstName: 'Alex',
+      dob: null,
+      isActive: false,
+      genderIdentity: 'Choose not to disclose',
+      preferredLang: 'Portuguese',
+      ethnicity: 'Puerto Rican',
+      race: 'Other',
+      otherDemographics: 'Self-described background',
+      ssn: '000-12-3123',
+      initialBMI: 22.84,
+      allergies: 'Penicillin',
+      notes: '<p>Intake complete</p>',
+    }
     await service.create(payload)
     await service.update(record.id, payload)
     await service.remove(record.id)

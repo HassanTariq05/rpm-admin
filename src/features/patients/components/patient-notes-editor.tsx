@@ -30,9 +30,9 @@ function initialContent(value: string): string | JSONContent {
     })),
   }
 }
-export function PatientAllergiesEditor() {
+export function PatientNotesEditor() {
   useAppTranslation()
-  const [field, meta, helpers] = useField<string>('allergies')
+  const [field, meta, helpers] = useField<string>('notes')
   const { isSubmitting } = useFormikContext()
   const editor = useEditor({
     extensions: [
@@ -51,7 +51,8 @@ export function PatientAllergiesEditor() {
     editorProps: {
       attributes: {
         role: 'textbox',
-        'aria-label': t('Allergies'),
+        'aria-label': t('Notes'),
+        'aria-placeholder': t('Enter notes'),
         'aria-multiline': 'true',
         class: 'patient-rich-text-content',
       },
@@ -145,7 +146,7 @@ export function PatientAllergiesEditor() {
   return (
     <div className="patient-rich-text-field">
       <label className="text-xs font-semibold" onClick={() => editor?.commands.focus()}>
-        {t('Allergies')}
+        {t('Notes')}
       </label>
       <div className="patient-rich-text-editor">
         <div role="group" aria-label={t('Text formatting')} className="patient-rich-text-toolbar">
@@ -175,7 +176,7 @@ export function PatientAllergiesEditor() {
           <EditorContent editor={editor} />
           {editor?.isEmpty && (
             <span className="patient-rich-text-placeholder" aria-hidden="true">
-              {t('Enter Allergies')}
+              {t('Enter notes')}
             </span>
           )}
         </div>
