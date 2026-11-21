@@ -5,6 +5,7 @@ import { EditorContent, useEditor, useEditorState, type JSONContent } from '@tip
 import StarterKit from '@tiptap/starter-kit'
 import {
   Bold,
+  ClipboardList,
   Italic,
   Underline,
   Strikethrough,
@@ -29,9 +30,9 @@ function initialContent(value: string): string | JSONContent {
     })),
   }
 }
-export function PatientAllergiesEditor() {
+export function PatientNotesEditor() {
   useAppTranslation()
-  const [field, meta, helpers] = useField<string>('allergies')
+  const [field, meta, helpers] = useField<string>('notes')
   const { isSubmitting } = useFormikContext()
   const editor = useEditor({
     extensions: [
@@ -50,7 +51,8 @@ export function PatientAllergiesEditor() {
     editorProps: {
       attributes: {
         role: 'textbox',
-        'aria-label': t('Allergies'),
+        'aria-label': t('Notes'),
+        'aria-placeholder': t('Enter notes'),
         'aria-multiline': 'true',
         class: 'patient-rich-text-content',
       },
@@ -144,7 +146,7 @@ export function PatientAllergiesEditor() {
   return (
     <div className="patient-rich-text-field">
       <label className="text-xs font-semibold" onClick={() => editor?.commands.focus()}>
-        {t('Allergies')}
+        {t('Notes')}
       </label>
       <div className="patient-rich-text-editor">
         <div role="group" aria-label={t('Text formatting')} className="patient-rich-text-toolbar">
@@ -166,10 +168,15 @@ export function PatientAllergiesEditor() {
           ))}
         </div>
         <div className="patient-rich-text-surface">
+          <ClipboardList
+            size={17}
+            className="pointer-events-none absolute start-4 top-5 admin-icon-violet"
+            aria-hidden="true"
+          />
           <EditorContent editor={editor} />
           {editor?.isEmpty && (
             <span className="patient-rich-text-placeholder" aria-hidden="true">
-              {t('Enter Allergies')}
+              {t('Enter notes')}
             </span>
           )}
         </div>

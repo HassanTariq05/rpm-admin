@@ -1,0 +1,47 @@
+.record-open-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  text-align: start;
+  color: inherit;
+  cursor: pointer;
+}
+.record-open-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.record-open-arrow {
+  flex-shrink: 0;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 150ms;
+}
+.record-open-button:not(:disabled):hover .record-open-label,
+.record-open-button:focus-visible .record-open-label {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: var(--admin-violet, var(--accent));
+}
+.record-open-button:not(:disabled):hover .record-open-arrow,
+.record-open-button:focus-visible .record-open-arrow {
+  opacity: 1;
+}
+.record-open-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.record-open-button:disabled {
+  cursor: default;
+}
+@media (prefers-reduced-motion: reduce) {
+  .record-open-arrow {
+    transition: none;
+  }
+}

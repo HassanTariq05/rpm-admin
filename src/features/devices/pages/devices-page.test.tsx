@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { DevicesPage } from './devices-page'
 import { deviceFixture } from '../devices.fixtures'
 const state = vi.hoisted(() => ({
+  total: 12,
   pending: false,
   fetching: false,
   error: null as unknown,
@@ -20,14 +21,42 @@ const state = vi.hoisted(() => ({
   refetch: vi.fn(),
   detail: vi.fn(),
 }))
+vi.mock('@tanstack/react-router', async (original) => ({
+  ...(await original<typeof import('@tanstack/react-router')>()),
+  Link: ({
+    to,
+    search,
+    children,
+    className,
+  }: {
+    to: string
+    search: { patientId: string }
+    children: React.ReactNode
+    className: string
+  }) => (
+    <a href={`${to}?patientId=${search.patientId}`} className={className}>
+      {children}
+    </a>
+  ),
+}))
 vi.mock('@/hooks/use-devices', () => ({
   useDevices: () => ({
     data: state.pending
       ? undefined
-      : Array.from({ length: 12 }, (_, index) => ({
+      : Array.from({ length: state.total }, (_, index) => ({
           ...deviceFixture,
           id: `device-${index}`,
           imei: `860000000${String(index).padStart(6, '0')}`,
+          patientId: index === 0 ? 'f8d5c3ab-5402-4ecb-a393-e8650d86b984' : null,
+          patient:
+            index === 0
+              ? {
+                  id: 'f8d5c3ab-5402-4ecb-a393-e8650d86b984',
+                  firstName: 'Hassan',
+                  lastName: 'Tariq',
+                  mrn: 'MRN-12345',
+                }
+              : null,
           vendor: index % 2 ? 'pylo' : 'smart_meter',
           deviceType: index > 5 ? 'scale' : 'bp-cuff',
         })),
@@ -61,6 +90,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   localStorage.removeItem('rpm.devices.view.v1')
   Object.assign(state, {
+    total: 12,
     pending: false,
     fetching: false,
     error: null,
@@ -80,15 +110,16 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 it('filters real vendor aliases, types, and IMEI and resets pagination', async () => {
+  state.total = 20
   const user = userEvent.setup()
   render(<DevicesPage />)
-  expect(screen.getAllByRole('article')).toHaveLength(8)
+  expect(screen.getAllByRole('article')).toHaveLength(16)
   await user.click(screen.getByRole('button', { name: 'Next devices page' }))
-  expect(screen.getByText('Showing 9–12 of 12 devices')).toBeInTheDocument()
+  expect(screen.getByText('Showing 17–20 of 20 devices')).toBeInTheDocument()
   await user.click(await screen.findByRole('tab', { name: /^Pylo/ }))
-  expect(screen.getAllByRole('article')).toHaveLength(6)
+  expect(screen.getAllByRole('article')).toHaveLength(10)
   await user.click(await screen.findByRole('tab', { name: /^Weight/ }))
-  expect(screen.getAllByRole('article')).toHaveLength(3)
+  expect(screen.getAllByRole('article')).toHaveLength(7)
   fireEvent.change(screen.getByRole('textbox', { name: 'Search devices' }), {
     target: { value: '860000000000007' },
   })
@@ -239,14 +270,15 @@ it('searches company and type dropdowns and saves the active toggle as the API b
 })
 
 it('switches to a list without resetting pagination, opens details and restores the saved view', async () => {
+  state.total = 20
   const user = userEvent.setup()
   const first = render(<DevicesPage />)
   await user.click(screen.getByRole('button', { name: 'Next devices page' }))
   await user.click(screen.getByRole('button', { name: 'List view' }))
   let table = within(screen.getByRole('table', { name: 'Devices' }))
   expect(table.getAllByRole('row')).toHaveLength(5)
-  expect(table.getByText('860000000000008')).toBeInTheDocument()
-  expect(screen.getByText('Showing 9–12 of 12 devices')).toBeInTheDocument()
+  expect(table.getByText('860000000000016')).toBeInTheDocument()
+  expect(screen.getByText('Showing 17–20 of 20 devices')).toBeInTheDocument()
   expect(localStorage.getItem('rpm.devices.view.v1')).toBe('list')
   first.unmount()
   const second = render(<DevicesPage />)
@@ -259,7 +291,7 @@ it('switches to a list without resetting pagination, opens details and restores 
   render(<DevicesPage />)
   await user.click(screen.getByRole('button', { name: 'Grid view' }))
   expect(screen.queryByRole('table', { name: 'Devices' })).not.toBeInTheDocument()
-  expect(screen.getAllByRole('article')).toHaveLength(8)
+  expect(screen.getAllByRole('article')).toHaveLength(16)
   expect(localStorage.getItem('rpm.devices.view.v1')).toBe('grid')
 })
 it('keeps filters and search applied when switching views', async () => {
@@ -281,4 +313,43 @@ it('ignores invalid preferences and allows switching when storage is blocked', a
   })
   await user.click(screen.getByRole('button', { name: 'List view' }))
   expect(screen.getByRole('table', { name: 'Devices' })).toBeInTheDocument()
+})
+
+it('displays the embedded assigned patient name in both grid and list views', async () => {
+  const user = userEvent.setup()
+  render(<DevicesPage />)
+  expect(screen.getByText('Hassan Tariq')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'List view' }))
+  const row = screen.getByText('Hassan Tariq').closest('tr')!
+  expect(within(row).getAllByRole('cell')[1]).toHaveTextContent('Hassan Tariq')
+  expect(within(row).getAllByRole('cell')[1]).not.toHaveTextContent('Not provided')
+})
+
+it('opens linked device details without requiring the device in the current list and clears the link on close', async () => {
+  const close = vi.fn()
+  const view = render(<DevicesPage linkedDeviceId={deviceFixture.id} onLinkedDeviceClose={close} />)
+  expect(await screen.findByRole('dialog', { name: 'Device details' })).toBeInTheDocument()
+  expect(state.detail).toHaveBeenCalledWith(deviceFixture.id)
+  await userEvent
+    .setup()
+    .click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Close' })[0]!)
+  expect(close).toHaveBeenCalledOnce()
+  view.rerender(<DevicesPage />)
+  expect(screen.queryByRole('dialog', { name: 'Device details' })).not.toBeInTheDocument()
+})
+
+it('links assigned patient names from the device list and illustration card to patient details', async () => {
+  const user = userEvent.setup()
+  render(<DevicesPage />)
+  await user.click(screen.getByRole('button', { name: 'List view' }))
+  expect(screen.getByRole('link', { name: 'Hassan Tariq' })).toHaveAttribute(
+    'href',
+    '/patients?patientId=f8d5c3ab-5402-4ecb-a393-e8650d86b984',
+  )
+  await user.click(screen.getByRole('button', { name: 'View LS802-GA, IMEI 860000000000000' }))
+  const dialog = within(await screen.findByRole('dialog', { name: 'Device details' }))
+  expect(dialog.getByRole('link', { name: 'Hassan Tariq' })).toHaveAttribute(
+    'href',
+    '/patients?patientId=f8d5c3ab-5402-4ecb-a393-e8650d86b984',
+  )
 })

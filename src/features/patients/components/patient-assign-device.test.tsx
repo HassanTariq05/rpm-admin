@@ -16,6 +16,7 @@ function Form() {
 const image = new File(['photo'], 'device.jpg', { type: 'image/jpeg' })
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false }))
   state.load.mockResolvedValue({ toDataURL: () => 'data:image/jpeg;base64,AA==' })
   state.scan.mockResolvedValue({
     fields: {
@@ -28,7 +29,10 @@ beforeEach(() => {
     textRead: true,
   })
 })
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
 it('reports an incomplete read when OCR finds a name without the identifiers', async () => {
   state.scan.mockResolvedValue({
     fields: { name: 'iBloodPressure' },

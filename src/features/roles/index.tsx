@@ -122,6 +122,10 @@ export function RolesPage() {
             label={t('roles')}
             data={query.data ?? []}
             columns={columns}
+            onRecordOpen={(record) => setEditor({ record })}
+            isRecordOpenDisabled={(record) =>
+              (!scope.isSuperAdmin && isReservedRole(record.name)) || !organizations.isSuccess
+            }
             actions={(record) => {
               const protectedRole = !scope.isSuperAdmin && isReservedRole(record.name)
               return (

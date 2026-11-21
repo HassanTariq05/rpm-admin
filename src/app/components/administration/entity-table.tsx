@@ -1,3 +1,4 @@
+import { RecordOpenButton } from './record-open-button'
 import { translate as t, useAppTranslation } from '@/i18n'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Button, Dropdown, Input, Table, TextField } from '@heroui/react'
@@ -37,11 +38,15 @@ export function EntityTable<T extends { id: string }>({
   actions,
   filter,
   toolbarContent,
+  onRecordOpen,
+  isRecordOpenDisabled,
 }: {
   data: T[]
   columns: EntityColumn<T>[]
   label: string
   actions: (record: T) => ReactNode
+  onRecordOpen?: (record: T) => void
+  isRecordOpenDisabled?: (record: T) => boolean
   toolbarContent?: ReactNode
   filter?: {
     label: string
@@ -212,7 +217,13 @@ export function EntityTable<T extends { id: string }>({
             </Table.Header>
             <Table.Body
               items={table.getRowModel().rows}
-              dependencies={[visibility, definitions, i18n.resolvedLanguage]}
+              dependencies={[
+                visibility,
+                definitions,
+                i18n.resolvedLanguage,
+                onRecordOpen,
+                isRecordOpenDisabled,
+              ]}
               renderEmptyState={() => (
                 <div className="p-12 text-center text-sm text-muted">
                   {search || filterValue !== 'all'
@@ -225,7 +236,22 @@ export function EntityTable<T extends { id: string }>({
                 <Table.Row id={row.id}>
                   {row.getVisibleCells().map((cell) => (
                     <Table.Cell key={cell.id} className="py-3 text-xs">
-                      {t(flexRender(cell.column.columnDef.cell, cell.getContext()))}
+                      {onRecordOpen && cell.column.id === definitions[0]?.id ? (
+                        <RecordOpenButton
+                          onOpen={() => onRecordOpen(row.original)}
+                          disabled={isRecordOpenDisabled?.(row.original)}
+                        >
+                          {definitions[0]?.render ? (
+                            flexRender(cell.column.columnDef.cell, cell.getContext())
+                          ) : (
+                            <span className="record-open-label">
+                              {t(flexRender(cell.column.columnDef.cell, cell.getContext()))}
+                            </span>
+                          )}
+                        </RecordOpenButton>
+                      ) : (
+                        t(flexRender(cell.column.columnDef.cell, cell.getContext()))
+                      )}
                     </Table.Cell>
                   ))}
                 </Table.Row>

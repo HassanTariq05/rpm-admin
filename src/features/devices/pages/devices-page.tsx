@@ -1,3 +1,4 @@
+import { RecordOpenButton } from '@/app/components/administration/record-open-button'
 import { useState, type ReactNode } from 'react'
 import { Button, Input, Tabs, TextField } from '@heroui/react'
 import {
@@ -17,7 +18,6 @@ import {
   Search,
   Thermometer,
   Wind,
-  UserRound,
   X,
 } from 'lucide-react'
 import { AdminPageHeader } from '@/app/components/administration/admin-page'
@@ -33,6 +33,7 @@ import {
 } from '../devices'
 import { DevicePicture } from '../components/device-picture'
 import { DeviceEditor } from '../components/device-editor'
+import { DevicePatientInfo } from '../components/device-patient-info'
 import { DeviceDetails } from '../components/device-details'
 import { DevicesSkeleton } from '../components/devices-skeleton'
 import { useDevices } from '@/hooks/use-devices'
@@ -63,26 +64,13 @@ function DeviceLogo({ company }: { company: string }) {
     </span>
   )
 }
-const pageSize = 8
+const pageSize = 16
 function InventoryStatus({ status }: { status: DeviceRecord['status'] }) {
   return (
     <span className={`device-status device-status-${status.toLowerCase()}`}>
       <span />
       {t(status)}
     </span>
-  )
-}
-function DevicePatientInfo() {
-  return (
-    <>
-      <span className="device-patient-avatar device-patient-unassigned" aria-hidden="true">
-        <UserRound size={16} />
-      </span>
-      <span className="device-patient-info">
-        <span className="device-patient-label">{t('Assigned patient')}</span>
-        <span className="device-patient-name">{t('Not provided')}</span>
-      </span>
-    </>
   )
 }
 function DeviceList({
@@ -112,11 +100,10 @@ function DeviceList({
           {devices.map((device) => (
             <tr key={device.id}>
               <td>
-                <button
-                  type="button"
+                <RecordOpenButton
                   className="device-list-name"
-                  onClick={() => onOpen(device.id)}
-                  aria-label={t('View {{value0}}, IMEI {{value1}}', {
+                  onOpen={() => onOpen(device.id)}
+                  label={t('View {{value0}}, IMEI {{value1}}', {
                     value0: device.name,
                     value1: device.imei || t('Not provided'),
                   })}
@@ -125,16 +112,15 @@ function DeviceList({
                     <DevicePicture type={device.type} />
                   </span>
                   <span>
-                    <strong>{device.model ? device.name : t(device.name)}</strong>
-                    <small>
-                      {t('Model')} {device.model || '—'}
-                    </small>
+                    <strong className="record-open-label">
+                      {device.model ? device.name : t(device.name)}
+                    </strong>
                   </span>
-                </button>
+                </RecordOpenButton>
               </td>
               <td>
                 <div className="device-list-patient">
-                  <DevicePatientInfo />
+                  <DevicePatientInfo device={device.raw} />
                 </div>
               </td>
               <td>
@@ -219,7 +205,13 @@ function FilterTabs({
     </Tabs>
   )
 }
-export function DevicesPage() {
+export function DevicesPage({
+  linkedDeviceId,
+  onLinkedDeviceClose,
+}: {
+  linkedDeviceId?: string
+  onLinkedDeviceClose?: () => void
+} = {}) {
   useAppTranslation()
   const query = useDevices()
   const devices = (query.data ?? []).map(deviceView)
@@ -231,6 +223,11 @@ export function DevicesPage() {
   const [page, setPage] = useState(1)
   const [view, setView] = useState<DeviceViewMode>(readDeviceView)
   const [details, setDetails] = useState<string | null>(null)
+  const activeDetails = details ?? linkedDeviceId
+  const closeDetails = () => {
+    setDetails(null)
+    if (linkedDeviceId) onLinkedDeviceClose?.()
+  }
   const [editor, setEditor] = useState<ApiDevice | 'new' | null>(null)
   const filtered = filterDevices(devices, company, type, search)
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
@@ -439,9 +436,6 @@ export function DevicesPage() {
                     <div className="device-card-body">
                       <p className="device-category">{t(device.type)}</p>
                       <h3>{device.model ? device.name : t(device.name)}</h3>
-                      <p className="device-card-model">
-                        {t('Model')} {device.model}
-                      </p>
                       <div className="device-imei">
                         <span>
                           <Barcode size={15} />
@@ -451,7 +445,7 @@ export function DevicesPage() {
                       </div>
                     </div>
                     <div className="device-card-patient">
-                      <DevicePatientInfo />
+                      <DevicePatientInfo device={device.raw} clickable={false} />
                     </div>
                   </button>
                 </article>
@@ -513,13 +507,15 @@ export function DevicesPage() {
           )}
         </FilterTabs>
       </FilterTabs>
-      {details && (
+      {activeDetails && (
         <DeviceDetails
-          id={details}
-          onClose={() => setDetails(null)}
+          key={activeDetails}
+          id={activeDetails}
+          patient={query.data?.find((record) => record.id === activeDetails)?.patient}
+          onClose={closeDetails}
           onEdit={(record) => {
             setEditor(record)
-            setDetails(null)
+            closeDetails()
           }}
         />
       )}

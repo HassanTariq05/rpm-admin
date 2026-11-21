@@ -10,9 +10,9 @@ export function SessionTimeoutDialog() {
   return (
     <Modal.Backdrop isOpen={!!reason} isDismissable={false} isKeyboardDismissDisabled>
       <Modal.Container size="sm" placement="center">
-        <Modal.Dialog>
-          <Modal.Header>
-            <Clock3 size={24} className="mb-3 text-warning" aria-hidden="true" />
+        <Modal.Dialog className="app-dialog">
+          <Modal.Header className="dialog-inline-heading">
+            <Clock3 size={18} className="text-warning" aria-hidden="true" />
             <Modal.Heading>{t('Session expired')}</Modal.Heading>
           </Modal.Header>
           <Modal.Body>

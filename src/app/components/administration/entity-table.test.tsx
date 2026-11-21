@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { EntityTable, type EntityColumn } from '@/app/components/administration/entity-table'
 
 type Record = { id: string; name: string; count: number }
@@ -75,4 +75,23 @@ describe('administration table', () => {
     const rows = within(screen.getByRole('grid')).getAllByRole('row')
     expect(within(rows[1]!).getByRole('rowheader')).toHaveTextContent('Second')
   })
+})
+
+it('opens the selected first-column record and preserves edit restrictions', async () => {
+  const open = vi.fn()
+  render(
+    <EntityTable
+      data={records}
+      label="records"
+      columns={columns}
+      actions={actions}
+      onRecordOpen={open}
+      isRecordOpenDisabled={(row) => row.id === '2'}
+    />,
+  )
+  fireEvent.click(await screen.findByRole('button', { name: 'First' }))
+  expect(open).toHaveBeenCalledWith(records[0])
+  expect(screen.getByRole('button', { name: 'Second' })).toBeDisabled()
+  fireEvent.click(screen.getByRole('button', { name: 'Second' }))
+  expect(open).toHaveBeenCalledTimes(1)
 })

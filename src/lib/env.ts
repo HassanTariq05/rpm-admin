@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 const envSchema = z.object({
+  googleMapsApiKey: z.string().optional(),
   appName: z.string().default('Remote Patient Monitoring'),
   apiBaseUrl: z
     .string()
@@ -13,6 +14,7 @@ const envSchema = z.object({
     .default('wss://tggrlk6xmd.execute-api.eu-north-1.amazonaws.com/production'),
 })
 export const env = envSchema.parse({
+  googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || undefined,
   appName: import.meta.env.VITE_APP_NAME,
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
   readingsWebsocketUrl: import.meta.env.VITE_READINGS_WEBSOCKET_URL,

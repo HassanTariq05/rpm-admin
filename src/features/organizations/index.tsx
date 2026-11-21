@@ -107,6 +107,7 @@ export function OrganizationsPage() {
             label={t('organizations')}
             data={query.data ?? []}
             columns={columns}
+            onRecordOpen={(record) => setEditor({ record })}
             filter={{
               label: '',
               options: [

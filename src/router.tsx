@@ -10,12 +10,10 @@ import {
 
 import { useAuthStore } from '@/stores/auth-store'
 import { AppShell } from '@/app/layout/app-shell'
-// import { DashboardPage } from '@/features/dashboard/pages/dashboard-page'
 import { PatientsPage } from '@/features/patients/pages/patients-page'
 import { DeviceReadingsPage } from '@/features/device-readings'
 import { OrdersPage } from '@/features/orders/pages/orders-page'
 import { DevicesPage } from '@/features/devices/pages/devices-page'
-import { ReportsPage } from '@/features/reports/pages/reports-page'
 import { UsersPage } from '@/features/users'
 import { OrganizationsPage } from '@/features/organizations'
 import { RolesPage } from '@/features/roles'
@@ -26,7 +24,6 @@ import RegisterPage from '@/features/auth/register/page'
 import ForgotPasswordPage from '@/features/auth/forgot-password/page'
 import OtpPage from '@/features/auth/otp/page'
 import PasswordResetPage from '@/features/auth/password-reset/page'
-
 function NotFoundPage() {
   useAppTranslation()
 
@@ -38,22 +35,22 @@ function NotFoundPage() {
         {t('The route may have moved, or the URL may be incorrect.')}
       </p>
       <Link
-        to="/"
+        to="/patients"
         className="mt-6 inline-flex rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700"
       >
-        {t(' Back to Device Readings ')}
+        {t('Back to Patients')}
       </Link>
     </div>
   )
 }
 
-// Root: no dashboard shell.
+// Root routes sit outside the authenticated shell.
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
   notFoundComponent: NotFoundPage,
 })
 
-// Dashboard layout: only dashboard routes render inside AppShell.
+// Authenticated workspace layout.
 const appLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'app-layout',
@@ -67,25 +64,67 @@ const appLayoutRoute = createRoute({
   ),
 })
 
-// Dashboard pages
 const indexRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/',
-  // component: DashboardPage,
-  component: DeviceReadingsPage,
+  beforeLoad: () => {
+    throw redirect({ to: '/patients', replace: true })
+  },
 })
 
 const patientsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/patients',
-  component: PatientsPage,
+  validateSearch: (search: Record<string, unknown>): { patientId?: string } => ({
+    patientId:
+      typeof search.patientId === 'string' &&
+      search.patientId.trim().length > 0 &&
+      search.patientId.length <= 200
+        ? search.patientId.trim()
+        : undefined,
+  }),
+  component: PatientsRoutePage,
 })
+
+function PatientsRoutePage() {
+  const { patientId } = patientsRoute.useSearch()
+  const navigate = patientsRoute.useNavigate()
+  return (
+    <PatientsPage
+      linkedPatientId={patientId}
+      onLinkedPatientClose={() => {
+        void navigate({ search: {}, replace: true })
+      }}
+    />
+  )
+}
 
 const devicesRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/devices',
-  component: DevicesPage,
+  validateSearch: (search: Record<string, unknown>): { deviceId?: string } => ({
+    deviceId:
+      typeof search.deviceId === 'string' &&
+      search.deviceId.trim().length > 0 &&
+      search.deviceId.length <= 200
+        ? search.deviceId.trim()
+        : undefined,
+  }),
+  component: DevicesRoutePage,
 })
+
+function DevicesRoutePage() {
+  const { deviceId } = devicesRoute.useSearch()
+  const navigate = devicesRoute.useNavigate()
+  return (
+    <DevicesPage
+      linkedDeviceId={deviceId}
+      onLinkedDeviceClose={() => {
+        void navigate({ search: {}, replace: true })
+      }}
+    />
+  )
+}
 
 const ordersRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
@@ -96,15 +135,7 @@ const ordersRoute = createRoute({
 const deviceReadingsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/device-readings',
-  beforeLoad: () => {
-    throw redirect({ to: '/', replace: true })
-  },
-})
-
-const reportsRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
-  path: '/reports',
-  component: ReportsPage,
+  component: DeviceReadingsPage,
 })
 
 const usersRoute = createRoute({
@@ -171,7 +202,6 @@ const routeTree = rootRoute.addChildren([
     devicesRoute,
     ordersRoute,
     deviceReadingsRoute,
-    reportsRoute,
     usersRoute,
     organizationsRoute,
     rolesRoute,

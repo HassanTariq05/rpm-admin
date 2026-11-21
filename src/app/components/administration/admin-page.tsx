@@ -72,7 +72,9 @@ export function AdminRecordName({ id, name }: { id: string; name: string }) {
   return (
     <span className="flex items-center gap-2">
       <span className={`admin-avatar admin-tone-${tone}`}>{t(getInitials(name))}</span>
-      <span className="whitespace-nowrap font-semibold text-foreground">{name}</span>
+      <span className="record-open-label whitespace-nowrap font-semibold text-foreground">
+        {name}
+      </span>
     </span>
   )
 }

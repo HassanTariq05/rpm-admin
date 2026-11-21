@@ -108,3 +108,23 @@ describe('device assignment API contract', () => {
     ).rejects.toBeInstanceOf(DeviceResponseError)
   })
 })
+
+it('accepts the embedded patient summary and nullable patient on device lists', async () => {
+  const patient = {
+    id: 'f8d5c3ab-5402-4ecb-a393-e8650d86b984',
+    firstName: 'Hassan',
+    lastName: 'Tariq',
+    mrn: 'MRN-12345',
+    gender: 'male',
+    isActive: true,
+  }
+  const { service } = setup({
+    devices: [
+      { ...deviceFixture, patientId: patient.id, patient },
+      { ...deviceFixture, patientId: null, patient: null },
+    ],
+  })
+  const records = await service.getAll()
+  expect(records[0]!.patient).toEqual(patient)
+  expect(records[1]!.patient).toBeNull()
+})

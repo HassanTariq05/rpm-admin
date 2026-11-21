@@ -71,7 +71,11 @@ it('displays mixed-provider readings, missing patients, and complete record deta
   expect(table.getAllByRole('img', { name: 'Smart Meter' })).toHaveLength(3)
   expect(table.getByText('124 / 86')).toBeInTheDocument()
   expect(table.getByText('120 / 80')).toBeInTheDocument()
-  await user.click(screen.getByRole('button', { name: 'View reading 5' }))
+  await user.click(
+    within(screen.getByText('Reading #5').closest('tr')!)
+      .getByRole('rowheader')
+      .querySelector('button')!,
+  )
   const dialog = within(screen.getByRole('dialog'))
   expect(dialog.queryByText('Complete source payload')).not.toBeInTheDocument()
   expect(dialog.queryByText(/Full precision is preserved/)).not.toBeInTheDocument()

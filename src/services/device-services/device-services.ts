@@ -13,6 +13,15 @@ export const deviceRecordSchema = z
     vendor: text,
     deviceType: text,
     patientId: z.string().uuid().nullish(),
+    patient: z
+      .object({
+        id: z.string().uuid(),
+        firstName: text,
+        lastName: text,
+        mrn: text,
+      })
+      .passthrough()
+      .nullish(),
     createdAt: text,
     updatedAt: text,
     isActive: z.boolean(),

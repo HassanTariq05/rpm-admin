@@ -130,6 +130,8 @@ export function UsersPage() {
             label={t('users')}
             data={query.data ?? []}
             columns={columns}
+            onRecordOpen={(record) => setEditor({ record })}
+            isRecordOpenDisabled={() => !organizations.isSuccess}
             filter={{
               label: '',
               options: ['active', 'inactive'].map((status) => ({

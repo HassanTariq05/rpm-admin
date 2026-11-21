@@ -5,16 +5,14 @@ import {
   type ApiDevice,
   type DeviceWrite,
 } from '@/services/device-services/device-services'
-export const deviceTypes = [
-  'Blood pressure',
-  'Blood glucose',
-  'Weight',
-  'Oximeter',
-  'Temperature',
-] as const
-export const companies = ['SmartMeter', 'Pylo'] as const
-export type DeviceType = (typeof deviceTypes)[number]
-export type Company = (typeof companies)[number]
+import {
+  companies,
+  deviceTypes,
+  typeValues,
+  type DeviceType,
+  type Company,
+} from '@/lib/device-catalog'
+export { companies, deviceTypes, typeValues, type DeviceType, type Company }
 export type DeviceRecord = {
   id: string
   name: string
@@ -40,13 +38,6 @@ const typeAliases: Record<string, DeviceType> = {
   pulse_oximetry: 'Oximeter',
   thermometer: 'Temperature',
   temperature: 'Temperature',
-}
-export const typeValues: Record<DeviceType, string> = {
-  'Blood pressure': 'bp-cuff',
-  'Blood glucose': 'glucometer',
-  Weight: 'scale',
-  Oximeter: 'oximeter',
-  Temperature: 'thermometer',
 }
 export function normalizeCompany(value?: string | null): string {
   const key = value

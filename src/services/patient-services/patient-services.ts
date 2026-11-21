@@ -13,11 +13,21 @@ export const patientRecordSchema = z
     lastName: text,
     dob: text,
     gender: text,
+    genderIdentity: text,
+    preferredLang: text,
+    ethnicity: text,
+    race: text,
+    otherDemographics: text,
+    ssn: text,
+    height: z.number().nullish(),
+    weight: z.number().nullish(),
     phone: text,
     email: text,
     address: text,
     bloodGroup: text,
     allergies: text,
+    notes: text,
+    initialBMI: z.number().nullish(),
     externalId: text,
     organisationId: z.string().uuid().nullish(),
     isActive: z.boolean(),
@@ -25,6 +35,16 @@ export const patientRecordSchema = z
     updatedAt: text,
   })
   .passthrough()
+  .transform((record) => {
+    const legacyLanguage = record.preferredLanguage
+    if (
+      record.preferredLang === undefined &&
+      (typeof legacyLanguage === 'string' || legacyLanguage === null)
+    ) {
+      return { ...record, preferredLang: legacyLanguage }
+    }
+    return record
+  })
 export type PatientRecord = z.infer<typeof patientRecordSchema>
 export interface PatientWrite {
   nationalId?: string | null
@@ -33,11 +53,21 @@ export interface PatientWrite {
   lastName?: string | null
   dob?: string | null
   gender?: string | null
+  genderIdentity?: string | null
+  preferredLang?: string | null
+  ethnicity?: string | null
+  race?: string | null
+  otherDemographics?: string | null
+  ssn?: string | null
+  height?: number | null
+  weight?: number | null
   phone?: string | null
   email?: string | null
   address?: string | null
   bloodGroup?: string | null
   allergies?: string | null
+  notes?: string | null
+  initialBMI?: number | null
   externalId?: string | null
   organisationId?: string | null
   isActive?: boolean

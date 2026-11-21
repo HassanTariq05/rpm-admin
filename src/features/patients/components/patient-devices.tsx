@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { Button, Dropdown } from '@heroui/react'
 import {
   Barcode,
+  Eye,
   HeartPulse,
   Droplet,
   Scale,
@@ -24,6 +26,7 @@ import { patientName } from '../patients'
 
 export function PatientDevices({ patient }: { patient: PatientRecord }) {
   useAppTranslation()
+  const navigate = useNavigate()
   const query = usePatientDevices(patient.id)
   const unassign = useUnassignDevice()
   const scope = useAdminScope()
@@ -70,7 +73,7 @@ export function PatientDevices({ patient }: { patient: PatientRecord }) {
           <p>{t('Use Assign Device from patient actions to connect a device.')}</p>
         </div>
       ) : (
-        <div className="patient-device-grid">
+        <ul className="patient-device-list" aria-label={t('Assigned devices')}>
           {devices.map((raw) => {
             const device = deviceView(raw)
             const Icon =
@@ -84,11 +87,31 @@ export function PatientDevices({ patient }: { patient: PatientRecord }) {
                 } as Record<string, typeof HeartPulse>
               )[device.type] ?? MonitorSmartphone
             return (
-              <article key={raw.id} className="patient-device-card">
-                <div className="patient-device-card-top">
-                  <span className="patient-device-card-icon">
-                    <Icon size={23} />
+              <li key={raw.id} className="patient-device-row">
+                <div className="patient-device-identity">
+                  <span className="patient-device-row-icon" aria-hidden="true">
+                    <Icon size={19} />
                   </span>
+                  <div>
+                    <Link
+                      className="patient-device-name"
+                      to="/devices"
+                      search={{ deviceId: raw.id }}
+                    >
+                      {raw.deviceModel ? device.name : t(device.name)}
+                    </Link>
+                    <p className="patient-device-vendor">{t(device.company)}</p>
+                  </div>
+                </div>
+                <span className="patient-device-type">{t(device.type)}</span>
+                <div className="patient-device-identifier">
+                  <span>
+                    <Barcode size={13} aria-hidden="true" />
+                    {t('IMEI')}
+                  </span>
+                  <strong>{device.imei || '—'}</strong>
+                </div>
+                <div className="patient-device-row-actions">
                   <StatusBadge status={device.status} />
                   <Dropdown>
                     <Button
@@ -104,6 +127,15 @@ export function PatientDevices({ patient }: { patient: PatientRecord }) {
                     <Dropdown.Popover>
                       <Dropdown.Menu aria-label={t('Device actions')}>
                         <Dropdown.Item
+                          id="view"
+                          onAction={() => {
+                            void navigate({ to: '/devices', search: { deviceId: raw.id } })
+                          }}
+                        >
+                          <Eye size={15} />
+                          {t('View device')}
+                        </Dropdown.Item>
+                        <Dropdown.Item
                           id="unassign"
                           isDisabled={!canManage || unassign.isPending}
                           onAction={() => {
@@ -118,27 +150,10 @@ export function PatientDevices({ patient }: { patient: PatientRecord }) {
                     </Dropdown.Popover>
                   </Dropdown>
                 </div>
-                <h4>{device.name}</h4>
-                <p className="patient-device-kind">
-                  {t(device.type)} · {t(device.company)}
-                </p>
-                <dl>
-                  <div>
-                    <dt>
-                      <Barcode size={14} />
-                      {t('IMEI')}
-                    </dt>
-                    <dd>{device.imei || '—'}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('External ID')}</dt>
-                    <dd>{device.externalDeviceId || '—'}</dd>
-                  </div>
-                </dl>
-              </article>
+              </li>
             )
           })}
-        </div>
+        </ul>
       )}
       {selected && (
         <FormModal

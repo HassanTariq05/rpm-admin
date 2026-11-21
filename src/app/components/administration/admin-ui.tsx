@@ -85,6 +85,8 @@ export function FormTextField({
   name,
   label,
   type = 'text',
+  step,
+  allowExponent = true,
   multiline = false,
   disabled = false,
   required = false,
@@ -95,6 +97,8 @@ export function FormTextField({
   name: string
   label: string
   type?: string
+  step?: number | 'any'
+  allowExponent?: boolean
   multiline?: boolean
   disabled?: boolean
   required?: boolean
@@ -113,7 +117,9 @@ export function FormTextField({
       isRequired={required}
       type={passwordToggle && visible ? 'text' : type}
       value={field.value}
-      onChange={(value) => void helpers.setValue(value)}
+      onChange={(value) => {
+        if (allowExponent || !/e/i.test(value)) void helpers.setValue(value)
+      }}
       onBlur={field.onBlur}
       isInvalid={!!error}
       isDisabled={disabled}
@@ -147,6 +153,15 @@ export function FormTextField({
           <Input
             className={cn('w-full', icon && 'pl-10', passwordToggle && 'pr-11')}
             placeholder={t(placeholder)}
+            step={step}
+            onKeyDown={(event) => {
+              if (!allowExponent && /^[eE]$/.test(event.key)) event.preventDefault()
+            }}
+            onPaste={(event) => {
+              if (!allowExponent && /e/i.test(event.clipboardData.getData('text'))) {
+                event.preventDefault()
+              }
+            }}
             autoComplete={type === 'password' ? 'new-password' : 'off'}
           />
           {passwordToggle && (
@@ -323,7 +338,7 @@ export function FormModal({
         placement="center"
         scroll={scroll}
       >
-        <Modal.Dialog className={cn('bg-surface text-foreground', dialogClassName)}>
+        <Modal.Dialog className={cn('app-dialog bg-surface text-foreground', dialogClassName)}>
           <Modal.Header>
             {headerIcon ? (
               <div className="flex items-center gap-4">
@@ -429,12 +444,14 @@ export function StatusPill({ status }: { status?: string }) {
 
 export function CheckField({
   label,
+  icon,
   selected,
   indeterminate,
   disabled,
   onChange,
 }: {
   label: string
+  icon?: ReactNode
   selected: boolean
   indeterminate?: boolean
   disabled?: boolean
@@ -453,7 +470,10 @@ export function CheckField({
         <Checkbox.Control>
           <Checkbox.Indicator />
         </Checkbox.Control>
-        <Label className="text-xs">{t(label)}</Label>
+        <Label className="flex items-center gap-2 text-xs">
+          {icon && <span aria-hidden="true">{icon}</span>}
+          {t(label)}
+        </Label>
       </Checkbox.Content>
     </Checkbox>
   )

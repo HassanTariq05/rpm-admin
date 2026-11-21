@@ -3,13 +3,15 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { AppShell } from './app-shell'
 import { useAuthStore } from '@/stores/auth-store'
 
+const route = vi.hoisted(() => ({ pathname: '/patients' }))
+
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => (
     <a href={to} {...props}>
       {children}
     </a>
   ),
-  useLocation: () => ({ pathname: '/' }),
+  useLocation: () => route,
   useNavigate: () => vi.fn(),
 }))
 vi.mock('@/app/context/preferences-context', () => ({
@@ -24,6 +26,7 @@ vi.mock('@/app/components/theme-picker', () => ({ ThemePicker: () => null }))
 
 afterEach(() => {
   cleanup()
+  route.pathname = '/patients'
   useAuthStore.getState().auth.setUser(null)
 })
 
@@ -59,13 +62,34 @@ it.each([
       if (allowed) expect(link).toBeInTheDocument()
       else expect(link).not.toBeInTheDocument()
     }
-    expect(navigation.getByRole('link', { name: 'Device Readings' })).toHaveAttribute('href', '/')
+    expect(navigation.getByRole('link', { name: 'Device Readings' })).toHaveAttribute(
+      'href',
+      '/device-readings',
+    )
+    expect(navigation.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument()
     expect(navigation.getByRole('link', { name: 'Patients' })).toHaveAttribute('href', '/patients')
     expect(navigation.getByRole('link', { name: 'Devices' })).toHaveAttribute('href', '/devices')
-    for (const label of ['Overview', 'Reports']) {
-      expect(navigation.queryByRole('link', { name: label })).not.toBeInTheDocument()
-    }
+    expect(navigation.queryByRole('link', { name: 'Reports' })).not.toBeInTheDocument()
+    expect(navigation.queryByRole('link', { name: 'Overview' })).not.toBeInTheDocument()
   }
   if (allowed) expect(screen.getByText('Administration')).toBeInTheDocument()
   else expect(screen.queryByText('Administration')).not.toBeInTheDocument()
+})
+
+it('links to the parent page from the role details breadcrumb', () => {
+  route.pathname = '/manage-roles/role-1'
+  render(
+    <AppShell>
+      <p>Page content</p>
+    </AppShell>,
+  )
+  const breadcrumb = within(screen.getByRole('navigation', { name: 'Breadcrumb' }))
+  expect(breadcrumb.getByRole('link', { name: 'Manage roles' })).toHaveAttribute(
+    'href',
+    '/manage-roles',
+  )
+  expect(breadcrumb.getByRole('link', { name: 'Role details' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  )
 })

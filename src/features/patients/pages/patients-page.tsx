@@ -1,3 +1,4 @@
+import { RecordOpenButton } from '@/app/components/administration/record-open-button'
 import { useState } from 'react'
 import { Button, Dropdown, Input, TextField } from '@heroui/react'
 import {
@@ -34,8 +35,8 @@ import { useAdminScope } from '@/hooks/use-administration'
 import { useAuthStore } from '@/stores/auth-store'
 import type { PatientRecord } from '@/services/patient-services/patient-services'
 import { PatientAssignDeviceDialog } from '../components/patient-assign-device-dialog'
-import { PatientDetails } from '../components/patient-details'
-import { PatientEditor } from '../components/patient-editor'
+import { LinkedPatientDetails } from '../components/linked-patient-details'
+import { PatientEditDialog, PatientEditor } from '../components/patient-editor'
 import { PatientsSkeleton, PatientSkeletonBlock } from '../components/patients-skeleton'
 import { patientAge, patientName, patientErrorMessage } from '../patients'
 import { StatusBadge } from '@/app/components/status-badge'
@@ -51,7 +52,13 @@ const groups = ['All patients', 'Active', 'Inactive'] as const
 const groupIcons = [UsersRound, ShieldCheck, UserRound]
 const tones = ['violet', 'teal', 'rose']
 
-export function PatientsPage() {
+export function PatientsPage({
+  linkedPatientId,
+  onLinkedPatientClose,
+}: {
+  linkedPatientId?: string
+  onLinkedPatientClose?: () => void
+} = {}) {
   useAppTranslation()
 
   const query = usePatients()
@@ -83,7 +90,7 @@ export function PatientsPage() {
   const [pageSize, setPageSize] = useState(10)
   const [exporting, setExporting] = useState(false)
   const [editor, setEditor] = useState<{ record?: PatientRecord } | null>(null)
-  const [viewing, setViewing] = useState<PatientRecord | null>(null)
+  const [viewingId, setViewingId] = useState<string | null>(null)
   const [assigning, setAssigning] = useState<PatientRecord | null>(null)
   const [confirmation, setConfirmation] = useState('')
   const [deleting, setDeleting] = useState<(typeof patients)[number] | null>(null)
@@ -106,6 +113,13 @@ export function PatientsPage() {
     .sort((a, b) => a.name.localeCompare(b.name) * (descending ? -1 : 1))
   const currentPage = Math.min(page, Math.max(0, Math.ceil(filtered.length / pageSize) - 1))
   const visible = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize)
+  const detailId = viewingId ?? linkedPatientId
+
+  function onPatientSaved() {
+    setGroup('All patients')
+    setSearch('')
+    setPage(0)
+  }
 
   async function exportPatients(format: 'csv' | 'xlsx') {
     setExporting(true)
@@ -348,12 +362,17 @@ export function PatientsPage() {
                         className={`patient-tone-${tones[groups.indexOf(patient.status)]}`}
                       >
                         <td>
-                          <div className="patient-identity">
-                            <span className="patient-avatar">{t(getInitials(patient.name))}</span>
+                          <RecordOpenButton
+                            className="patient-identity"
+                            onOpen={() => setViewingId(patient.id)}
+                          >
+                            <span className="patient-avatar" aria-hidden="true">
+                              {t(getInitials(patient.name))}
+                            </span>
                             <div>
-                              <strong>{patient.name}</strong>
+                              <strong className="record-open-label">{patient.name}</strong>
                             </div>
-                          </div>
+                          </RecordOpenButton>
                         </td>
                         <td>
                           <span className="patient-mrn">{patient.mrn || '—'}</span>
@@ -450,10 +469,7 @@ export function PatientsPage() {
                               <Dropdown.Menu
                                 aria-label={t('Actions for {{value0}}', { value0: patient.name })}
                               >
-                                <Dropdown.Item
-                                  id="view"
-                                  onAction={() => setViewing(patient.record)}
-                                >
+                                <Dropdown.Item id="view" onAction={() => setViewingId(patient.id)}>
                                   <Eye size={15} />
                                   {t('View patient')}
                                 </Dropdown.Item>
@@ -588,24 +604,28 @@ export function PatientsPage() {
           onClose={() => setAssigning(null)}
         />
       )}
-      {viewing && (
-        <PatientDetails
-          record={viewing}
-          organization={organizationNames.get(viewing.organisationId ?? '')}
-          onClose={() => setViewing(null)}
-        />
-      )}
-      {editor && (
-        <PatientEditor
-          record={editor.record}
-          onClose={() => setEditor(null)}
-          onSaved={() => {
-            setGroup('All patients')
-            setSearch('')
-            setPage(0)
+      {detailId && (
+        <LinkedPatientDetails
+          key={detailId}
+          id={detailId}
+          organizationNames={organizationNames}
+          onClose={() => {
+            if (viewingId) setViewingId(null)
+            else onLinkedPatientClose?.()
           }}
         />
       )}
+      {editor &&
+        (editor.record ? (
+          <PatientEditDialog
+            key={editor.record.id}
+            patient={editor.record}
+            onClose={() => setEditor(null)}
+            onSaved={onPatientSaved}
+          />
+        ) : (
+          <PatientEditor onClose={() => setEditor(null)} onSaved={onPatientSaved} />
+        ))}
       {deleting && (
         <FormModal
           open
