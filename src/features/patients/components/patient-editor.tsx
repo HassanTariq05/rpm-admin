@@ -1,5 +1,14 @@
 import { useDeviceAssignmentCandidate } from '@/hooks/use-device-assignment-candidate'
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import { PatientBasicSection } from './patient-basic-section'
 import { PatientBirthDateField } from './patient-birth-date-field'
 import { PatientAddressField } from './patient-address-field'
@@ -343,7 +352,16 @@ export function PatientEditor({
   const [selectedTab, setSelectedTab] = useState<PatientTab>('basic')
   const [assignmentVisited, setAssignmentVisited] = useState(false)
   const [selectedAddress, setSelectedAddress] = useState<AddressDetails | null>(null)
-  const [addressResolving, setAddressResolving] = useState(false)
+  const [resolvingAddresses, setResolvingAddresses] = useState<ReadonlySet<string>>(() => new Set())
+  const onAddressResolvingChange = useCallback((key: string, pending: boolean) => {
+    setResolvingAddresses((current) => {
+      if (current.has(key) === pending) return current
+      const next = new Set(current)
+      if (pending) next.add(key)
+      else next.delete(key)
+      return next
+    })
+  }, [])
   const scrollToAllergies = useRef(false)
   const [initialContacts] = useState(() => {
     return contacts?.length ? contacts.map(patientContactValues) : [patientContactValues()]
@@ -417,7 +435,7 @@ export function PatientEditor({
       validationSchema={validationSchema}
       validateOnMount
       onSubmit={async (values) => {
-        if (!owned || pending || saving.current) return
+        if (!owned || pending || saving.current || resolvingAddresses.size > 0) return
         saving.current = true
         setContactError(false)
         const payload = patientPayload(values, record)
@@ -496,7 +514,7 @@ export function PatientEditor({
               pending={pending || isSubmitting}
               disabled={
                 !owned ||
-                addressResolving ||
+                resolvingAddresses.size > 0 ||
                 isValidating ||
                 candidate.lookup.isFetching ||
                 (scope.isSuperAdmin && (organizations.isPending || organizations.isError))
@@ -697,7 +715,40 @@ export function PatientEditor({
                         required={false}
                         options={choiceOptions(bloodGroups, record?.bloodGroup)}
                       />
+                      <PatientChoice
+                        name="knownAllergies"
+                        label="Any Known Allergies"
+                        icon={<TriangleAlert size={17} className="admin-icon-amber" />}
+                        options={[
+                          { id: 'yes', label: t('Yes') },
+                          { id: 'no', label: t('No') },
+                        ]}
+                        disabled={pending || isSubmitting}
+                        onValueChange={(value) => {
+                          scrollToAllergies.current = value === 'yes'
+                        }}
+                      />
                     </div>
+                    {values.knownAllergies === 'yes' && (
+                      <div
+                        className="scroll-mt-2"
+                        ref={(field) => {
+                          if (field && scrollToAllergies.current) {
+                            scrollToAllergies.current = false
+                            scrollPatientFieldIntoView(field)
+                          }
+                        }}
+                      >
+                        <FormTextField
+                          name="allergies"
+                          label="Allergies"
+                          placeholder="Enter Allergies"
+                          icon={<TriangleAlert size={17} className="admin-icon-rose" />}
+                          multiline
+                          required
+                        />
+                      </div>
+                    )}
                   </PatientBasicSection>
                   <PatientBasicSection title="Demographics">
                     <div className="patient-basic-row patient-basic-row--three">
@@ -733,44 +784,9 @@ export function PatientEditor({
                       icon={<FileText size={17} className="admin-icon-blue" />}
                     />
                   </PatientBasicSection>
-                  <PatientBasicSection title="Status and allergies">
-                    <div className="patient-basic-row patient-basic-row--two">
-                      <PatientChoice
-                        name="knownAllergies"
-                        label="Any Known Allergies"
-                        icon={<TriangleAlert size={17} className="admin-icon-amber" />}
-                        options={[
-                          { id: 'yes', label: t('Yes') },
-                          { id: 'no', label: t('No') },
-                        ]}
-                        disabled={pending || isSubmitting}
-                        onValueChange={(value) => {
-                          scrollToAllergies.current = value === 'yes'
-                        }}
-                      />
-                      <FormStatusField disabled={pending} />
-                    </div>
-                    {values.knownAllergies === 'yes' && (
-                      <div
-                        className="scroll-mt-2"
-                        ref={(field) => {
-                          if (field && scrollToAllergies.current) {
-                            scrollToAllergies.current = false
-                            scrollPatientFieldIntoView(field)
-                          }
-                        }}
-                      >
-                        <FormTextField
-                          name="allergies"
-                          label="Allergies"
-                          placeholder="Enter Allergies"
-                          icon={<TriangleAlert size={17} className="admin-icon-rose" />}
-                          multiline
-                          required
-                        />
-                      </div>
-                    )}
-                  </PatientBasicSection>
+                  <div className="patient-basic-row patient-basic-row--three">
+                    <FormStatusField disabled={pending} />
+                  </div>
                   {!owned && (
                     <p role="alert" className="text-sm text-danger">
                       {t('You do not have permission to manage these patients.')}
@@ -799,7 +815,7 @@ export function PatientEditor({
                       savedAddress={addressFields.address}
                       selected={selectedAddress}
                       onSelect={setSelectedAddress}
-                      onResolvingChange={setAddressResolving}
+                      onResolvingChange={onAddressResolvingChange}
                       disabled={pending || isSubmitting}
                     />
                   </div>
@@ -808,7 +824,12 @@ export function PatientEditor({
                       {t('Some contact changes could not be saved. Save again to retry.')}
                     </p>
                   )}
-                  <PatientContactsFields savedContacts={savedContacts} />
+                  <PatientContactsFields
+                    savedContacts={savedContacts}
+                    patientSavedAddress={addressFields.address}
+                    patientSelectedAddress={selectedAddress}
+                    onAddressResolvingChange={onAddressResolvingChange}
+                  />
                 </Tabs.Panel>
                 <Tabs.Panel id="notes" className="patient-tab-panel">
                   <Suspense fallback={<p className="text-sm text-muted">{t('Loading editor…')}</p>}>

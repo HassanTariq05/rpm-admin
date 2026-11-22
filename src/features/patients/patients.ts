@@ -1,5 +1,6 @@
 import { joinPhoneNumber } from '@/features/users/phone-number'
 import axios from 'axios'
+import type { AddressDetails } from '@/services/address-services/address-services'
 import {
   PatientResponseError,
   type PatientRecord,
@@ -91,6 +92,7 @@ export type PatientContactValues = Record<
   contactType: PatientContact['contactType']
   key: string
   sameAsPatientAddress: boolean
+  addressDetails?: AddressDetails | null
 }
 
 export function patientContactValues(contact?: PatientContact): PatientContactValues {
@@ -179,10 +181,6 @@ export function patientAddressFields(record?: Pick<PatientRecord, 'address' | 'a
   if (record?.addressUnitNo != null) return { address, addressUnitNo: record.addressUnitNo }
   const [street = '', ...unitLines] = address.split(/\r?\n/)
   return { address: street, addressUnitNo: unitLines.join(', ') }
-}
-
-export function patientAddress(values: Pick<PatientValues, 'address' | 'addressUnitNo'>) {
-  return [values.address.trim(), values.addressUnitNo.trim()].filter(Boolean).join('\n')
 }
 
 export function formatPatientSsn(value: string) {

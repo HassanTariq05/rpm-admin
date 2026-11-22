@@ -1,13 +1,14 @@
-import { Button, Label, TextArea, TextField } from '@heroui/react'
+import { Button } from '@heroui/react'
 import { FieldArray, useFormikContext } from 'formik'
 import { Mail, MapPin, Phone, Plus, Siren, Trash2, UserRound, UsersRound } from 'lucide-react'
 import { useRef } from 'react'
 import { CheckField, ChoiceField, FormTextField } from '@/app/components/administration/admin-ui'
 import type { SavedPatientContacts } from '@/hooks/use-patient-contacts'
+import type { AddressDetails } from '@/services/address-services/address-services'
 import { translate as t, useAppTranslation } from '@/i18n'
+import { PatientAddressField } from './patient-address-field'
 import {
   hasPatientContactDetails,
-  patientAddress,
   patientContactHeadings,
   patientContactValues,
   scrollPatientFieldIntoView,
@@ -20,11 +21,20 @@ const contactTypeOptions = [
   { id: 'secondary', label: 'Secondary' },
 ]
 
-export function PatientContactsFields({ savedContacts }: { savedContacts: SavedPatientContacts }) {
+export function PatientContactsFields({
+  savedContacts,
+  patientSavedAddress,
+  patientSelectedAddress,
+  onAddressResolvingChange,
+}: {
+  savedContacts: SavedPatientContacts
+  patientSavedAddress: string
+  patientSelectedAddress: AddressDetails | null
+  onAddressResolvingChange: (key: string, pending: boolean) => void
+}) {
   useAppTranslation()
   const { values, setFieldValue, isSubmitting } = useFormikContext<PatientValues>()
   const newContactKey = useRef<string | null>(null)
-  const address = patientAddress(values)
   return (
     <section className="col-span-full grid gap-4" aria-labelledby="patient-contacts-heading">
       <h3 id="patient-contacts-heading" className="flex items-center gap-2 text-sm font-semibold">
@@ -111,35 +121,25 @@ export function PatientContactsFields({ savedContacts }: { savedContacts: SavedP
                         }
                       />
                       {contact.sameAsPatientAddress ? (
-                        <TextField isReadOnly value={address}>
-                          <Label className="text-xs font-semibold">{t('Address')}</Label>
-                          <div className="relative w-full">
-                            <MapPin
-                              size={17}
-                              aria-hidden="true"
-                              className="pointer-events-none absolute start-3 top-3 z-10 admin-icon-teal"
-                            />
-                            <TextArea
-                              className="w-full min-h-24 ps-10"
-                              placeholder={t('Enter the patient address above')}
-                            />
-                          </div>
-                        </TextField>
+                        <PatientAddressField
+                          key="patient-address"
+                          savedAddress={patientSavedAddress}
+                          selected={patientSelectedAddress}
+                          readOnly
+                        />
                       ) : (
-                        <>
-                          <FormTextField
-                            name={`${field}.address1`}
-                            label="Address"
-                            placeholder="Enter Address"
-                            icon={<MapPin size={17} className="admin-icon-teal" />}
-                          />
-                          <FormTextField
-                            name={`${field}.address2`}
-                            label="Additional address"
-                            placeholder="Apartment, suite, or unit (optional)"
-                            icon={<MapPin size={17} className="admin-icon-teal" />}
-                          />
-                        </>
+                        <PatientAddressField
+                          key={field}
+                          name={`${field}.address1`}
+                          unitName={`${field}.address2`}
+                          savedAddress={savedContacts.get(contact.key)?.payload.address1 ?? ''}
+                          selected={contact.addressDetails}
+                          onSelect={(address) =>
+                            void setFieldValue(`${field}.addressDetails`, address, false)
+                          }
+                          disabled={isSubmitting}
+                          onResolvingChange={onAddressResolvingChange}
+                        />
                       )}
                     </div>
                   </div>

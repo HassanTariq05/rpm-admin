@@ -4,11 +4,21 @@ import { PatientDetails } from './patient-details'
 import type { PatientContact } from '@/services/patient-services/patient-contact-services'
 
 const state = vi.hoisted(() => ({ contacts: [] as PatientContact[] }))
+const contactAddress = '20 Park Avenue, Boston, MA, USA'
 vi.mock('@/hooks/use-saved-address-details', () => ({
   useSavedAddressDetails: (address: string) => ({
-    details: address
-      ? { address, city: 'Berlin', state: 'Berlin State', country: 'Germany', postalCode: '00123' }
-      : null,
+    details:
+      address === contactAddress
+        ? { address, city: 'Boston', state: 'MA', country: 'United States', postalCode: '02108' }
+        : address
+          ? {
+              address,
+              city: 'Berlin',
+              state: 'Berlin State',
+              country: 'Germany',
+              postalCode: '00123',
+            }
+          : null,
     isLoading: false,
   }),
 }))
@@ -62,7 +72,7 @@ it('shows the saved demographics, measurements, emergency contacts, notes and id
       relationship: 'Sibling',
       phone: '+15551234567',
       email: 'sam@example.test',
-      address1: '20 Park Avenue',
+      address1: contactAddress,
       address2: 'Apartment 2',
     },
     {
@@ -131,8 +141,17 @@ it('shows the saved demographics, measurements, emergency contacts, notes and id
   expect(
     contact.getByRole('heading', { name: 'Emergency contact 1' }).querySelector('svg'),
   ).toHaveClass('admin-icon-rose')
-  for (const value of ['Sam', 'Rivera', 'Sibling', '20 Park Avenue', 'Apartment 2']) {
+  for (const value of ['Sam', 'Rivera', 'Sibling', contactAddress]) {
     expect(contact.getByText(value)).toBeInTheDocument()
+  }
+  for (const [label, value] of [
+    ['Unit number', 'Apartment 2'],
+    ['City', 'Boston'],
+    ['State / Province', 'MA'],
+    ['Country', 'United States'],
+    ['ZIP / Postal code', '02108'],
+  ] as const) {
+    expect(contact.getByText(label).nextElementSibling).toHaveTextContent(value)
   }
   expect(contact.getByRole('link', { name: '+15551234567' })).toHaveAttribute(
     'href',
