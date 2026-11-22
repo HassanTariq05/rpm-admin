@@ -226,6 +226,7 @@ it('opens Edit in the shared editor once the full record is available', async ()
     phone: '+15551234567',
     email: null,
     address1: '20 Park Avenue',
+    address2: '2C',
   }
   const removedContact: PatientContact = {
     ...contact,
@@ -283,7 +284,10 @@ it('opens Edit in the shared editor once the full record is available', async ()
   await user.click(editor.getByRole('tab', { name: 'Contact' }))
   const emergencyContact = within(editor.getByRole('group', { name: 'Emergency contact 1' }))
   expect(emergencyContact.getByRole('textbox', { name: 'First name' })).toHaveValue('Sam')
-  fireEvent.change(emergencyContact.getByRole('textbox', { name: 'Address' }), {
+  expect(emergencyContact.getByRole('combobox', { name: 'Address' })).toHaveValue('20 Park Avenue')
+  expect(emergencyContact.getByRole('textbox', { name: 'Unit number' })).toHaveValue('2C')
+  expect(emergencyContact.getByText('ZIP / Postal code')).toBeInTheDocument()
+  fireEvent.change(emergencyContact.getByRole('combobox', { name: 'Address' }), {
     target: { value: '25 Park Avenue' },
   })
   await user.click(editor.getByRole('button', { name: 'Remove contact 2' }))

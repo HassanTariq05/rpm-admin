@@ -10,6 +10,11 @@ const state = vi.hoisted(() => ({
   superAdmin: false,
   creating: false,
   updating: false,
+  searchAddresses: vi.fn(),
+}))
+vi.mock('@/services/address-services/address-services', async (original) => ({
+  ...(await original<typeof import('@/services/address-services/address-services')>()),
+  searchAddresses: state.searchAddresses,
 }))
 vi.mock('@/hooks/use-patient-contacts', () => ({
   useSavePatientContacts: () => ({ mutateAsync: state.saveContacts }),
@@ -47,6 +52,7 @@ beforeEach(() => {
   state.create.mockResolvedValue(savedPatient)
   state.update.mockResolvedValue(savedPatient)
   state.saveContacts.mockReset().mockResolvedValue(undefined)
+  state.searchAddresses.mockReset().mockResolvedValue([])
 })
 afterEach(() => {
   cleanup()
@@ -132,10 +138,24 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
   fireEvent.change(screen.getAllByRole('textbox', { name: 'Phone number' })[0]!, {
     target: { value: '5551234567' },
   })
-  fireEvent.change(screen.getByRole('combobox', { name: 'Address' }), {
-    target: { value: '10 Main Street' },
-  })
-  fireEvent.change(screen.getByLabelText('Unit number'), {
+  const patientStreet = '10 Main Street'
+  const patientAddress = `${patientStreet}, Boston, MA, USA`
+  state.searchAddresses.mockResolvedValueOnce([
+    {
+      id: 'main-street',
+      title: patientStreet,
+      description: 'Boston, MA',
+      address: patientAddress,
+      streetAddress: patientStreet,
+      city: 'Boston',
+      state: 'MA',
+      country: 'United States',
+      postalCode: '02108',
+    },
+  ])
+  await user.type(screen.getAllByRole('combobox', { name: 'Address' })[0]!, 'Main Street')
+  await user.click(await screen.findByRole('option', { name: /10 Main Street/ }))
+  fireEvent.change(screen.getAllByRole('textbox', { name: 'Unit number' })[0]!, {
     target: { value: ' Suite 401 ' },
   })
   const firstContact = within(screen.getByRole('group', { name: 'Emergency contact 1' }))
@@ -155,9 +175,13 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
     target: { value: 'sam@example.com' },
   })
   await user.click(firstContact.getByRole('checkbox', { name: 'Same as contact info' }))
-  expect(firstContact.getByRole('textbox', { name: 'Address' })).toHaveValue(
-    '10 Main Street\nSuite 401',
-  )
+  expect(firstContact.getByRole('combobox', { name: 'Address' })).toHaveValue(patientStreet)
+  expect(firstContact.getByRole('combobox', { name: 'Address' })).toHaveAttribute('readonly')
+  expect(firstContact.getByRole('textbox', { name: 'Unit number' })).toHaveValue(' Suite 401 ')
+  expect(firstContact.getByRole('textbox', { name: 'Unit number' })).toBeDisabled()
+  for (const value of ['Boston', 'MA', 'United States', '02108']) {
+    expect(firstContact.getByText(value)).toBeInTheDocument()
+  }
   const addMore = screen.getByRole('button', { name: 'Add more' })
   expect(addMore).toHaveClass('button--primary')
   await user.click(addMore)
@@ -171,10 +195,45 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
   fireEvent.change(secondContact.getByRole('textbox', { name: 'Relationship' }), {
     target: { value: 'Sibling' },
   })
-  fireEvent.change(secondContact.getByRole('textbox', { name: 'Address' }), {
-    target: { value: '20 Park Avenue' },
+  const contactAddress = {
+    id: 'park-avenue',
+    title: '20 Park Avenue',
+    description: 'New York, NY',
+    address: '20 Park Avenue, New York, NY',
+    city: 'New York',
+    state: 'NY',
+    country: 'United States',
+    streetAddress: '20 Park Avenue',
+  }
+  state.searchAddresses.mockResolvedValueOnce([
+    {
+      ...contactAddress,
+      resolve: async () => ({
+        ...contactAddress,
+        address: `${contactAddress.address}, USA`,
+        postalCode: '10016',
+      }),
+    },
+  ])
+  const contactAddressInput = secondContact.getByRole('combobox', { name: 'Address' })
+  await user.type(contactAddressInput, 'Park Avenue')
+  await user.click(await screen.findByRole('option', { name: /20 Park Avenue/ }))
+  expect(await secondContact.findByText('10016')).toBeInTheDocument()
+  expect(contactAddressInput).toHaveValue(contactAddress.streetAddress)
+  for (const value of ['New York', 'NY', 'United States']) {
+    expect(secondContact.getByText(value)).toBeInTheDocument()
+  }
+  expect(secondContact.queryByLabelText('Additional address')).not.toBeInTheDocument()
+  fireEvent.change(await secondContact.findByRole('textbox', { name: 'Unit number' }), {
+    target: { value: '4B' },
   })
-  await user.click(addMore)
+  await user.click(screen.getByRole('tab', { name: 'Basic Info' }))
+  await user.click(screen.getByRole('tab', { name: 'Contact' }))
+  const restoredContact = within(screen.getByRole('group', { name: 'Emergency contact 2' }))
+  expect(restoredContact.getByRole('combobox', { name: 'Address' })).toHaveValue('20 Park Avenue')
+  expect(restoredContact.getByRole('textbox', { name: 'Unit number' })).toHaveValue('4B')
+  expect(restoredContact.getByText('10016')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Add more' }))
   const remove = screen.getByRole('button', { name: 'Remove contact 3' })
   expect(remove).toHaveClass('button--danger-soft')
   await user.click(remove)
@@ -202,7 +261,7 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
     height: 68.5,
     weight: 152.4,
     phone: '+15551234567',
-    address: '10 Main Street',
+    address: patientAddress,
     addressUnitNo: 'Suite 401',
     initialBMI: 22.84,
     allergies: 'Penicillin',
@@ -226,7 +285,7 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
           lastName: 'Rivera',
           phone: '+15550001111',
           email: 'sam@example.com',
-          address1: '10 Main Street',
+          address1: patientAddress,
           address2: 'Suite 401',
         },
       },
@@ -236,7 +295,8 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
           firstName: 'Taylor',
           lastName: 'Rivera',
           relationship: 'Sibling',
-          address1: '20 Park Avenue',
+          address1: `${contactAddress.address}, USA`,
+          address2: '4B',
         },
       },
     ],
@@ -306,7 +366,7 @@ it('uses textareas and searchable gender and blood group menus', async () => {
     'true',
   )
   await user.click(screen.getByRole('tab', { name: 'Contact' }))
-  expect(screen.getByRole('combobox', { name: 'Address' }).tagName).toBe('INPUT')
+  expect(screen.getAllByRole('combobox', { name: 'Address' })[0]!.tagName).toBe('INPUT')
   expect(screen.getByRole('combobox', { name: 'Country code' })).toHaveValue('+1')
   await user.click(screen.getByRole('tab', { name: 'Basic Info' }))
   await user.click(screen.getByRole('button', { name: 'Select sex Sex' }))
@@ -358,8 +418,17 @@ it('puts each requested group of basic information fields in its own row', () =>
   expect(row(race)).toBe(row(choice(/Ethnicity$/)))
   expect(row(race)).toBe(row(choice(/Preferred language$/i)))
   expect(row(demographics.getByRole('textbox', { name: 'Other demographics' }))).toBeNull()
-  expect(row(screen.getByRole('button', { name: /Any Known Allergies$/i }))).toBe(
-    row(screen.getByRole('switch', { name: 'Status' })),
+  const measurements = within(screen.getByRole('region', { name: 'Measurements' }))
+  const bloodGroup = measurements.getByRole('button', { name: /Blood group$/i })
+  const allergies = measurements.getByRole('button', { name: /Any Known Allergies$/i })
+  expect(row(bloodGroup)).toBe(row(allergies))
+  expect(bloodGroup.compareDocumentPosition(allergies) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+    Node.DOCUMENT_POSITION_FOLLOWING,
+  )
+  expect(screen.queryByRole('heading', { name: 'Status and allergies' })).not.toBeInTheDocument()
+  const statusRow = row(screen.getByRole('switch', { name: 'Status' }))
+  expect(statusRow?.previousElementSibling).toBe(
+    screen.getByRole('region', { name: 'Demographics' }),
   )
 })
 
@@ -398,7 +467,7 @@ it('returns to the tab with missing required fields and preserves values when sw
   const user = userEvent.setup()
   render(<PatientEditor onSaved={vi.fn()} onClose={vi.fn()} />)
   await user.click(screen.getByRole('tab', { name: 'Contact' }))
-  fireEvent.change(screen.getByRole('combobox', { name: 'Address' }), {
+  fireEvent.change(screen.getAllByRole('combobox', { name: 'Address' })[0]!, {
     target: { value: 'Draft address' },
   })
   await user.click(screen.getByRole('tab', { name: 'Notes' }))
@@ -411,7 +480,7 @@ it('returns to the tab with missing required fields and preserves values when sw
   )
   expect(screen.getByText('First name is required')).toBeInTheDocument()
   await user.click(screen.getByRole('tab', { name: 'Contact' }))
-  expect(screen.getByRole('combobox', { name: 'Address' })).toHaveValue('Draft address')
+  expect(screen.getAllByRole('combobox', { name: 'Address' })[0]).toHaveValue('Draft address')
   expect(state.create).not.toHaveBeenCalled()
 })
 
@@ -510,11 +579,12 @@ it('prefills the street and legacy unit information on edit and saves unit chang
   }
   render(<PatientEditor record={record} onSaved={vi.fn()} onClose={vi.fn()} />)
   fireEvent.click(screen.getByRole('tab', { name: 'Contact' }))
-  expect(screen.getByRole('combobox', { name: 'Address' })).toHaveValue('10 Main Street')
+  expect(screen.getAllByRole('combobox', { name: 'Address' })[0]).toHaveValue('10 Main Street')
   expect(screen.queryByText('Selected address')).not.toBeInTheDocument()
-  expect(screen.getByRole('textbox', { name: 'Unit number' })).toHaveValue('Suite 401, Building B')
-  expect(screen.getByText('ZIP / Postal code')).toBeInTheDocument()
-  fireEvent.change(screen.getByRole('textbox', { name: 'Unit number' }), {
+  const unit = screen.getAllByRole('textbox', { name: 'Unit number' })[0]!
+  expect(unit).toHaveValue('Suite 401, Building B')
+  expect(screen.getAllByText('ZIP / Postal code')[0]).toBeInTheDocument()
+  fireEvent.change(unit, {
     target: { value: 'Suite 402' },
   })
   fireEvent.submit(document.getElementById('patient-api-form')!)
@@ -546,7 +616,7 @@ it('prefills saved name and unit fields and can clear each on edit', async () =>
   fireEvent.change(middleName, { target: { value: '' } })
   fireEvent.change(suffix, { target: { value: '' } })
   fireEvent.click(screen.getByRole('tab', { name: 'Contact' }))
-  const unit = screen.getByRole('textbox', { name: 'Unit number' })
+  const unit = screen.getAllByRole('textbox', { name: 'Unit number' })[0]!
   expect(unit).toHaveValue('4B')
   fireEvent.change(unit, { target: { value: '' } })
   fireEvent.submit(document.getElementById('patient-api-form')!)

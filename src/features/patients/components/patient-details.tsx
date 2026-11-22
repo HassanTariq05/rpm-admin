@@ -14,7 +14,6 @@ import {
   Languages,
   Mail,
   MonitorSmartphone,
-  MapPin,
   Phone,
   Ruler,
   Scale,
@@ -103,16 +102,28 @@ function PatientSsn({ value }: { value: string }) {
   )
 }
 
-function PatientReadOnlyAddress({ address }: { address: string }) {
-  const location = useSavedAddressDetails(address)
+function PatientReadOnlyAddress({
+  address,
+  unitNumber,
+}: {
+  address?: string | null
+  unitNumber?: string | null
+}) {
+  const savedAddress = address ?? ''
+  const location = useSavedAddressDetails(savedAddress)
   return (
     <>
-      <PatientAddressSummary address={address} details={location.details} label="Address" />
+      <PatientAddressSummary address={savedAddress} details={location.details} />
       {location.isLoading && (
         <p role="status" className="mt-2 text-xs text-muted">
           {t('Loading address details…')}
         </p>
       )}
+      <dl className="patient-basic-row patient-basic-row--three mt-4">
+        <Detail label="Unit number" icon={Hash}>
+          {unitNumber}
+        </Detail>
+      </dl>
     </>
   )
 }
@@ -163,13 +174,8 @@ function PatientContactDetails({ patientId }: { patientId: string }) {
               <Detail label="Email" icon={Mail}>
                 {emailLink(contact.email)}
               </Detail>
-              <Detail label="Address" icon={MapPin}>
-                {contact.address1}
-              </Detail>
-              <Detail label="Additional address" icon={MapPin}>
-                {contact.address2}
-              </Detail>
             </dl>
+            <PatientReadOnlyAddress address={contact.address1} unitNumber={contact.address2} />
           </section>
         )
       })}
@@ -372,12 +378,7 @@ export function PatientDetails({
               {phoneLink(record.phone)}
             </Detail>
           </dl>
-          <PatientReadOnlyAddress address={address} />
-          <dl className="patient-basic-row patient-basic-row--three mt-4">
-            <Detail label="Unit number" icon={Hash}>
-              {addressUnitNo}
-            </Detail>
-          </dl>
+          <PatientReadOnlyAddress address={address} unitNumber={addressUnitNo} />
           <PatientContactDetails patientId={record.id} />
         </Tabs.Panel>
         <Tabs.Panel id="allergies" className="patient-details-panel patient-detail-tone-allergies">
