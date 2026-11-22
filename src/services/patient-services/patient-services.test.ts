@@ -37,8 +37,9 @@ describe('Patient service contract', () => {
     const list = setup({ patients: [] })
     expect(await list.service.getByOrgId('org/a')).toEqual([])
     expect(list.requests[0]?.url).toBe('/patients/org/org%2Fa')
-    const detail = setup(record)
-    expect(await detail.service.getById(record.id)).toEqual(record)
+    const patient = { ...record, middleName: 'Morgan', nameSuffix: 'III', addressUnitNo: '4B' }
+    const detail = setup(patient)
+    expect(await detail.service.getById(record.id)).toEqual(patient)
     expect(detail.requests[0]?.url).toBe(`/patients/${record.id}`)
   })
   it('reads preferredLang and falls back to the old response field only when it is absent', async () => {
@@ -57,6 +58,9 @@ describe('Patient service contract', () => {
     const { service, requests } = setup(record)
     const payload = {
       firstName: 'Alex',
+      middleName: 'Morgan',
+      nameSuffix: 'III',
+      addressUnitNo: null,
       dob: null,
       isActive: false,
       genderIdentity: 'Choose not to disclose',

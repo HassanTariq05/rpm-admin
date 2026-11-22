@@ -20,6 +20,7 @@ const state = vi.hoisted(() => ({
   ready: true,
   userId: 'viewer-a',
   orgId: 'org-a',
+  isSuperAdmin: false,
   getAll: vi.fn(),
   getById: vi.fn(),
   create: vi.fn(),
@@ -40,6 +41,7 @@ vi.mock('@/hooks/use-administration', async (original) => ({
     ready: state.ready,
     user: state.ready ? { id: state.userId } : null,
     orgId: state.orgId,
+    isSuperAdmin: state.isSuperAdmin,
   }),
 }))
 vi.mock('@/services/device-services/device-services', async (original) => ({
@@ -68,7 +70,7 @@ function setup() {
 }
 beforeEach(() => {
   vi.clearAllMocks()
-  Object.assign(state, { ready: true, userId: 'viewer-a', orgId: 'org-a' })
+  Object.assign(state, { ready: true, userId: 'viewer-a', orgId: 'org-a', isSuperAdmin: false })
   state.getAll.mockResolvedValue([])
   state.getById.mockResolvedValue({ id: 'device-1' })
   state.create.mockResolvedValue({ id: 'created' })
@@ -94,12 +96,29 @@ it('waits for authentication, passes cancellation, and isolates cached inventory
   rerender()
   await waitFor(() => expect(result.current.isSuccess).toBe(true))
   expect(state.getAll).toHaveBeenCalledWith({}, expect.any(AbortSignal))
-  expect(config.client.getQueryData(['devices', 'list', 'viewer-a', 'org-a'])).toEqual([])
+  expect(
+    config.client.getQueryData(['devices', 'list', 'viewer-a', 'org-a', false, undefined]),
+  ).toEqual([])
   state.userId = 'viewer-b'
   rerender()
   await waitFor(() =>
-    expect(config.client.getQueryData(['devices', 'list', 'viewer-b', 'org-a'])).toEqual([]),
+    expect(
+      config.client.getQueryData(['devices', 'list', 'viewer-b', 'org-a', false, undefined]),
+    ).toEqual([]),
   )
+})
+it('applies the selected organization only to Super Admin inventory requests', async () => {
+  state.isSuperAdmin = true
+  const { rerender } = renderHook(() => useDevices('selected-org'), setup())
+  await waitFor(() =>
+    expect(state.getAll).toHaveBeenLastCalledWith(
+      { organisationId: 'selected-org' },
+      expect.any(AbortSignal),
+    ),
+  )
+  state.isSuperAdmin = false
+  rerender()
+  await waitFor(() => expect(state.getAll).toHaveBeenLastCalledWith({}, expect.any(AbortSignal)))
 })
 it('does not request details until a device is selected', async () => {
   const { result, rerender } = renderHook(({ id }) => useDevice(id), {

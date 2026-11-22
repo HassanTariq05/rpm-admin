@@ -22,6 +22,8 @@ export const deviceRecordSchema = z
       })
       .passthrough()
       .nullish(),
+    organisationId: z.string().uuid().nullish(),
+    organisation: z.object({ id: z.string().uuid(), name: text }).passthrough().nullish(),
     createdAt: text,
     updatedAt: text,
     isActive: z.boolean(),
@@ -55,6 +57,7 @@ export interface DeviceWrite {
   imei?: string | null
   vendor?: string | null
   deviceType?: string | null
+  organisationId?: string
   isActive?: boolean
   createdBy?: string | null
 }
@@ -64,6 +67,7 @@ export interface DeviceFilters {
   vendor?: string
   deviceType?: string
   externalDeviceId?: string
+  organisationId?: string
   isActive?: boolean
 }
 export class DeviceResponseError extends Error {

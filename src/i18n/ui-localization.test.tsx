@@ -59,6 +59,9 @@ vi.mock('@/hooks/use-administration', () => ({
 }))
 vi.mock('@/hooks/use-patients', () => ({ usePatients: () => ({ data: [] }) }))
 vi.mock('@/hooks/use-organizations', () => ({ useOrganizations: () => ({ data: [] }) }))
+vi.mock('@/features/patients/components/device-scan-handoff', () => ({
+  DeviceScanHandoff: () => null,
+}))
 async function language(value: 'en' | 'es') {
   await act(async () => {
     await i18n.changeLanguage(value)

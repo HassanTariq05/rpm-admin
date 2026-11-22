@@ -9,9 +9,17 @@ import type {
   PatientContact,
   PatientContactWrite,
 } from '@/services/patient-services/patient-contact-services'
-export function patientName(patient: Pick<PatientRecord, 'firstName' | 'lastName' | 'mrn' | 'id'>) {
+export function patientName(
+  patient: Pick<
+    PatientRecord,
+    'firstName' | 'middleName' | 'lastName' | 'nameSuffix' | 'mrn' | 'id'
+  >,
+) {
   return (
-    [patient.firstName, patient.lastName].filter(Boolean).join(' ').trim() ||
+    [patient.firstName, patient.middleName, patient.lastName, patient.nameSuffix]
+      .map((part) => part?.trim())
+      .filter(Boolean)
+      .join(' ') ||
     patient.mrn ||
     patient.id
   )
@@ -53,7 +61,9 @@ export function patientErrorMessage(error: unknown) {
 
 export const patientTextFields = [
   'firstName',
+  'middleName',
   'lastName',
+  'nameSuffix',
   'dob',
   'mrn',
   'nationalId',
@@ -68,6 +78,7 @@ export const patientTextFields = [
   'phone',
   'email',
   'address',
+  'addressUnitNo',
   'bloodGroup',
   'allergies',
   'notes',
@@ -133,14 +144,13 @@ export type PatientValues = Record<(typeof patientTextFields)[number], string> &
   weight: string
   status: string
   countryCode: string
-  additionalAddress?: string
-  hasKnownAllergies: boolean
+  knownAllergies: 'yes' | 'no'
   contacts: PatientContactValues[]
 }
 
 export function patientContactPayload(
   contact: PatientContactValues,
-  patient?: Pick<PatientValues, 'address' | 'additionalAddress'>,
+  patient?: Pick<PatientValues, 'address' | 'addressUnitNo'>,
 ): PatientContactWrite {
   return {
     contactType: contact.contactType,
@@ -151,8 +161,7 @@ export function patientContactPayload(
     email: contact.email.trim() || null,
     address1: (contact.sameAsPatientAddress ? patient?.address : contact.address1)?.trim() || null,
     address2:
-      (contact.sameAsPatientAddress ? patient?.additionalAddress : contact.address2)?.trim() ||
-      null,
+      (contact.sameAsPatientAddress ? patient?.addressUnitNo : contact.address2)?.trim() || null,
   }
 }
 
@@ -165,8 +174,15 @@ export function calculatePatientBmi(height: string, weight: string): number | nu
   return Number.isFinite(bmi) ? Number(bmi.toFixed(2)) : null
 }
 
-export function patientAddress(values: Pick<PatientValues, 'address' | 'additionalAddress'>) {
-  return [values.address.trim(), values.additionalAddress?.trim()].filter(Boolean).join('\n')
+export function patientAddressFields(record?: Pick<PatientRecord, 'address' | 'addressUnitNo'>) {
+  const address = record?.address ?? ''
+  if (record?.addressUnitNo != null) return { address, addressUnitNo: record.addressUnitNo }
+  const [street = '', ...unitLines] = address.split(/\r?\n/)
+  return { address: street, addressUnitNo: unitLines.join(', ') }
+}
+
+export function patientAddress(values: Pick<PatientValues, 'address' | 'addressUnitNo'>) {
+  return [values.address.trim(), values.addressUnitNo.trim()].filter(Boolean).join('\n')
 }
 
 export function formatPatientSsn(value: string) {
@@ -193,7 +209,6 @@ export function patientRichTextToPlainText(value?: string | null): string {
 }
 
 export function patientPayload(values: PatientValues, record?: PatientRecord): PatientWrite {
-  const address = patientAddress(values)
   const allergyText = values.allergies.trim()
   return {
     ...Object.fromEntries(patientTextFields.map((key) => [key, values[key].trim() || null])),
@@ -201,12 +216,12 @@ export function patientPayload(values: PatientValues, record?: PatientRecord): P
     height: values.height.trim() ? Number(values.height) : null,
     weight: values.weight.trim() ? Number(values.weight) : null,
     ...(!record && { initialBMI: calculatePatientBmi(values.height, values.weight) }),
-    address: address || null,
-    allergies: values.hasKnownAllergies
-      ? (allergyText === patientRichTextToPlainText(record?.allergies).trim()
-          ? record?.allergies
-          : allergyText) || null
-      : null,
+    allergies:
+      values.knownAllergies === 'yes'
+        ? (allergyText === patientRichTextToPlainText(record?.allergies).trim()
+            ? record?.allergies
+            : allergyText) || null
+        : null,
     phone: values.phone.trim() ? joinPhoneNumber(values.countryCode, values.phone) : null,
     isActive: values.status === 'active',
   }

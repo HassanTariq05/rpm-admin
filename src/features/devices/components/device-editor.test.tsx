@@ -5,26 +5,44 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { DeviceEditor } from './device-editor'
 import { useAuthStore } from '@/stores/auth-store'
+import type { ApiDevice } from '@/services/device-services/device-services'
 import { deviceFixture } from '../devices.fixtures'
 const api = vi.hoisted(() => ({
+  organisationId: '423e4567-e89b-42d3-a456-426614174000' as string | undefined,
+  isSuperAdmin: false,
   createToken: vi.fn(),
   getToken: vi.fn(),
   save: vi.fn(),
   update: vi.fn(),
 }))
+const northClinicId = '423e4567-e89b-42d3-a456-426614174000'
+const southClinicId = '523e4567-e89b-42d3-a456-426614174000'
 vi.mock('@/services/patient-services/device-assignment-tokens', async (original) => ({
   ...(await original<typeof import('@/services/patient-services/device-assignment-tokens')>()),
   useDeviceCreationTokenService: () => ({ create: api.createToken, get: api.getToken }),
 }))
 vi.mock('@/hooks/use-administration', () => ({
-  useAdminScope: () => ({ ready: true, user: { id: 'operator' }, orgId: 'org-a' }),
+  useAdminScope: () => ({
+    ready: true,
+    user: { id: 'operator' },
+    orgId: api.organisationId,
+    isSuperAdmin: api.isSuperAdmin,
+  }),
+}))
+vi.mock('@/hooks/use-organizations', () => ({
+  useOrganizations: () => ({
+    data: [
+      { id: northClinicId, name: 'North Clinic' },
+      { id: southClinicId, name: 'South Clinic' },
+    ],
+  }),
 }))
 vi.mock('@/hooks/use-devices', () => ({
   useCreateDevice: () => ({ mutateAsync: api.save, isPending: false }),
   useUpdateDevice: () => ({ mutateAsync: api.update, isPending: false }),
 }))
 const clients: QueryClient[] = []
-function show(record?: typeof deviceFixture) {
+function show(record?: ApiDevice) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
@@ -56,6 +74,8 @@ function token() {
 }
 beforeEach(() => {
   vi.resetAllMocks()
+  api.organisationId = northClinicId
+  api.isSuperAdmin = false
   useAuthStore.getState().auth.setAccessToken('synthetic-test-token')
   api.createToken.mockResolvedValue(token())
   api.getToken.mockResolvedValue({
@@ -99,9 +119,54 @@ it('populates Add Device from a creation scan and only saves documented device f
       externalDeviceId: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f-]{27}$/i),
       vendor: 'smart_meter',
       deviceType: 'bp-cuff',
+      organisationId: northClinicId,
       isActive: true,
     }),
   )
+})
+it('requires Super Admin to choose an organization when creating without one in their profile', async () => {
+  api.isSuperAdmin = true
+  api.organisationId = undefined
+  const user = userEvent.setup()
+  show()
+  await screen.findByText('Scan received')
+  const submit = screen.getByRole('button', { name: 'Add device' })
+  await user.click(submit)
+  expect(api.save).not.toHaveBeenCalled()
+  await user.click(screen.getByRole('button', { name: /Organization/ }))
+  await user.click(await screen.findByRole('option', { name: 'South Clinic' }))
+  await user.click(submit)
+  await waitFor(() =>
+    expect(api.save).toHaveBeenCalledWith(
+      expect.objectContaining({ organisationId: southClinicId }),
+    ),
+  )
+})
+it('loads the saved organization and lets Super Admin change it', async () => {
+  api.isSuperAdmin = true
+  const user = userEvent.setup()
+  show({ ...deviceFixture, organisationId: southClinicId })
+  await screen.findByText('Scan received')
+  const organization = screen.getByRole('button', { name: /Organization/ })
+  expect(organization.closest('[data-slot=autocomplete-trigger]')).toHaveTextContent('South Clinic')
+  await user.click(organization)
+  await user.click(await screen.findByRole('option', { name: 'North Clinic' }))
+  await user.click(screen.getByRole('button', { name: 'Save changes' }))
+  await waitFor(() =>
+    expect(api.update).toHaveBeenCalledWith({
+      id: deviceFixture.id,
+      payload: expect.objectContaining({ organisationId: northClinicId }),
+    }),
+  )
+})
+it('lets Super Admin save a legacy device with no organization', async () => {
+  api.isSuperAdmin = true
+  const user = userEvent.setup()
+  show({ ...deviceFixture, organisationId: null, organisation: null })
+  await screen.findByText('Scan received')
+  await user.click(screen.getByRole('button', { name: 'Save changes' }))
+  await waitFor(() => expect(api.update).toHaveBeenCalledOnce())
+  expect(api.update.mock.calls[0]?.[0].payload).not.toHaveProperty('organisationId')
 })
 it.each([undefined, deviceFixture])(
   'preserves manual edits when a scan arrives in the device form (%j)',

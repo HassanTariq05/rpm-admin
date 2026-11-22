@@ -20,7 +20,7 @@ import { ConfirmDelete, FormModal } from '@/app/components/administration/admin-
 import { useDevice, useDeleteDevice } from '@/hooks/use-devices'
 import type { ApiDevice } from '@/services/device-services/device-services'
 import { translate as t, useAppTranslation, locale } from '@/i18n'
-import { deviceView, deviceErrorMessage } from '../devices'
+import { deviceView, deviceErrorMessage, deviceOrganisationName } from '../devices'
 import { DevicePatientInfo } from './device-patient-info'
 import { DevicePicture } from './device-picture'
 const metadataIcons: Record<string, { icon: LucideIcon; tone: string }> = {
@@ -28,6 +28,7 @@ const metadataIcons: Record<string, { icon: LucideIcon; tone: string }> = {
   'External device ID': { icon: Fingerprint, tone: 'teal' },
   Model: { icon: Package, tone: 'violet' },
   Company: { icon: Building2, tone: 'amber' },
+  Organization: { icon: Building2, tone: 'teal' },
   'Device type': { icon: MonitorSmartphone, tone: 'violet' },
   Status: { icon: Activity, tone: 'teal' },
   Created: { icon: CalendarPlus, tone: 'blue' },
@@ -44,9 +45,11 @@ export function DeviceDetails({
   onClose,
   onEdit,
   patient,
+  organizationNames,
 }: {
   id: string
   patient?: ApiDevice['patient']
+  organizationNames?: ReadonlyMap<string, string>
   onClose: () => void
   onEdit: (record: ApiDevice) => void
 }) {
@@ -163,6 +166,7 @@ export function DeviceDetails({
                 ['External device ID', device.externalDeviceId || '—'],
                 ['Model', device.model || '—'],
                 ['Company', device.company],
+                ['Organization', deviceOrganisationName(query.data, organizationNames) || '—'],
                 ['Device type', device.type],
                 ['Status', device.status],
                 ['Created', date(query.data.createdAt)],

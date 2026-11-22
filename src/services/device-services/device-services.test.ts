@@ -2,6 +2,7 @@ import axios, { type InternalAxiosRequestConfig } from 'axios'
 import { describe, expect, it } from 'vitest'
 import { createDeviceService, DeviceResponseError } from './device-services'
 import { deviceFixture } from '@/features/devices/devices.fixtures'
+const organisationId = '423e4567-e89b-42d3-a456-426614174000'
 function setup(data: unknown) {
   const requests: InternalAxiosRequestConfig[] = []
   const client = axios.create({
@@ -14,15 +15,19 @@ function setup(data: unknown) {
 }
 describe('device API contract', () => {
   it('uses documented list path, cancellation, exact filters, and false values', async () => {
-    const { service, requests } = setup({ devices: [deviceFixture] })
+    const device = {
+      ...deviceFixture,
+      organisationId,
+      organisation: { id: organisationId, name: 'North Clinic' },
+    }
+    const { service, requests } = setup({ devices: [device] })
     const signal = new AbortController().signal
-    expect(await service.getAll({ isActive: false, imei: '123', vendor: 'pylo' }, signal)).toEqual([
-      deviceFixture,
-    ])
+    const filters = { isActive: false, imei: '123', vendor: 'pylo', organisationId }
+    expect(await service.getAll(filters, signal)).toEqual([device])
     expect(requests[0]).toMatchObject({
       url: '/devices/',
       baseURL: 'https://example.test/api',
-      params: { isActive: false, imei: '123', vendor: 'pylo' },
+      params: filters,
       signal,
       timeout: 20000,
       withCredentials: false,
@@ -30,7 +35,7 @@ describe('device API contract', () => {
   })
   it('fetches an encoded device ID and sends writes without inventing fields', async () => {
     const { service, requests } = setup(deviceFixture)
-    const payload = { imei: null, externalDeviceId: 'ext-1', isActive: false }
+    const payload = { imei: null, externalDeviceId: 'ext-1', isActive: false, organisationId }
     await service.getById('device/a')
     await service.create(payload)
     await service.update(deviceFixture.id, payload)
@@ -44,7 +49,16 @@ describe('device API contract', () => {
   it('accepts nullable fields but rejects malformed lists and records', async () => {
     await expect(
       setup({
-        devices: [{ id: deviceFixture.id, isActive: false, vendor: null, imei: null }],
+        devices: [
+          {
+            id: deviceFixture.id,
+            isActive: false,
+            vendor: null,
+            imei: null,
+            organisationId: null,
+            organisation: null,
+          },
+        ],
       }).service.getAll(),
     ).resolves.toHaveLength(1)
     await expect(setup([]).service.getAll()).rejects.toBeInstanceOf(DeviceResponseError)

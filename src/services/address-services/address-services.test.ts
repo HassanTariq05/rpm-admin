@@ -131,6 +131,7 @@ it('restores location parts only from a result that matches the saved address', 
   const signal = new AbortController().signal
   expect(await lookupSavedAddress(address, signal)).toEqual({
     address,
+    streetAddress: '10 Main Street',
     city: 'Berlin',
     state: 'Berlin State',
     country: 'Germany',
