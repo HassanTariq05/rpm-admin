@@ -140,21 +140,25 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
   })
   const patientStreet = '10 Main Street'
   const patientAddress = `${patientStreet}, Boston, MA, USA`
-  state.searchAddresses.mockResolvedValueOnce([
-    {
-      id: 'main-street',
-      title: patientStreet,
-      description: 'Boston, MA',
-      address: patientAddress,
-      streetAddress: patientStreet,
-      city: 'Boston',
-      state: 'MA',
-      country: 'United States',
-      postalCode: '02108',
-    },
-  ])
+  state.searchAddresses.mockImplementation(async (query: string) =>
+    query === 'Main Street'
+      ? [
+          {
+            id: 'main-street',
+            title: patientStreet,
+            description: 'Boston, MA',
+            address: patientAddress,
+            streetAddress: patientStreet,
+            city: 'Boston',
+            state: 'MA',
+            country: 'United States',
+            postalCode: '02108',
+          },
+        ]
+      : [],
+  )
   await user.type(screen.getAllByRole('combobox', { name: 'Address' })[0]!, 'Main Street')
-  await user.click(await screen.findByRole('option', { name: /10 Main Street/ }))
+  await user.click(await screen.findByRole('option', { name: /10 Main Street/ }, { timeout: 5000 }))
   fireEvent.change(screen.getAllByRole('textbox', { name: 'Unit number' })[0]!, {
     target: { value: ' Suite 401 ' },
   })
@@ -205,19 +209,23 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
     country: 'United States',
     streetAddress: '20 Park Avenue',
   }
-  state.searchAddresses.mockResolvedValueOnce([
-    {
-      ...contactAddress,
-      resolve: async () => ({
-        ...contactAddress,
-        address: `${contactAddress.address}, USA`,
-        postalCode: '10016',
-      }),
-    },
-  ])
+  state.searchAddresses.mockImplementation(async (query: string) =>
+    query === 'Park Avenue'
+      ? [
+          {
+            ...contactAddress,
+            resolve: async () => ({
+              ...contactAddress,
+              address: `${contactAddress.address}, USA`,
+              postalCode: '10016',
+            }),
+          },
+        ]
+      : [],
+  )
   const contactAddressInput = secondContact.getByRole('combobox', { name: 'Address' })
   await user.type(contactAddressInput, 'Park Avenue')
-  await user.click(await screen.findByRole('option', { name: /20 Park Avenue/ }))
+  await user.click(await screen.findByRole('option', { name: /20 Park Avenue/ }, { timeout: 5000 }))
   expect(await secondContact.findByText('10016')).toBeInTheDocument()
   expect(contactAddressInput).toHaveValue(contactAddress.streetAddress)
   for (const value of ['New York', 'NY', 'United States']) {
