@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { Button, Input, Tabs, TextField } from '@heroui/react'
 import {
   Barcode,
+  Building2,
   ChevronLeft,
   ChevronRight,
   Droplets,
@@ -21,6 +22,7 @@ import {
   X,
 } from 'lucide-react'
 import { AdminPageHeader } from '@/app/components/administration/admin-page'
+import { ChoiceField } from '@/app/components/administration/admin-ui'
 import { translate as t, useAppTranslation } from '@/i18n'
 import {
   companies,
@@ -28,6 +30,7 @@ import {
   filterDevices,
   deviceView,
   deviceErrorMessage,
+  deviceOrganisationName,
   type DeviceRecord,
   type DeviceType,
 } from '../devices'
@@ -37,6 +40,8 @@ import { DevicePatientInfo } from '../components/device-patient-info'
 import { DeviceDetails } from '../components/device-details'
 import { DevicesSkeleton } from '../components/devices-skeleton'
 import { useDevices } from '@/hooks/use-devices'
+import { useAdminScope } from '@/hooks/use-administration'
+import { useOrganizations } from '@/hooks/use-organizations'
 import type { ApiDevice } from '@/services/device-services/device-services'
 import { readDeviceView, saveDeviceView, type DeviceViewMode } from '../device-view-preference'
 import './devices-page.css'
@@ -75,9 +80,11 @@ function InventoryStatus({ status }: { status: DeviceRecord['status'] }) {
 }
 function DeviceList({
   devices,
+  organizationNames,
   onOpen,
 }: {
   devices: DeviceRecord[]
+  organizationNames: ReadonlyMap<string, string>
   onOpen: (id: string) => void
 }) {
   return (
@@ -87,6 +94,7 @@ function DeviceList({
           <tr>
             <th scope="col">{t('Device')}</th>
             <th scope="col">{t('Assigned patient')}</th>
+            <th scope="col">{t('Organization')}</th>
             <th scope="col">{t('Vendor')}</th>
             <th scope="col">{t('Device type')}</th>
             <th scope="col">{t('IMEI')}</th>
@@ -123,6 +131,7 @@ function DeviceList({
                   <DevicePatientInfo device={device.raw} />
                 </div>
               </td>
+              <td>{deviceOrganisationName(device.raw, organizationNames) || '—'}</td>
               <td>
                 <DeviceLogo company={device.company} />
               </td>
@@ -213,7 +222,16 @@ export function DevicesPage({
   onLinkedDeviceClose?: () => void
 } = {}) {
   useAppTranslation()
-  const query = useDevices()
+  const scope = useAdminScope()
+  const organizations = useOrganizations(scope.isSuperAdmin)
+  const [organisationId, setOrganisationId] = useState<string>()
+  const organizationFilter = scope.isSuperAdmin ? organisationId : undefined
+  const query = useDevices(organizationFilter)
+  const organizationNames = new Map((organizations.data ?? []).map(({ id, name }) => [id, name]))
+  const currentOrgName = scope.user?.organisation?.name ?? scope.user?.organization?.name
+  if (scope.orgId && currentOrgName && !organizationNames.has(scope.orgId)) {
+    organizationNames.set(scope.orgId, currentOrgName)
+  }
   const devices = (query.data ?? []).map(deviceView)
   const companyOptions = [...new Set([...companies, ...devices.map((device) => device.company)])]
   const typeOptions = [...new Set([...deviceTypes, ...devices.map((device) => device.type)])]
@@ -239,6 +257,7 @@ export function DevicesPage({
     setCompany('all')
     setType('all')
     setSearch('')
+    setOrganisationId(undefined)
     setPage(1)
   }
   return (
@@ -260,7 +279,10 @@ export function DevicesPage({
               <RefreshCw size={16} className={query.isFetching ? 'animate-spin' : ''} />
               {t('Refresh')}
             </Button>
-            <Button onPress={() => setEditor('new')}>
+            <Button
+              isDisabled={!scope.ready || (!scope.isSuperAdmin && !scope.orgId)}
+              onPress={() => setEditor('new')}
+            >
               <Plus size={17} />
               {t('Add Device')}
             </Button>
@@ -299,7 +321,34 @@ export function DevicesPage({
             <h2>{t('Device catalog')}</h2>
             <p>{t('Find the right device, down to the last digit.')}</p>
           </div>
-          <div className="device-catalog-controls">
+          <div
+            className={`device-catalog-controls${scope.isSuperAdmin ? ' device-catalog-controls-scoped' : ''}`}
+          >
+            {scope.isSuperAdmin && (
+              <div className="device-organization-filter">
+                <ChoiceField
+                  label="Organization"
+                  value={organizationFilter ?? 'all'}
+                  disabled={organizations.isPending}
+                  options={[
+                    { id: 'all', label: 'All organizations' },
+                    ...(organizations.data ?? []).map(({ id, name }) => ({ id, label: name })),
+                  ]}
+                  icon={<Building2 size={16} aria-hidden="true" />}
+                  onChange={(value) => {
+                    setOrganisationId(value && value !== 'all' ? value : undefined)
+                    setCompany('all')
+                    setType('all')
+                    setPage(1)
+                  }}
+                />
+                {organizations.isError && (
+                  <Button size="sm" variant="ghost" onPress={() => void organizations.refetch()}>
+                    {t('Retry loading organizations')}
+                  </Button>
+                )}
+              </div>
+            )}
             <TextField
               aria-label={t('Search devices')}
               value={search}
@@ -389,7 +438,7 @@ export function DevicesPage({
               {t(company === 'all' ? 'All companies' : company)}
               {type !== 'all' && <> · {t(type)}</>}
             </span>
-            {(company !== 'all' || type !== 'all' || search) && (
+            {(company !== 'all' || type !== 'all' || search || organizationFilter) && (
               <button onClick={resetFilters}>
                 {t('Clear filters')}
                 <X size={13} />
@@ -413,7 +462,11 @@ export function DevicesPage({
               </Button>
             </div>
           ) : visible.length && view === 'list' ? (
-            <DeviceList devices={visible} onOpen={setDetails} />
+            <DeviceList
+              devices={visible}
+              organizationNames={organizationNames}
+              onOpen={setDetails}
+            />
           ) : visible.length ? (
             <div className="device-grid">
               {visible.map((device) => (
@@ -512,6 +565,7 @@ export function DevicesPage({
           key={activeDetails}
           id={activeDetails}
           patient={query.data?.find((record) => record.id === activeDetails)?.patient}
+          organizationNames={organizationNames}
           onClose={closeDetails}
           onEdit={(record) => {
             setEditor(record)

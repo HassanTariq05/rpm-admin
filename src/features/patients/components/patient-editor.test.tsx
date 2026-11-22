@@ -70,6 +70,12 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
     onClose = vi.fn()
   render(<PatientEditor onSaved={onSaved} onClose={onClose} />)
   await fillDemographics()
+  fireEvent.change(screen.getByRole('textbox', { name: 'Middle name' }), {
+    target: { value: ' Morgan ' },
+  })
+  fireEvent.change(screen.getByRole('textbox', { name: 'Suffix' }), {
+    target: { value: 'Jr.' },
+  })
   await user.click(screen.getByRole('button', { name: /Gender identity$/i }))
   expect(screen.getAllByRole('option')).toHaveLength(6)
   await user.click(screen.getByRole('option', { name: 'Choose not to disclose' }))
@@ -111,7 +117,11 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
   expect(fireEvent.paste(height, { clipboardData: { getData: () => '6e1' } })).toBe(false)
   fireEvent.change(weight, { target: { value: '1E2' } })
   expect(screen.queryByRole('textbox', { name: 'Allergies' })).not.toBeInTheDocument()
-  await user.click(screen.getByRole('checkbox', { name: 'Any Known Allergies' }))
+  const allergies = screen.getByRole('button', { name: /Any Known Allergies$/i })
+  expect(allergies).toHaveAccessibleName(/No/)
+  await user.click(allergies)
+  await user.type(screen.getByRole('searchbox', { name: /Search Any Known Allergies/i }), 'Yes')
+  await user.click(screen.getByRole('option', { name: 'Yes' }))
   fireEvent.submit(document.getElementById('patient-api-form')!)
   expect(await screen.findByText('Enter the known allergies.')).toBeInTheDocument()
   expect(state.create).not.toHaveBeenCalled()
@@ -125,7 +135,7 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
   fireEvent.change(screen.getByRole('combobox', { name: 'Address' }), {
     target: { value: '10 Main Street' },
   })
-  fireEvent.change(screen.getByLabelText('Additional Address (Optional)'), {
+  fireEvent.change(screen.getByLabelText('Unit number'), {
     target: { value: ' Suite 401 ' },
   })
   const firstContact = within(screen.getByRole('group', { name: 'Emergency contact 1' }))
@@ -178,7 +188,9 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
   await waitFor(() => expect(state.create).toHaveBeenCalled())
   expect(state.create.mock.calls[0]![0]).toMatchObject({
     firstName: 'Alex',
+    middleName: 'Morgan',
     lastName: 'Rivera',
+    nameSuffix: 'Jr.',
     dob: today(getLocalTimeZone()).toString(),
     gender: 'male',
     genderIdentity: 'Choose not to disclose',
@@ -190,7 +202,8 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
     height: 68.5,
     weight: 152.4,
     phone: '+15551234567',
-    address: '10 Main Street\nSuite 401',
+    address: '10 Main Street',
+    addressUnitNo: 'Suite 401',
     initialBMI: 22.84,
     allergies: 'Penicillin',
     notes: '<p>Intake complete</p>',
@@ -199,6 +212,7 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
   })
   expect(state.create.mock.calls[0]![0]).not.toHaveProperty('careTeam')
   expect(state.create.mock.calls[0]![0]).not.toHaveProperty('preferredLanguage')
+  expect(state.create.mock.calls[0]![0]).not.toHaveProperty('suffix')
   expect(state.create.mock.calls[0]![0]).not.toHaveProperty('age')
   expect(state.create.mock.calls[0]![0]).not.toHaveProperty('emergencyContacts')
   await waitFor(() => expect(state.saveContacts).toHaveBeenCalledOnce())
@@ -251,12 +265,15 @@ it('scrolls to newly revealed allergies and each contact added by the user', asy
   try {
     const user = userEvent.setup()
     render(<PatientEditor onSaved={vi.fn()} onClose={vi.fn()} />)
-    const checkbox = screen.getByRole('checkbox', { name: 'Any Known Allergies' })
-    await user.click(checkbox)
+    const allergies = screen.getByRole('button', { name: /Any Known Allergies$/i })
+    await user.click(allergies)
+    await user.click(screen.getByRole('option', { name: 'Yes' }))
     expect(scrollIntoView.mock.contexts[0]).toContainElement(
       screen.getByRole('textbox', { name: 'Allergies' }),
     )
-    await user.click(checkbox)
+    await user.click(allergies)
+    await user.click(screen.getByRole('option', { name: 'No' }))
+    expect(screen.queryByRole('textbox', { name: 'Allergies' })).not.toBeInTheDocument()
     expect(scrollIntoView).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('tab', { name: 'Contact' }))
@@ -306,7 +323,7 @@ it('offers every organization to Super Admin', async () => {
   const user = userEvent.setup()
   render(<PatientEditor onSaved={vi.fn()} onClose={vi.fn()} />)
   const organization = screen.getByRole('button', { name: /Organization/ })
-  const allergies = screen.getByRole('checkbox', { name: 'Any Known Allergies' })
+  const allergies = screen.getByRole('button', { name: /Any Known Allergies$/i })
   expect(organization.compareDocumentPosition(allergies) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
     Node.DOCUMENT_POSITION_FOLLOWING,
   )
@@ -322,8 +339,12 @@ it('puts each requested group of basic information fields in its own row', () =>
   const choice = (name: RegExp) => screen.getByRole('button', { name })
   const firstName = textbox('First name')
   expect(row(firstName)).toBe(row(textbox('Last name')))
-  expect(row(firstName)).toHaveClass('patient-basic-row--two')
-  expect(row(firstName)?.children).toHaveLength(2)
+  expect(row(firstName)).toHaveClass('patient-basic-row--names')
+  expect(row(firstName)?.children).toHaveLength(4)
+  expect(row(firstName)).toBe(row(textbox('Middle name')))
+  expect(row(firstName)).toBe(row(textbox('Suffix')))
+  expect(textbox('Middle name')).not.toBeRequired()
+  expect(textbox('Suffix')).not.toBeRequired()
 
   const ssn = textbox('SSN')
   expect(row(ssn)).toBe(row(textbox('MRN')))
@@ -337,7 +358,7 @@ it('puts each requested group of basic information fields in its own row', () =>
   expect(row(race)).toBe(row(choice(/Ethnicity$/)))
   expect(row(race)).toBe(row(choice(/Preferred language$/i)))
   expect(row(demographics.getByRole('textbox', { name: 'Other demographics' }))).toBeNull()
-  expect(row(screen.getByRole('checkbox', { name: 'Any Known Allergies' }))).toBe(
+  expect(row(screen.getByRole('button', { name: /Any Known Allergies$/i }))).toBe(
     row(screen.getByRole('switch', { name: 'Status' })),
   )
 })
@@ -480,7 +501,7 @@ it('loads and updates patient measurements, driver license and status', async ()
   expect(state.update.mock.calls[0]![0].payload).not.toHaveProperty('initialBMI')
 })
 
-it('uses the shared contact fields on edit and preserves existing additional address lines', async () => {
+it('prefills the street and legacy unit information on edit and saves unit changes', async () => {
   const record = {
     ...savedPatient,
     dob: '2000-01-01',
@@ -489,22 +510,55 @@ it('uses the shared contact fields on edit and preserves existing additional add
   }
   render(<PatientEditor record={record} onSaved={vi.fn()} onClose={vi.fn()} />)
   fireEvent.click(screen.getByRole('tab', { name: 'Contact' }))
-  expect(screen.getByRole('combobox', { name: 'Address' })).toHaveValue('')
-  expect(screen.getByText('Selected address').closest('div')).toHaveTextContent('10 Main Street')
-  expect(screen.getByRole('textbox', { name: 'Additional Address (Optional)' })).toHaveValue(
-    'Suite 401\nBuilding B',
-  )
+  expect(screen.getByRole('combobox', { name: 'Address' })).toHaveValue('10 Main Street')
+  expect(screen.queryByText('Selected address')).not.toBeInTheDocument()
+  expect(screen.getByRole('textbox', { name: 'Unit number' })).toHaveValue('Suite 401, Building B')
   expect(screen.getByText('ZIP / Postal code')).toBeInTheDocument()
-  fireEvent.change(screen.getByRole('textbox', { name: 'Additional Address (Optional)' }), {
-    target: { value: 'Suite 402\nBuilding B' },
+  fireEvent.change(screen.getByRole('textbox', { name: 'Unit number' }), {
+    target: { value: 'Suite 402' },
   })
   fireEvent.submit(document.getElementById('patient-api-form')!)
   await waitFor(() =>
     expect(state.update).toHaveBeenCalledWith({
       id: record.id,
-      payload: expect.objectContaining({ address: '10 Main Street\nSuite 402\nBuilding B' }),
+      payload: expect.objectContaining({ address: '10 Main Street', addressUnitNo: 'Suite 402' }),
     }),
   )
   expect(state.create).not.toHaveBeenCalled()
-  expect(state.update.mock.calls[0]![0].payload).not.toHaveProperty('additionalAddress')
+  expect(state.update.mock.calls[0]![0].payload).not.toHaveProperty('unitNumber')
+})
+
+it('prefills saved name and unit fields and can clear each on edit', async () => {
+  const record = {
+    ...savedPatient,
+    dob: '2000-01-01',
+    gender: 'female',
+    middleName: 'Morgan',
+    nameSuffix: 'III',
+    address: '10 Main Street',
+    addressUnitNo: '4B',
+  }
+  render(<PatientEditor record={record} onSaved={vi.fn()} onClose={vi.fn()} />)
+  const middleName = screen.getByRole('textbox', { name: 'Middle name' })
+  const suffix = screen.getByRole('textbox', { name: 'Suffix' })
+  expect(middleName).toHaveValue('Morgan')
+  expect(suffix).toHaveValue('III')
+  fireEvent.change(middleName, { target: { value: '' } })
+  fireEvent.change(suffix, { target: { value: '' } })
+  fireEvent.click(screen.getByRole('tab', { name: 'Contact' }))
+  const unit = screen.getByRole('textbox', { name: 'Unit number' })
+  expect(unit).toHaveValue('4B')
+  fireEvent.change(unit, { target: { value: '' } })
+  fireEvent.submit(document.getElementById('patient-api-form')!)
+  await waitFor(() =>
+    expect(state.update).toHaveBeenCalledWith({
+      id: record.id,
+      payload: expect.objectContaining({
+        middleName: null,
+        nameSuffix: null,
+        address: '10 Main Street',
+        addressUnitNo: null,
+      }),
+    }),
+  )
 })

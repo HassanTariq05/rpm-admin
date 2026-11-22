@@ -2,6 +2,7 @@ import { importLibrary, setOptions } from '@googlemaps/js-api-loader'
 import { env } from '@/lib/env'
 export interface AddressDetails {
   address: string
+  streetAddress?: string
   city: string
   state: string
   country: string
@@ -39,6 +40,18 @@ export function placeAddressFields(
     country: part('country'),
   }
 }
+export function streetAddressLine(address: string) {
+  return address.split(',')[0]?.trim() ?? ''
+}
+
+function streetFromPlace(address: string, components: google.maps.places.AddressComponent[] = []) {
+  const street = streetAddressLine(address)
+  const route = components.find(({ types }) => types.includes('route'))?.longText
+  if (!route || street.toLowerCase().includes(route.toLowerCase())) return street
+  const number = components.find(({ types }) => types.includes('street_number'))?.longText
+  return [number, route].filter(Boolean).join(' ')
+}
+
 export async function lookupSavedAddress(address: string, signal: AbortSignal) {
   if (!env.googleMapsApiKey || !address.trim() || signal.aborted) return null
   const { Place } = await placesLibrary()
@@ -56,7 +69,13 @@ export async function lookupSavedAddress(address: string, signal: AbortSignal) {
       .trim()
   const saved = normalize(address)
   const match = places.find((place) => normalize(place.formattedAddress ?? '') === saved)
-  return match ? { address, ...placeAddressFields(match.addressComponents) } : null
+  return match
+    ? {
+        address,
+        streetAddress: streetFromPlace(address, match.addressComponents),
+        ...placeAddressFields(match.addressComponents),
+      }
+    : null
 }
 
 export async function searchAddresses(
@@ -81,6 +100,7 @@ export async function searchAddresses(
       title: prediction.mainText?.text || address,
       description: prediction.secondaryText?.text || '',
       address,
+      streetAddress: prediction.mainText?.text || streetAddressLine(address),
       city: '',
       state: '',
       country: '',
@@ -92,9 +112,11 @@ export async function searchAddresses(
           const place = prediction.toPlace()
           try {
             await place.fetchFields({ fields: ['formattedAddress', 'addressComponents'] })
+            const formatted = place.formattedAddress || address
             return {
               ...suggestion,
-              address: place.formattedAddress || address,
+              address: formatted,
+              streetAddress: streetFromPlace(formatted, place.addressComponents),
               ...placeAddressFields(place.addressComponents),
             }
           } finally {

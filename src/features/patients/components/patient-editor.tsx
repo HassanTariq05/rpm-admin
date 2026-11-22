@@ -25,7 +25,6 @@ import {
   Languages,
   LoaderCircle,
   Mail,
-  MapPin,
   Phone,
   Ruler,
   Save,
@@ -37,7 +36,6 @@ import {
   TriangleAlert,
 } from 'lucide-react'
 import {
-  CheckField,
   FormModal,
   FormTextField,
   FormStatusField,
@@ -65,6 +63,7 @@ import {
   hasPatientContactDetails,
   patientAge,
   patientContactPayload,
+  patientAddressFields,
   patientContactValues,
   patientRichTextToPlainText,
   patientErrorMessage,
@@ -93,11 +92,11 @@ const schema = Yup.object({
   firstName: Yup.string().trim().required('First name is required'),
   lastName: Yup.string().trim().required('Last name is required'),
   email: Yup.string().trim().email('Enter a valid email address'),
-  hasKnownAllergies: Yup.boolean(),
+  knownAllergies: Yup.string().oneOf(['yes', 'no']).required(),
   allergies: Yup.string()
     .trim()
-    .when('hasKnownAllergies', {
-      is: true,
+    .when('knownAllergies', {
+      is: 'yes',
       then: (field) => field.required('Enter the known allergies.'),
     }),
   gender: Yup.string().trim().required('Sex is required'),
@@ -150,6 +149,8 @@ function PatientChoice({
   icon,
   required = true,
   clearable = false,
+  disabled,
+  onValueChange,
 }: {
   name: string
   label: string
@@ -157,15 +158,21 @@ function PatientChoice({
   icon: ReactNode
   required?: boolean
   clearable?: boolean
+  disabled?: boolean
+  onValueChange?: (value: string) => void
 }) {
   useAppTranslation()
   const [field, meta, helpers] = useField<string>(name)
   return (
     <Autocomplete
       fullWidth
+      isDisabled={disabled}
       value={field.value || null}
       onChange={(key) => {
-        if (key != null) void helpers.setValue(key === unsetChoice ? '' : String(key))
+        if (key == null) return
+        const value = key === unsetChoice ? '' : String(key)
+        onValueChange?.(value)
+        void helpers.setValue(value)
       }}
       onBlur={() => void helpers.setTouched(true)}
       isInvalid={meta.touched && !!meta.error}
@@ -371,7 +378,7 @@ export function PatientEditor({
   const [createdPatient, setCreatedPatient] = useState<PatientRecord>()
   const savedPayload = useRef<string | null>(null)
   const saving = useRef(false)
-  const [address = '', ...additionalAddress] = (record?.address ?? '').split(/\r?\n/)
+  const addressFields = patientAddressFields(record)
   const allergies = patientRichTextToPlainText(record?.allergies)
   const initial = Object.fromEntries(
     patientTextFields.map((key) => [key, record?.[key] ?? '']),
@@ -384,12 +391,11 @@ export function PatientEditor({
         ...initial,
         ssn: formatPatientSsn(initial.ssn),
         allergies,
-        hasKnownAllergies: Boolean(allergies.trim()),
+        knownAllergies: allergies.trim() ? 'yes' : 'no',
         contacts: initialContacts,
         height: record?.height?.toString() ?? '',
         weight: record?.weight?.toString() ?? '',
-        address,
-        additionalAddress: additionalAddress.join('\n'),
+        ...addressFields,
         organisationId: scope.isSuperAdmin ? (record?.organisationId ?? '') : (scope.orgId ?? ''),
         countryCode: splitPhoneNumber(record?.phone ?? '').countryCode,
         phone: splitPhoneNumber(record?.phone ?? '').phoneNumber,
@@ -446,7 +452,7 @@ export function PatientEditor({
         }
       }}
     >
-      {({ isValidating, isSubmitting, values, setFieldValue }) => (
+      {({ isValidating, isSubmitting, values }) => (
         <FormModal
           {...patientEditorLayout}
           open
@@ -502,7 +508,7 @@ export function PatientEditor({
                 </Tabs.List>
                 <Tabs.Panel id="basic" className="patient-tab-panel patient-basic-info">
                   <PatientBasicSection title="Personal information">
-                    <div className="patient-basic-row patient-basic-row--two">
+                    <div className="patient-basic-row patient-basic-row--names">
                       <FormTextField
                         name="firstName"
                         required
@@ -511,10 +517,22 @@ export function PatientEditor({
                         icon={<UserRound size={17} className="admin-icon-violet" />}
                       />
                       <FormTextField
+                        name="middleName"
+                        label="Middle name"
+                        placeholder="Enter middle name"
+                        icon={<UserRound size={17} className="admin-icon-violet" />}
+                      />
+                      <FormTextField
                         name="lastName"
                         required
                         label={t('Last name')}
                         placeholder={t('Enter Last Name')}
+                        icon={<UserRound size={17} className="admin-icon-violet" />}
+                      />
+                      <FormTextField
+                        name="nameSuffix"
+                        label="Suffix"
+                        placeholder="e.g., Jr. or III"
                         icon={<UserRound size={17} className="admin-icon-violet" />}
                       />
                     </div>
@@ -670,21 +688,22 @@ export function PatientEditor({
                   </PatientBasicSection>
                   <PatientBasicSection title="Status and allergies">
                     <div className="patient-basic-row patient-basic-row--two">
-                      <div className="patient-allergies-card flex min-h-16 items-center rounded-xl border px-4 py-3">
-                        <CheckField
-                          label="Any Known Allergies"
-                          icon={<TriangleAlert size={17} className="admin-icon-amber" />}
-                          selected={values.hasKnownAllergies}
-                          disabled={pending || isSubmitting}
-                          onChange={(selected) => {
-                            scrollToAllergies.current = selected
-                            void setFieldValue('hasKnownAllergies', selected)
-                          }}
-                        />
-                      </div>
+                      <PatientChoice
+                        name="knownAllergies"
+                        label="Any Known Allergies"
+                        icon={<TriangleAlert size={17} className="admin-icon-amber" />}
+                        options={[
+                          { id: 'yes', label: t('Yes') },
+                          { id: 'no', label: t('No') },
+                        ]}
+                        disabled={pending || isSubmitting}
+                        onValueChange={(value) => {
+                          scrollToAllergies.current = value === 'yes'
+                        }}
+                      />
                       <FormStatusField disabled={pending} />
                     </div>
-                    {values.hasKnownAllergies && (
+                    {values.knownAllergies === 'yes' && (
                       <div
                         className="scroll-mt-2"
                         ref={(field) => {
@@ -730,18 +749,10 @@ export function PatientEditor({
                   />
                   <div className="patient-contact-address">
                     <PatientAddressField
-                      savedAddress={address}
+                      savedAddress={addressFields.address}
                       selected={selectedAddress}
                       onSelect={setSelectedAddress}
                       onResolvingChange={setAddressResolving}
-                      disabled={pending || isSubmitting}
-                    />
-                    <FormTextField
-                      name="additionalAddress"
-                      multiline
-                      label="Additional Address (Optional)"
-                      placeholder="Apartment, suite, or unit (optional)"
-                      icon={<MapPin size={17} className="admin-icon-teal" />}
                       disabled={pending || isSubmitting}
                     />
                   </div>

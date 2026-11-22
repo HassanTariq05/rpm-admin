@@ -10,6 +10,8 @@ import {
   SubmitButton,
 } from '@/app/components/administration/admin-ui'
 import { useCreateDevice, useUpdateDevice } from '@/hooks/use-devices'
+import { useAdminScope } from '@/hooks/use-administration'
+import { useOrganizations } from '@/hooks/use-organizations'
 import { translate as t, useAppTranslation } from '@/i18n'
 import {
   companies,
@@ -17,6 +19,7 @@ import {
   typeValues,
   devicePayload,
   deviceErrorMessage,
+  deviceOrganisationId,
   type DeviceValues,
 } from '../devices'
 import type { ApiDevice } from '@/services/device-services/device-services'
@@ -29,6 +32,7 @@ const schema = Yup.object({
   deviceType: Yup.string().trim(),
   status: Yup.string().oneOf(['active', 'inactive']).required('Choose a status.'),
 })
+const organisationField = Yup.string().uuid('Choose an organization.')
 function choices(options: { id: string; label: string }[], current?: string | null) {
   return current && !options.some((option) => option.id === current)
     ? [...options, { id: current, label: current }]
@@ -40,12 +44,14 @@ function DeviceChoiceField({
   options,
   icon,
   disabled,
+  required,
 }: {
   name: string
   label: string
   options: { id: string; label: string }[]
   icon: ReactNode
   disabled: boolean
+  required?: boolean
 }) {
   const [field, meta, helpers] = useField<string>(name)
   return (
@@ -53,6 +59,7 @@ function DeviceChoiceField({
       fullWidth
       value={field.value || null}
       isDisabled={disabled}
+      isRequired={required}
       onChange={(key) => {
         if (key != null) void helpers.setValue(String(key))
       }}
@@ -109,6 +116,24 @@ export function DeviceEditor({
   onSaved: () => void
 }) {
   useAppTranslation()
+  const scope = useAdminScope()
+  const organizations = useOrganizations(scope.isSuperAdmin)
+  const canSave = scope.ready && (scope.isSuperAdmin || !!scope.orgId)
+  const initialOrgId = record ? deviceOrganisationId(record) : scope.orgId
+  const currentOrgName = scope.user?.organisation?.name ?? scope.user?.organization?.name
+  const orgChoices = (scope.isSuperAdmin ? (organizations.data ?? []) : []).map(({ id, name }) => ({
+    id,
+    label: name,
+  }))
+  if (initialOrgId && !orgChoices.some(({ id }) => id === initialOrgId)) {
+    orgChoices.push({
+      id: initialOrgId,
+      label:
+        (record?.organisation?.id === initialOrgId ? record.organisation.name?.trim() : '') ||
+        (initialOrgId === scope.orgId ? currentOrgName : '') ||
+        initialOrgId,
+    })
+  }
   const create = useCreateDevice()
   const update = useUpdateDevice()
   const pending = create.isPending || update.isPending
@@ -120,13 +145,28 @@ export function DeviceEditor({
         vendor: record?.vendor ?? '',
         deviceType: record?.deviceType ?? '',
         externalDeviceId: record?.externalDeviceId ?? '',
+        organisationId: initialOrgId ?? '',
         status: record?.isActive === false ? 'inactive' : 'active',
       }}
-      validationSchema={schema}
+      validationSchema={
+        scope.isSuperAdmin
+          ? schema.shape({
+              organisationId: record
+                ? organisationField
+                : organisationField.required('Choose an organization.'),
+            })
+          : schema
+      }
       onSubmit={async (values, helpers) => {
+        if (!canSave || pending) return
         helpers.setStatus(undefined)
         try {
-          const payload = devicePayload(values)
+          const organisationId = scope.isSuperAdmin
+            ? values.organisationId
+            : record
+              ? undefined
+              : scope.orgId
+          const payload = devicePayload(values, organisationId)
           if (record) await update.mutateAsync({ id: record.id, payload })
           else await create.mutateAsync(payload)
           onSaved()
@@ -147,7 +187,7 @@ export function DeviceEditor({
           dialogClassName="admin-editor-modal device-modal device-editor-modal"
           className="w-full sm:max-w-[1180px] sm:p-6"
           footer={
-            <SubmitButton pending={pending || isSubmitting} form="device-form">
+            <SubmitButton disabled={!canSave} pending={pending || isSubmitting} form="device-form">
               <Save size={16} />
               {t(record ? 'Save changes' : 'Add device')}
             </SubmitButton>
@@ -208,6 +248,22 @@ export function DeviceEditor({
                 record?.deviceType,
               )}
             />
+            <DeviceChoiceField
+              name="organisationId"
+              label="Organization"
+              options={orgChoices}
+              icon={<Building2 size={17} className="admin-icon-teal" />}
+              disabled={!scope.isSuperAdmin || pending || isSubmitting || organizations.isPending}
+              required={scope.isSuperAdmin && !record}
+            />
+            {scope.isSuperAdmin && organizations.isError && (
+              <p role="alert" className="text-sm text-danger sm:col-span-2 lg:col-span-3">
+                {t('Organization choices could not be loaded.')}{' '}
+                <button type="button" onClick={() => void organizations.refetch()}>
+                  {t('Try again')}
+                </button>
+              </p>
+            )}
             <FormStatusField disabled={pending || isSubmitting} />
             {status && (
               <p role="alert" className="text-sm text-danger sm:col-span-2 lg:col-span-3">

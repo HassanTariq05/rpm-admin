@@ -8,6 +8,7 @@ import {
   FileText,
   Fingerprint,
   Globe,
+  Hash,
   HeartPulse,
   IdCard,
   Languages,
@@ -34,6 +35,7 @@ import {
   calculatePatientBmi,
   formatPatientSsn,
   patientAge,
+  patientAddressFields,
   patientContactHeadings,
   patientName,
   patientRichTextToPlainText,
@@ -200,7 +202,7 @@ export function PatientDetails({
   const name = patientName(record)
   const age = patientAge(record.dob)
   const bmi = calculatePatientBmi(record.height?.toString() ?? '', record.weight?.toString() ?? '')
-  const [address = '', ...additionalAddress] = (record.address ?? '').split(/\r?\n/)
+  const { address, addressUnitNo } = patientAddressFields(record)
   const formatNumber = numberFormatter({ maximumFractionDigits: 20 })
   const gender = record.gender
     ? t(
@@ -265,15 +267,21 @@ export function PatientDetails({
         <Tabs.Panel id="basic" className="patient-details-panel patient-detail-tone-basic">
           <div className="patient-basic-info">
             <PatientBasicSection title="Personal information">
-              <dl className="patient-basic-row patient-basic-row--three">
+              <dl className="patient-basic-row patient-basic-row--names">
                 <Detail label="First name" icon={UserRound}>
                   {record.firstName}
+                </Detail>
+                <Detail label="Middle name" icon={UserRound}>
+                  {record.middleName}
                 </Detail>
                 <Detail label="Last name" icon={UserRound}>
                   {record.lastName}
                 </Detail>
+                <Detail label="Suffix" icon={UserRound}>
+                  {record.nameSuffix}
+                </Detail>
               </dl>
-              <dl className="patient-basic-row patient-basic-row--three">
+              <dl className="patient-basic-row patient-basic-row--names">
                 <Detail label="Date of birth" icon={CalendarDays}>
                   {age !== null ? (
                     <>
@@ -365,13 +373,11 @@ export function PatientDetails({
             </Detail>
           </dl>
           <PatientReadOnlyAddress address={address} />
-          {additionalAddress.length > 0 && (
-            <dl className="mt-4">
-              <Detail label="Additional address" icon={MapPin}>
-                {additionalAddress.join('\n')}
-              </Detail>
-            </dl>
-          )}
+          <dl className="patient-basic-row patient-basic-row--three mt-4">
+            <Detail label="Unit number" icon={Hash}>
+              {addressUnitNo}
+            </Detail>
+          </dl>
           <PatientContactDetails patientId={record.id} />
         </Tabs.Panel>
         <Tabs.Panel id="allergies" className="patient-details-panel patient-detail-tone-allergies">

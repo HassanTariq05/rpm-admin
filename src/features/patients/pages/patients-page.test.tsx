@@ -178,7 +178,13 @@ it('shows a disabled busy delete button while removing a patient', () => {
 })
 
 it('opens patient details from the row menu and closes without editing', () => {
-  state.patientDetail = { ...rosterPatient, preferredLang: 'Urdu' }
+  state.patientDetail = {
+    ...rosterPatient,
+    middleName: 'Morgan',
+    nameSuffix: 'Jr.',
+    preferredLang: 'Urdu',
+    addressUnitNo: 'Suite 401',
+  }
   render(
     <QueryClientProvider client={new QueryClient()}>
       <PatientsPage />
@@ -187,11 +193,15 @@ it('opens patient details from the row menu and closes without editing', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Actions for Alex Rivera' }))
   fireEvent.click(screen.getByRole('menuitem', { name: 'View patient' }))
   const dialog = within(screen.getByRole('dialog', { name: 'View patient' }))
-  expect(dialog.getByRole('heading', { name: 'Alex Rivera' })).toBeInTheDocument()
+  expect(dialog.getByRole('heading', { name: 'Alex Morgan Rivera Jr.' })).toBeInTheDocument()
+  expect(dialog.getByText('Morgan')).toBeInTheDocument()
+  expect(dialog.getByText('Jr.')).toBeInTheDocument()
   expect(dialog.getByText('North Clinic')).toBeInTheDocument()
   expect(dialog.getByText('Urdu')).toBeInTheDocument()
   expect(state.detail).toHaveBeenCalledWith(rosterPatient.id)
   fireEvent.click(dialog.getByRole('tab', { name: 'Contact' }))
+  expect(dialog.getByText('Unit number')).toBeInTheDocument()
+  expect(dialog.getByText('Suite 401')).toBeInTheDocument()
   expect(dialog.getByRole('link', { name: 'alex@example.test' })).toHaveAttribute(
     'href',
     'mailto:alex%40example.test',
@@ -268,7 +278,7 @@ it('opens Edit in the shared editor once the full record is available', async ()
   const editor = within(await screen.findByRole('dialog', { name: 'Edit patient' }))
   expect(editor.getByRole('switch', { name: 'Status' })).toBeChecked()
   expect(editor.getByRole('textbox', { name: 'BMI' })).toHaveValue('22.84')
-  expect(editor.getByRole('checkbox', { name: 'Any Known Allergies' })).toBeChecked()
+  expect(editor.getByRole('button', { name: /Any Known Allergies$/i })).toHaveAccessibleName(/Yes/)
   expect(editor.getByRole('textbox', { name: 'Allergies' })).toHaveValue('Penicillin')
   await user.click(editor.getByRole('tab', { name: 'Contact' }))
   const emergencyContact = within(editor.getByRole('group', { name: 'Emergency contact 1' }))

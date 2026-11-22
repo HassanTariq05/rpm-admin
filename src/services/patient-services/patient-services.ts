@@ -10,7 +10,9 @@ export const patientRecordSchema = z
     nationalId: text,
     mrn: text,
     firstName: text,
+    middleName: text,
     lastName: text,
+    nameSuffix: text,
     dob: text,
     gender: text,
     genderIdentity: text,
@@ -24,6 +26,7 @@ export const patientRecordSchema = z
     phone: text,
     email: text,
     address: text,
+    addressUnitNo: text,
     bloodGroup: text,
     allergies: text,
     notes: text,
@@ -35,22 +38,29 @@ export const patientRecordSchema = z
     updatedAt: text,
   })
   .passthrough()
-  .transform((record) => {
+  .transform((record): typeof record => {
     const legacyLanguage = record.preferredLanguage
-    if (
-      record.preferredLang === undefined &&
-      (typeof legacyLanguage === 'string' || legacyLanguage === null)
-    ) {
-      return { ...record, preferredLang: legacyLanguage }
+    const legacySuffix = record.suffix
+    return {
+      ...record,
+      ...(record.preferredLang === undefined &&
+        (typeof legacyLanguage === 'string' || legacyLanguage === null) && {
+          preferredLang: legacyLanguage,
+        }),
+      ...(record.nameSuffix === undefined &&
+        (typeof legacySuffix === 'string' || legacySuffix === null) && {
+          nameSuffix: legacySuffix,
+        }),
     }
-    return record
   })
 export type PatientRecord = z.infer<typeof patientRecordSchema>
 export interface PatientWrite {
   nationalId?: string | null
   mrn?: string | null
   firstName?: string | null
+  middleName?: string | null
   lastName?: string | null
+  nameSuffix?: string | null
   dob?: string | null
   gender?: string | null
   genderIdentity?: string | null
@@ -64,6 +74,7 @@ export interface PatientWrite {
   phone?: string | null
   email?: string | null
   address?: string | null
+  addressUnitNo?: string | null
   bloodGroup?: string | null
   allergies?: string | null
   notes?: string | null

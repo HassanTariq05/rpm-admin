@@ -21,13 +21,14 @@ function useDeviceQueryError(error: unknown, updatedAt: number) {
     if (error) toast.error(t(deviceErrorMessage(error)))
   }, [error, updatedAt])
 }
-export function useDevices() {
+export function useDevices(organisationId?: string) {
   const service = useDeviceService()
   const scope = useAdminScope()
   const token = useAuthStore((state) => state.auth.accessToken)
+  const filter = scope.isSuperAdmin ? organisationId : undefined
   const query = useQuery({
-    queryKey: ['devices', 'list', scope.user?.id, scope.orgId],
-    queryFn: ({ signal }) => service.getAll({}, signal),
+    queryKey: ['devices', 'list', scope.user?.id, scope.orgId, !!scope.isSuperAdmin, filter],
+    queryFn: ({ signal }) => service.getAll(filter ? { organisationId: filter } : {}, signal),
     enabled: scope.ready && !!token,
     retry,
   })

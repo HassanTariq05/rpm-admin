@@ -988,9 +988,13 @@
 .patient-basic-row--three {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-.patient-allergies-card {
-  border-color: color-mix(in srgb, var(--editor-amber) 24%, var(--border));
-  background: color-mix(in srgb, var(--editor-amber) 7%, var(--panel));
+.patient-basic-row--names {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 0.65fr);
+}
+@media (max-width: 760px) {
+  .patient-basic-row--names {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 600px) {
   .patient-basic-row--three {
@@ -998,7 +1002,8 @@
   }
 }
 @media (max-width: 460px) {
-  .patient-basic-row--two {
+  .patient-basic-row--two,
+  .patient-basic-row--names {
     grid-template-columns: 1fr;
   }
 }
@@ -1007,7 +1012,6 @@
   gap: 16px;
   grid-column: 1/-1;
 }
-.patient-contact-address textarea,
 .patient-tab-panel > [data-slot='textfield'] textarea {
   min-height: 140px;
 }
@@ -1779,6 +1783,15 @@
 
 .patient-address-search {
   min-width: 0;
+}
+.patient-address-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.patient-address-entry > [data-slot='textfield'] {
+  width: 100%;
+  max-width: 11rem;
 }
 .patient-address-label {
   display: block;

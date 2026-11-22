@@ -5,6 +5,7 @@ import { DevicesPage } from './devices-page'
 import { deviceFixture } from '../devices.fixtures'
 const state = vi.hoisted(() => ({
   total: 12,
+  isSuperAdmin: false,
   pending: false,
   fetching: false,
   error: null as unknown,
@@ -20,7 +21,10 @@ const state = vi.hoisted(() => ({
   resetDelete: vi.fn(),
   refetch: vi.fn(),
   detail: vi.fn(),
+  list: vi.fn(),
 }))
+const northClinic = { id: '423e4567-e89b-42d3-a456-426614174000', name: 'North Clinic' }
+const southClinic = { id: '523e4567-e89b-42d3-a456-426614174000', name: 'South Clinic' }
 vi.mock('@tanstack/react-router', async (original) => ({
   ...(await original<typeof import('@tanstack/react-router')>()),
   Link: ({
@@ -39,37 +43,56 @@ vi.mock('@tanstack/react-router', async (original) => ({
     </a>
   ),
 }))
-vi.mock('@/hooks/use-devices', () => ({
-  useDevices: () => ({
-    data: state.pending
-      ? undefined
-      : Array.from({ length: state.total }, (_, index) => ({
-          ...deviceFixture,
-          id: `device-${index}`,
-          imei: `860000000${String(index).padStart(6, '0')}`,
-          patientId: index === 0 ? 'f8d5c3ab-5402-4ecb-a393-e8650d86b984' : null,
-          patient:
-            index === 0
-              ? {
-                  id: 'f8d5c3ab-5402-4ecb-a393-e8650d86b984',
-                  firstName: 'Hassan',
-                  lastName: 'Tariq',
-                  mrn: 'MRN-12345',
-                }
-              : null,
-          vendor: index % 2 ? 'pylo' : 'smart_meter',
-          deviceType: index > 5 ? 'scale' : 'bp-cuff',
-        })),
-    isPending: state.pending,
-    isFetching: state.fetching,
-    isError: !!state.error,
-    error: state.error,
-    refetch: state.refetch,
+vi.mock('@/hooks/use-administration', () => ({
+  useAdminScope: () => ({
+    ready: true,
+    user: { id: 'operator', organisation: northClinic },
+    orgId: northClinic.id,
+    isSuperAdmin: state.isSuperAdmin,
   }),
+}))
+vi.mock('@/hooks/use-organizations', () => ({
+  useOrganizations: () => ({ data: [northClinic, southClinic] }),
+}))
+vi.mock('@/hooks/use-devices', () => ({
+  useDevices: (organisationId?: string) => {
+    state.list(organisationId)
+    return {
+      data: state.pending
+        ? undefined
+        : Array.from({ length: state.total }, (_, index) => ({
+            ...deviceFixture,
+            id: `device-${index}`,
+            imei: `860000000${String(index).padStart(6, '0')}`,
+            organisationId: index % 2 ? southClinic.id : northClinic.id,
+            organisation: index % 2 ? null : northClinic,
+            patientId: index === 0 ? 'f8d5c3ab-5402-4ecb-a393-e8650d86b984' : null,
+            patient:
+              index === 0
+                ? {
+                    id: 'f8d5c3ab-5402-4ecb-a393-e8650d86b984',
+                    firstName: 'Hassan',
+                    lastName: 'Tariq',
+                    mrn: 'MRN-12345',
+                  }
+                : null,
+            vendor: index % 2 ? 'pylo' : 'smart_meter',
+            deviceType: index > 5 ? 'scale' : 'bp-cuff',
+          })).filter((device) => !organisationId || device.organisationId === organisationId),
+      isPending: state.pending,
+      isFetching: state.fetching,
+      isError: !!state.error,
+      error: state.error,
+      refetch: state.refetch,
+    }
+  },
   useDevice: (id: string) => {
     state.detail(id)
     return {
-      data: state.detailPending || state.detailError ? undefined : deviceFixture,
+      data:
+        state.detailPending || state.detailError
+          ? undefined
+          : { ...deviceFixture, organisationId: northClinic.id, organisation: northClinic },
       isPending: state.detailPending,
       isError: !!state.detailError,
       error: state.detailError,
@@ -91,6 +114,7 @@ beforeEach(() => {
   localStorage.removeItem('rpm.devices.view.v1')
   Object.assign(state, {
     total: 12,
+    isSuperAdmin: false,
     pending: false,
     fetching: false,
     error: null,
@@ -148,6 +172,7 @@ it('fetches details and submits only documented fields on edit', async () => {
   expect(state.detail).toHaveBeenCalledWith('device-0')
   const detail = within(await screen.findByRole('dialog'))
   expect(detail.getByText('vendor-42')).toBeInTheDocument()
+  expect(detail.getByText('North Clinic')).toBeInTheDocument()
   fireEvent.click(detail.getByRole('button', { name: 'Edit device' }))
   const dialog = within(await screen.findByRole('dialog'))
   fireEvent.change(dialog.getByRole('textbox', { name: 'Model' }), {
@@ -183,12 +208,68 @@ it('retains entered values and shows mutation errors rather than closing', async
       externalDeviceId: null,
       vendor: null,
       deviceType: null,
+      organisationId: northClinic.id,
       isActive: true,
     }),
   )
   expect(await dialog.findByRole('alert')).toHaveTextContent('Something went wrong')
   expect(dialog.getByRole('textbox', { name: 'IMEI' })).toHaveValue('PY-123T')
 })
+it('shows organization ownership in the list and filters inventory for Super Admin', async () => {
+  state.isSuperAdmin = true
+  state.total = 2
+  const user = userEvent.setup()
+  render(<DevicesPage />)
+  await user.click(screen.getByRole('button', { name: 'List view' }))
+  expect(screen.getByRole('columnheader', { name: 'Organization' })).toBeInTheDocument()
+  expect(screen.getByRole('cell', { name: 'North Clinic' })).toBeInTheDocument()
+  expect(screen.getByRole('cell', { name: 'South Clinic' })).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: /Organization/ }))
+  await user.click(await screen.findByRole('option', { name: 'South Clinic' }))
+  expect(state.list).toHaveBeenLastCalledWith(southClinic.id)
+  expect(screen.queryByRole('cell', { name: 'North Clinic' })).not.toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+  expect(state.list).toHaveBeenLastCalledWith(undefined)
+  expect(screen.getByRole('cell', { name: 'North Clinic' })).toBeInTheDocument()
+})
+it('lets Super Admin set the organization when adding a device', async () => {
+  state.isSuperAdmin = true
+  const user = userEvent.setup()
+  render(<DevicesPage />)
+  await user.click(screen.getByRole('button', { name: 'Add Device' }))
+  const dialog = within(await screen.findByRole('dialog'))
+  expect(dialog.getByRole('textbox', { name: 'External device ID' })).toBeInTheDocument()
+  await user.click(dialog.getByRole('button', { name: /Organization/ }))
+  await user.click(await screen.findByRole('option', { name: 'South Clinic' }))
+  await user.click(dialog.getByRole('button', { name: 'Add device' }))
+  await waitFor(() =>
+    expect(state.create).toHaveBeenCalledWith(
+      expect.objectContaining({ organisationId: southClinic.id, externalDeviceId: null }),
+    ),
+  )
+})
+
+it('loads the saved device organization and lets Super Admin change it', async () => {
+  state.isSuperAdmin = true
+  const user = userEvent.setup()
+  render(<DevicesPage />)
+  await user.click(screen.getByRole('button', { name: 'View LS802-GA, IMEI 860000000000000' }))
+  const details = within(await screen.findByRole('dialog'))
+  await user.click(details.getByRole('button', { name: 'Edit device' }))
+  const dialog = within(await screen.findByRole('dialog'))
+  const organization = dialog.getByRole('button', { name: /Organization/ })
+  expect(organization.closest('[data-slot=autocomplete-trigger]')).toHaveTextContent('North Clinic')
+  await user.click(organization)
+  await user.click(await screen.findByRole('option', { name: 'South Clinic' }))
+  await user.click(dialog.getByRole('button', { name: 'Save changes' }))
+  await waitFor(() =>
+    expect(state.update).toHaveBeenCalledWith({
+      id: deviceFixture.id,
+      payload: expect.objectContaining({ organisationId: southClinic.id }),
+    }),
+  )
+})
+
 it('shows loading buttons while saving and disables duplicate submission and dismissal', async () => {
   state.createPending = true
   render(<DevicesPage />)

@@ -27,7 +27,7 @@ const address = {
 function Form({ savedAddress = '' }: { savedAddress?: string }) {
   const [selected, setSelected] = useState<AddressDetails | null>(null)
   return (
-    <Formik initialValues={{ address: savedAddress }} onSubmit={vi.fn()}>
+    <Formik initialValues={{ address: savedAddress, addressUnitNo: '' }} onSubmit={vi.fn()}>
       {({ values }) => (
         <>
           <PatientAddressField
@@ -54,29 +54,30 @@ it('shows recommendations, allows keyboard selection and extracts the location c
   await user.type(input, 'Main')
   expect(await screen.findByRole('option', { name: /10 Main Street/ })).toBeInTheDocument()
   await user.keyboard('{ArrowDown}{Enter}')
-  await waitFor(() => expect(input).toHaveValue(''))
-  expect(screen.getByText('Selected address').closest('div')).toHaveTextContent(address.address)
+  await waitFor(() => expect(input).toHaveValue('10 Main Street'))
+  expect(screen.queryByText('Selected address')).not.toBeInTheDocument()
   expect(screen.getByLabelText('Address payload')).toHaveTextContent(address.address)
   expect(screen.getByText('Berlin State')).toBeInTheDocument()
   expect(screen.getByText('Germany')).toBeInTheDocument()
   expect(screen.getByText('00123')).toBeInTheDocument()
+  await user.clear(input)
   await user.type(input, 'Replacement address')
   expect(screen.getByLabelText('Address payload')).toHaveTextContent('Replacement address')
   expect(screen.queryByText('Selected address')).not.toBeInTheDocument()
   expect(screen.queryByText('Berlin State')).not.toBeInTheDocument()
   expect(screen.queryByText('00123')).not.toBeInTheDocument()
 })
-it('restores a saved address and its location with an empty search field', async () => {
+it('restores a saved address and its location with the street in the search field', async () => {
   const user = userEvent.setup()
   render(<Form savedAddress={address.address} />)
   const input = screen.getByRole('combobox', { name: 'Address' })
-  expect(input).toHaveValue('')
-  expect(screen.getByText('Selected address').closest('div')).toHaveTextContent(address.address)
+  expect(input).toHaveValue('10 Main Street')
+  expect(screen.queryByText('Selected address')).not.toBeInTheDocument()
   expect(await screen.findByText('Berlin State')).toBeInTheDocument()
   expect(screen.getByText('Germany')).toBeInTheDocument()
   expect(screen.getByText('00123')).toBeInTheDocument()
   expect(api.lookup).toHaveBeenCalledWith(address.address, expect.any(AbortSignal))
-  await user.click(screen.getByRole('button', { name: 'Clear address' }))
+  await user.clear(input)
   expect(screen.queryByText('Selected address')).not.toBeInTheDocument()
   expect(screen.getByLabelText('Address payload')).toBeEmptyDOMElement()
   expect(input).toHaveFocus()
@@ -140,12 +141,8 @@ it('loads selected place details before displaying city, state and country', asy
   await user.keyboard('{ArrowDown}{Enter}')
   expect(screen.getByLabelText('Loading address details…')).toBeInTheDocument()
   await act(async () => finish({ ...address, address: 'Formatted address' }))
-  await waitFor(() =>
-    expect(screen.getByText('Selected address').closest('div')).toHaveTextContent(
-      'Formatted address',
-    ),
-  )
-  expect(input).toHaveValue('')
+  await waitFor(() => expect(input).toHaveValue('Formatted address'))
+  expect(screen.getByLabelText('Address payload')).toHaveTextContent('Formatted address')
   expect(screen.getByText('Berlin State')).toBeInTheDocument()
   expect(screen.queryByLabelText('Loading address details…')).not.toBeInTheDocument()
 })
@@ -166,6 +163,7 @@ it('does not overwrite manual edits with late place details', async () => {
   await user.type(input, 'Main')
   await screen.findByRole('option', { name: /10 Main Street/ })
   await user.keyboard('{ArrowDown}{Enter}')
+  await user.clear(input)
   await user.type(input, 'Changed address')
   await act(async () => finish({ ...address, address: 'Late address' }))
   expect(input).toHaveValue('Changed address')

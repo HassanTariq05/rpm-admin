@@ -71,6 +71,18 @@ export function deviceView(record: ApiDevice): DeviceRecord {
     raw: record,
   }
 }
+
+export function deviceOrganisationId(record?: ApiDevice) {
+  return record?.organisationId === undefined ? record?.organisation?.id : record.organisationId
+}
+
+export function deviceOrganisationName(record?: ApiDevice, names?: ReadonlyMap<string, string>) {
+  const id = deviceOrganisationId(record)
+  if (!id) return ''
+  const embedded = record?.organisation
+  return (embedded?.id === id ? embedded.name?.trim() : undefined) || names?.get(id) || id
+}
+
 export function filterDevices(
   devices: DeviceRecord[],
   company: string,
@@ -101,15 +113,20 @@ export type DeviceValues = {
   vendor: string
   deviceType: string
   externalDeviceId: string
+  organisationId: string
   status: string
 }
-export function devicePayload(values: DeviceValues): DeviceWrite {
+export function devicePayload(
+  values: Omit<DeviceValues, 'organisationId'>,
+  organisationId?: string,
+): DeviceWrite {
   return {
     deviceModel: values.deviceModel.trim() || null,
     imei: values.imei.trim() || null,
     vendor: values.vendor.trim() || null,
     deviceType: values.deviceType.trim() || null,
     externalDeviceId: values.externalDeviceId.trim() || null,
+    ...(organisationId ? { organisationId } : {}),
     isActive: values.status === 'active',
   }
 }
