@@ -113,9 +113,9 @@ function DeviceChoiceField({
                 // Selecting the current option closes the list without firing onChange.
                 render={
                   onManualChange && option.id === field.value
-                    ? (props) => (
+                    ? ({ ref: _ref, ...props }) => (
                         <div
-                          {...props}
+                          {...(props as React.HTMLAttributes<HTMLDivElement>)}
                           onPointerUpCapture={(event) => {
                             if (event.button === 0) onManualChange(option.id)
                           }}
