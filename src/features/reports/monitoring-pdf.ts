@@ -188,16 +188,6 @@ export async function createMonitoringPdf<Reading extends { timestamp: number }>
 
   write(overview, t('Reading insights'), left, 180, 15, true)
   report.insights.forEach((line, index) => write(overview, line, left, 158 - index * 17))
-  write(
-    overview,
-    t('Demo bands are illustrative and are not personalized care targets.'),
-    left,
-    91,
-    9,
-    false,
-    muted,
-  )
-
   const history = [...readings].reverse()
   const rowsPerPage = 28
   for (let offset = 0; offset < history.length; offset += rowsPerPage) {

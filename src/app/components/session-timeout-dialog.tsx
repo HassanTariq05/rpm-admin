@@ -19,7 +19,7 @@ export function SessionTimeoutDialog() {
             <p className="text-sm text-muted">
               {t(
                 reason === 'inactivity'
-                  ? 'You were signed out after 2 minutes of inactivity. Please sign in again to continue.'
+                  ? 'You were signed out after 15 minutes of inactivity. Please sign in again to continue.'
                   : 'Your session has expired. Please sign in again to continue.',
               )}
             </p>

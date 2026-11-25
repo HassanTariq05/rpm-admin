@@ -6,6 +6,23 @@ import { DashboardDemoContext, dashboardDemoReducer, initialDemoState } from '..
 import type { DashboardConcept, DashboardPeriod } from '../data/concepts.mock-data'
 import './dashboard-page.css'
 import './dashboard-concepts.css'
+import {
+  readDashboardView,
+  saveDashboardView,
+  type DashboardViewMode,
+} from '../dashboard-view-preference'
+const viewToConcept: Record<DashboardViewMode, DashboardConcept> = {
+  dashboard1: 'care',
+  dashboard2: 'overview',
+  dashboard3: 'operations',
+}
+
+const conceptToView: Record<DashboardConcept, DashboardViewMode> = {
+  care: 'dashboard1',
+  overview: 'dashboard2',
+  operations: 'dashboard3',
+}
+
 const concepts = [
   {
     id: 'care',
@@ -23,27 +40,15 @@ const concepts = [
     icon: Package,
   },
 ] as const
-function initialConcept(): DashboardConcept {
-  try {
-    const value = localStorage.getItem('rpm-dashboard-concept-v1')
-    if (value === 'care' || value === 'overview' || value === 'operations') return value
-  } catch {
-    /* Presentation still works when storage is unavailable. */
-  }
-  return 'care'
-}
+
 export function DashboardPage() {
   useAppTranslation()
-  const [concept, setConcept] = useState<DashboardConcept>(initialConcept)
+  const [concept, setConcept] = useState<DashboardConcept>(() => viewToConcept[readDashboardView()])
   const [period, setPeriod] = useState<DashboardPeriod>('week')
   const [state, dispatch] = useReducer(dashboardDemoReducer, initialDemoState)
   function changeConcept(value: DashboardConcept) {
     setConcept(value)
-    try {
-      localStorage.setItem('rpm-dashboard-concept-v1', value)
-    } catch {
-      /* Optional preference. */
-    }
+    saveDashboardView(conceptToView[value])
   }
   return (
     <div className={`dashboard-exploration dash-concept-${concept}`}>

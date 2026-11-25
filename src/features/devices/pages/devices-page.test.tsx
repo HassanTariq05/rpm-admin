@@ -25,6 +25,24 @@ const state = vi.hoisted(() => ({
 }))
 const northClinic = { id: '423e4567-e89b-42d3-a456-426614174000', name: 'North Clinic' }
 const southClinic = { id: '523e4567-e89b-42d3-a456-426614174000', name: 'South Clinic' }
+vi.mock('@/hooks/use-order-lookups', () => ({
+  useOrderSkus: (source?: string) => ({
+    data:
+      source === 'pylo'
+        ? [
+            {
+              sku: 'PY-802-LTE',
+              name: 'Pylo BPM 802-LTE',
+              model: '802-LTE',
+              deviceType: 'Blood Pressure Monitor',
+              source,
+            },
+          ]
+        : [],
+    isPending: false,
+    isFetching: false,
+  }),
+}))
 vi.mock('@tanstack/react-router', async (original) => ({
   ...(await original<typeof import('@tanstack/react-router')>()),
   Link: ({
@@ -291,15 +309,22 @@ it('retains the confirmation after failed deletion so the user can retry', async
   expect(confirmation.getByRole('textbox')).toHaveValue('LS802-GA')
 })
 
-it('searches company and type dropdowns and saves the active toggle as the API boolean', async () => {
+it('fills model and device type from a selected SKU and supports manual overrides', async () => {
   const user = userEvent.setup()
   render(<DevicesPage />)
   await user.click(screen.getByRole('button', { name: 'Add Device' }))
   const dialog = within(await screen.findByRole('dialog'))
-  await user.click(dialog.getByRole('button', { name: /Company/ }))
-  await user.type(screen.getByRole('searchbox', { name: 'Search Company' }), 'pyl')
+  await user.click(dialog.getByRole('button', { name: /Vendor/ }))
+  await user.type(screen.getByRole('searchbox', { name: 'Search Vendor' }), 'pyl')
   expect(screen.queryByRole('option', { name: 'SmartMeter' })).not.toBeInTheDocument()
   await user.click(screen.getByRole('option', { name: 'Pylo' }))
+  await user.click(dialog.getByRole('button', { name: /SKU/ }))
+  await user.type(screen.getByRole('searchbox', { name: 'Search SKU' }), 'PY-802-LTE')
+  await user.click(screen.getByRole('option', { name: 'Pylo BPM 802-LTE · PY-802-LTE' }))
+  expect(dialog.getByRole('textbox', { name: 'Model' })).toHaveValue('802-LTE')
+  expect(
+    dialog.getByRole('button', { name: /Device type/ }).closest('[data-slot=autocomplete-trigger]'),
+  ).toHaveTextContent('Blood pressure')
   await user.click(dialog.getByRole('button', { name: /Device type/ }))
   await user.type(screen.getByRole('searchbox', { name: 'Search Device type' }), 'weight')
   await user.click(screen.getByRole('option', { name: 'Weight' }))
@@ -310,7 +335,13 @@ it('searches company and type dropdowns and saves the active toggle as the API b
   await user.click(dialog.getByRole('button', { name: 'Add device' }))
   await waitFor(() =>
     expect(state.create).toHaveBeenCalledWith(
-      expect.objectContaining({ vendor: 'pylo', deviceType: 'scale', isActive: false }),
+      expect.objectContaining({
+        vendor: 'pylo',
+        sku: 'PY-802-LTE',
+        deviceModel: '802-LTE',
+        deviceType: 'scale',
+        isActive: false,
+      }),
     ),
   )
 })

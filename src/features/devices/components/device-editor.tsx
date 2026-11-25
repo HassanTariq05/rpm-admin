@@ -1,6 +1,7 @@
 import { Form, Formik, useField } from 'formik'
 import { useRef, useState, type ReactNode } from 'react'
 import { DeviceScanHandoff } from '@/features/patients/components/device-scan-handoff'
+import { VendorSkuField } from '@/features/orders/components/order-lookup-fields'
 import type { DeviceLabelFields } from '@/features/patients/device-scanning/label-parser'
 import { Autocomplete, FieldError, Label, ListBox, SearchField } from '@heroui/react'
 import * as Yup from 'yup'
@@ -22,6 +23,8 @@ import {
   devicePayload,
   deviceErrorMessage,
   deviceOrganisationId,
+  normalizeCompany,
+  normalizeType,
   type DeviceValues,
 } from '../devices'
 import type { ApiDevice } from '@/services/device-services/device-services'
@@ -34,6 +37,10 @@ const schema = Yup.object({
   status: Yup.string().oneOf(['active', 'inactive']).required('Choose a status.'),
 })
 const organisationField = Yup.string().uuid('Choose an organization.')
+function skuSource(vendor: string) {
+  const company = normalizeCompany(vendor)
+  return company === 'Pylo' ? 'pylo' : company === 'SmartMeter' ? 'smart_meter' : undefined
+}
 function choices(options: { id: string; label: string }[], current?: string | null) {
   return current && !options.some((option) => option.id === current)
     ? [...options, { id: current, label: current }]
@@ -53,7 +60,7 @@ function DeviceChoiceField({
   options: { id: string; label: string }[]
   icon: ReactNode
   disabled: boolean
-  onManualChange?: () => void
+  onManualChange?: (value: string) => void
   required?: boolean
 }) {
   const [field, meta, helpers] = useField<string>(name)
@@ -65,7 +72,7 @@ function DeviceChoiceField({
       isRequired={required}
       onChange={(key) => {
         if (key != null) {
-          onManualChange?.()
+          onManualChange?.(String(key))
           void helpers.setValue(String(key))
         }
       }}
@@ -100,7 +107,30 @@ function DeviceChoiceField({
             )}
           >
             {(option) => (
-              <ListBox.Item id={option.id} textValue={t(option.label)}>
+              <ListBox.Item
+                id={option.id}
+                textValue={t(option.label)}
+                // Selecting the current option closes the list without firing onChange.
+                render={
+                  onManualChange && option.id === field.value
+                    ? (props) => (
+                        <div
+                          {...props}
+                          onPointerUpCapture={(event) => {
+                            if (event.button === 0) onManualChange(option.id)
+                          }}
+                          onKeyDownCapture={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ')
+                              onManualChange(option.id)
+                          }}
+                          onClickCapture={(event) => {
+                            if (event.detail === 0) onManualChange(option.id)
+                          }}
+                        />
+                      )
+                    : undefined
+                }
+              >
                 {t(option.label)}
                 <ListBox.ItemIndicator />
               </ListBox.Item>
@@ -152,6 +182,7 @@ export function DeviceEditor({
         deviceModel: record?.deviceModel ?? '',
         imei: record?.imei ?? '',
         vendor: record?.vendor ?? '',
+        sku: record?.sku ?? '',
         deviceType: record?.deviceType ?? '',
         externalDeviceId: record?.externalDeviceId ?? '',
         organisationId: initialOrgId ?? '',
@@ -176,6 +207,7 @@ export function DeviceEditor({
               ? undefined
               : scope.orgId
           const payload = devicePayload(values, organisationId)
+          if (record?.sku && !values.sku) payload.sku = null
           if (!payload.externalDeviceId) {
             generatedExternalId.current ??= crypto.randomUUID()
             payload.externalDeviceId = generatedExternalId.current
@@ -189,13 +221,13 @@ export function DeviceEditor({
         }
       }}
     >
-      {({ status, isSubmitting, setValues }) => (
+      {({ status, isSubmitting, values, setValues }) => (
         <FormModal
           open
           pending={pending || isSubmitting}
           onClose={onClose}
           title={t(record ? 'Edit device' : 'Add device')}
-          description={t('Manage device identity, manufacturer, and inventory details.')}
+          description={t('Manage device identity, vendor, and inventory details.')}
           headerIcon={<Package size={25} />}
           dialogClassName="admin-editor-modal device-modal device-editor-modal device-create-modal"
           className="w-full sm:max-w-[1180px] sm:p-6"
@@ -220,6 +252,57 @@ export function DeviceEditor({
                   edited.current.add(target.name)
               }}
             >
+              <DeviceChoiceField
+                disabled={pending || isSubmitting}
+                icon={<Building2 size={17} className="admin-icon-amber" />}
+                onManualChange={(vendor) => {
+                  edited.current.add('vendor')
+                  if (!values.vendor) return
+                  edited.current.add('deviceModel').add('imei').add('deviceType')
+                  setCaptured({})
+                  void setValues((current) => ({
+                    ...current,
+                    vendor,
+                    sku: '',
+                    deviceModel: '',
+                    imei: '',
+                    deviceType: '',
+                  }))
+                }}
+                name="vendor"
+                label="Vendor"
+                options={choices(
+                  [
+                    { id: '', label: 'Not specified' },
+                    ...companies.map((id) => ({
+                      id: id === 'SmartMeter' ? 'smart_meter' : 'pylo',
+                      label: id,
+                    })),
+                  ],
+                  record?.vendor,
+                )}
+              />
+              <VendorSkuField
+                name="sku"
+                label="SKU"
+                source={skuSource(values.vendor)}
+                value={values.sku ?? ''}
+                disabled={pending || isSubmitting}
+                onSkuSelect={(sku) => {
+                  const model = sku.model?.trim()
+                  const catalogType = normalizeType(sku.deviceType)
+                  const type = deviceTypes.find((label) => label === catalogType)
+                  edited.current.add('vendor')
+                  if (model) edited.current.add('deviceModel')
+                  if (type) edited.current.add('deviceType')
+                  void setValues((current) => ({
+                    ...current,
+                    sku: sku.sku,
+                    ...(model ? { deviceModel: model } : {}),
+                    ...(type ? { deviceType: typeValues[type] } : {}),
+                  }))
+                }}
+              />
               <FormTextField
                 name="deviceModel"
                 label="Model"
@@ -241,23 +324,6 @@ export function DeviceEditor({
                 placeholder="Vendor or external device ID"
                 disabled={pending || isSubmitting}
               /> */}
-              <DeviceChoiceField
-                disabled={pending || isSubmitting}
-                icon={<Building2 size={17} className="admin-icon-amber" />}
-                onManualChange={() => edited.current.add('vendor')}
-                name="vendor"
-                label="Company"
-                options={choices(
-                  [
-                    { id: '', label: 'Not specified' },
-                    ...companies.map((id) => ({
-                      id: id === 'SmartMeter' ? 'smart_meter' : 'pylo',
-                      label: id,
-                    })),
-                  ],
-                  record?.vendor,
-                )}
-              />
               <DeviceChoiceField
                 disabled={pending || isSubmitting}
                 icon={<MonitorSmartphone size={17} className="admin-icon-violet" />}
@@ -328,7 +394,13 @@ export function DeviceEditor({
                     ? { imei: fields.imei ?? (record ? current.imei : '') }
                     : {}),
                   ...(!edited.current.has('vendor')
-                    ? { vendor: fields.vendor ?? (record ? current.vendor : '') }
+                    ? {
+                        vendor: fields.vendor ?? (record ? current.vendor : ''),
+                        ...(normalizeCompany(current.vendor) !==
+                        normalizeCompany(fields.vendor ?? (record ? current.vendor : ''))
+                          ? { sku: '' }
+                          : {}),
+                      }
                     : {}),
                   ...(!edited.current.has('deviceType')
                     ? { deviceType: fields.deviceType ?? (record ? current.deviceType : '') }

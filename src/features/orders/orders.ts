@@ -8,7 +8,7 @@ import {
   type Order,
 } from '@/services/order-services/order-services'
 
-// Temporary sample data requested for the Pylo billing flow; kept editable in the form.
+// Default billing information for Pylo orders.
 export const defaultPyloBillingInfo = Object.freeze({
   firstName: 'RPM',
   lastName: 'Billing',

@@ -12,7 +12,7 @@ export const oximetryDate = dateFormatter({
 export const oximetryBands = [
   { id: 'very-low', label: 'Very low', range: '<90%', color: '#dc2626', min: 80, max: 90 },
   { id: 'low', label: 'Low', range: '90–94%', color: '#c77d19', min: 90, max: 95 },
-  { id: 'in-range', label: 'In demo range', range: '95–100%', color: '#15977c', min: 95, max: 100 },
+  { id: 'in-range', label: 'In range', range: '95–100%', color: '#15977c', min: 95, max: 100 },
 ] as const
 
 export const oximetryTicks = [80, 85, 90, 95, 100]

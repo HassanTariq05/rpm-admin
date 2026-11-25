@@ -14,6 +14,8 @@ export const orderCitySchema = z.object({
 export const orderSkuSchema = z.object({
   sku: z.string(),
   name: z.string().nullish(),
+  model: z.string().nullish(),
+  deviceType: z.string().nullish(),
   source: z.enum(orderSources),
 })
 export const lastShippingSchema = orderWriteSchema.pick({

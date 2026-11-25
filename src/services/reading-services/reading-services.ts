@@ -37,6 +37,9 @@ const readingsResponseSchema = z.object({
 
 export type DeviceReading = z.infer<typeof readingSchema>
 export type ReadingsResponse = z.infer<typeof readingsResponseSchema>
+export interface ReadingsByImeiParams extends ReadingsParams {
+  imei: string
+}
 export interface ReadingsParams {
   page: number
   pageSize: number
@@ -56,6 +59,22 @@ export function createReadingService(client: AxiosInstance, baseURL = env.apiBas
       signal?: AbortSignal,
     ): Promise<ReadingsResponse> => {
       const response = await client.get<unknown>('/emr/readings', {
+        baseURL,
+        withCredentials: false,
+        params: { page, pageSize, ...(source ? { source } : {}) },
+        signal,
+        timeout: 20_000,
+      })
+      const result = readingsResponseSchema.safeParse(response.data)
+      if (!result.success) throw new ReadingsResponseError()
+      return result.data
+    },
+
+    getReadingsByImei: async (
+      { imei, page, pageSize, source }: ReadingsByImeiParams,
+      signal?: AbortSignal,
+    ): Promise<ReadingsResponse> => {
+      const response = await client.get<unknown>(`/emr/readings/imei/${encodeURIComponent(imei)}`, {
         baseURL,
         withCredentials: false,
         params: { page, pageSize, ...(source ? { source } : {}) },

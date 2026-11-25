@@ -11,6 +11,7 @@ import {
   useOrderStates,
 } from '@/hooks/use-order-lookups'
 import type { OrderValues } from '../orders'
+import type { OrderSku } from '@/services/order-services/order-lookup-services'
 import { OrderChoiceField } from './order-choice-field'
 
 export function LookupFeedback({
@@ -252,24 +253,55 @@ export function OrderLocationFields({
 export function OrderSkuField({ index, disabled }: { index: number; disabled: boolean }) {
   useAppTranslation()
   const { values } = useFormikContext<OrderValues>()
-  const skus = useOrderSkus(values.source)
-  const value = values.lines[index]?.sku || ''
+  return (
+    <VendorSkuField
+      name={`lines.${index}.sku`}
+      label={t('SKU {{value0}}', { value0: index + 1 })}
+      source={values.source}
+      value={values.lines[index]?.sku || ''}
+      disabled={disabled}
+      required
+    />
+  )
+}
+
+export function VendorSkuField({
+  name,
+  label,
+  source,
+  value,
+  disabled,
+  required,
+  onSkuSelect,
+}: {
+  name: string
+  label: string
+  source: Parameters<typeof useOrderSkus>[0]
+  value: string
+  disabled: boolean
+  required?: boolean
+  onSkuSelect?: (sku: OrderSku) => void
+}) {
+  const skus = useOrderSkus(source)
+  const vendorSkus = (skus.data ?? []).filter((item) => item.source === source)
   return (
     <div>
       <OrderChoiceField
-        name={`lines.${index}.sku`}
-        label={t('SKU {{value0}}', { value0: index + 1 })}
+        name={name}
+        label={label}
         loading={skus.isFetching}
-        required
-        disabled={disabled || (skus.isPending && !value)}
+        required={required}
+        disabled={disabled || (!source && !value) || (skus.isPending && !!source && !value)}
         icon={<Barcode size={17} className="admin-icon-blue" />}
+        onChange={(value) => {
+          const sku = vendorSkus.find((item) => item.sku === value)
+          if (sku) onSkuSelect?.(sku)
+        }}
         options={withSavedOption(
-          (skus.data ?? [])
-            .filter((item) => item.source === values.source)
-            .map((item) => ({
-              id: item.sku,
-              label: item.name ? `${item.name} · ${item.sku}` : item.sku,
-            })),
+          vendorSkus.map((item) => ({
+            id: item.sku,
+            label: item.name ? `${item.name} · ${item.sku}` : item.sku,
+          })),
           value,
         )}
         emptyMessage="No SKUs available for this vendor."

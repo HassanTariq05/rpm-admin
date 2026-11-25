@@ -108,7 +108,7 @@ it('shows a session-expired dialog after unexpected expiration and allows signin
   await waitFor(() => expect(useAuthStore.getState().auth.user).toEqual(user))
   act(() => useAuthStore.getState().auth.expireSession('inactivity'))
   expect(await screen.findByRole('dialog', { name: 'Session expired' })).toHaveTextContent(
-    '2 minutes of inactivity',
+    '15 minutes of inactivity',
   )
   expect(useAuthStore.getState().auth.accessToken).toBe('')
   await act(async () => screen.getByRole('button', { name: 'Sign in again' }).click())

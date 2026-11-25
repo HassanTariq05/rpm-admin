@@ -169,9 +169,6 @@ export function BloodPressureReportPage() {
               </dd>
             </div>
           </dl>
-          <p className="monitoring-range-note">
-            {t('Demo bands are illustrative and are not personalized care targets.')}
-          </p>
         </aside>
       </div>
 

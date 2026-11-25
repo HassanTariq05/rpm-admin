@@ -1,6 +1,18 @@
 import { expect, it } from 'vitest'
 import { deviceFixture } from './devices.fixtures'
-import { deviceView, devicePayload, filterDevices } from './devices'
+import { deviceView, devicePayload, filterDevices, normalizeType } from './devices'
+it.each([
+  ['Blood Pressure', 'Blood pressure'],
+  ['Blood Pressure Monitor', 'Blood pressure'],
+  ['Blood Glucose', 'Blood glucose'],
+  ['Blood Glucose Monitor', 'Blood glucose'],
+  ['Weight', 'Weight'],
+  ['Weight Scale', 'Weight'],
+  ['Oximeter', 'Oximeter'],
+  ['Pulse Oximeter', 'Oximeter'],
+])('maps the catalog type %s to %s', (value, expected) => {
+  expect(normalizeType(value)).toBe(expected)
+})
 it('maps known vendor/type aliases and preserves unknown values without fabricating a brand', () => {
   expect(deviceView(deviceFixture)).toMatchObject({
     company: 'SmartMeter',
@@ -24,7 +36,7 @@ it('maps known vendor/type aliases and preserves unknown values without fabricat
   })
   expect(
     deviceView({ ...deviceFixture, vendor: null, deviceType: null, imei: null }),
-  ).toMatchObject({ company: 'Unknown company', type: 'Unknown type', imei: '' })
+  ).toMatchObject({ company: 'Unknown vendor', type: 'Unknown type', imei: '' })
 })
 it('serializes only supported fields and preserves cleared values as null', () => {
   expect(

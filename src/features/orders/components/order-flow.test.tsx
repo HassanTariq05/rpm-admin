@@ -583,7 +583,7 @@ it('does not render event payloads or raw vendor and billing data in activity', 
     expect(screen.queryByText(label)).not.toBeInTheDocument()
 })
 
-it('restores editable Pylo billing inputs in the recipient tab and routes billing validation there', async () => {
+it('keeps saved Pylo billing in the payload while hiding billing JSON', async () => {
   const user = userEvent.setup()
   render(
     <OrderEditor
@@ -593,25 +593,12 @@ it('restores editable Pylo billing inputs in the recipient tab and routes billin
     />,
   )
   await user.click(screen.getByRole('tab', { name: 'Recipient' }))
-  const billing = screen.getByRole('textbox', { name: 'Billing information (JSON object)' })
-  expect(billing).toHaveValue(JSON.stringify({ account: 'existing-account' }, null, 2))
-  expect(billing).toBeRequired()
-  fireEvent.change(billing, { target: { value: '{}' } })
-  await user.click(screen.getByRole('tab', { name: 'Order information' }))
-  await user.click(screen.getByRole('button', { name: 'Save changes' }))
-  await waitFor(() =>
-    expect(screen.getByRole('tab', { name: /Recipient/ })).toHaveAttribute('aria-selected', 'true'),
-  )
-  expect(screen.getByText('Billing information is required for Pylo.')).toBeInTheDocument()
-  expect(state.update).not.toHaveBeenCalled()
-  fireEvent.change(screen.getByRole('textbox', { name: 'Billing information (JSON object)' }), {
-    target: { value: '{"account":"updated-account"}' },
-  })
+  expect(screen.queryByLabelText('Billing information (JSON object)')).not.toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Save changes' }))
   await waitFor(() =>
     expect(state.update).toHaveBeenCalledWith({
       id: orderFixture.id,
-      payload: expect.objectContaining({ billingInfo: { account: 'updated-account' } }),
+      payload: expect.objectContaining({ billingInfo: { account: 'existing-account' } }),
     }),
   )
 })
@@ -622,9 +609,7 @@ it('populates generic billing when selecting Pylo and includes it in the saved d
   await user.click(screen.getByRole('button', { name: /Vendor/ }))
   await user.click(screen.getByRole('option', { name: 'Pylo' }))
   await user.click(screen.getByRole('tab', { name: 'Recipient' }))
-  expect(screen.getByRole('textbox', { name: 'Billing information (JSON object)' })).toHaveValue(
-    JSON.stringify(defaultPyloBillingInfo, null, 2),
-  )
+  expect(screen.queryByLabelText('Billing information (JSON object)')).not.toBeInTheDocument()
   await user.click(screen.getByRole('tab', { name: 'Order items' }))
   await user.click(screen.getByRole('button', { name: /SKU 1/ }))
   await user.click(screen.getByRole('option', { name: 'Blood pressure monitor · PYLO-BP' }))

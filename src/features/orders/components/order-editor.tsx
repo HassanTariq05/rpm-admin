@@ -466,31 +466,6 @@ export function OrderEditor({
                           )}
                         </div>
                       </section>
-                      {values.source === 'pylo' && (
-                        <section className="order-section order-billing-section">
-                          <h3>
-                            <Building2 size={17} className="admin-icon-amber" />
-                            {t('Billing information')}
-                          </h3>
-                          <p className="mb-3 text-xs text-muted">
-                            {t('Billing information is sent to Pylo when this order is submitted.')}{' '}
-                            {values.billingJson ===
-                              JSON.stringify(defaultPyloBillingInfo, null, 2) &&
-                              t(
-                                'Temporary sample billing details are prefilled and can be edited.',
-                              )}
-                          </p>
-                          <FormTextField
-                            name="billingJson"
-                            label="Billing information (JSON object)"
-                            placeholder="Enter Pylo billing information"
-                            multiline
-                            required
-                            disabled={pending}
-                            icon={<Building2 size={17} className="admin-icon-amber" />}
-                          />
-                        </section>
-                      )}
                     </Tabs.Panel>
                     <Tabs.Panel id="shipping" className="order-editor-panel">
                       {values.shipThrough === 'patient' && (

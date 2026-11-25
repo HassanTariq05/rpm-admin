@@ -20,14 +20,20 @@ import { ConfirmDelete, FormModal } from '@/app/components/administration/admin-
 import { useDevice, useDeleteDevice } from '@/hooks/use-devices'
 import type { ApiDevice } from '@/services/device-services/device-services'
 import { translate as t, useAppTranslation, locale } from '@/i18n'
-import { deviceView, deviceErrorMessage, deviceOrganisationName } from '../devices'
+import {
+  deviceView,
+  deviceErrorMessage,
+  deviceOrganisationName,
+  deviceCreatedByName,
+} from '../devices'
 import { DevicePatientInfo } from './device-patient-info'
 import { DevicePicture } from './device-picture'
 const metadataIcons: Record<string, { icon: LucideIcon; tone: string }> = {
   IMEI: { icon: Barcode, tone: 'blue' },
   'External device ID': { icon: Fingerprint, tone: 'teal' },
   Model: { icon: Package, tone: 'violet' },
-  Company: { icon: Building2, tone: 'amber' },
+  Vendor: { icon: Building2, tone: 'amber' },
+  SKU: { icon: Barcode, tone: 'blue' },
   Organization: { icon: Building2, tone: 'teal' },
   'Device type': { icon: MonitorSmartphone, tone: 'violet' },
   Status: { icon: Activity, tone: 'teal' },
@@ -165,13 +171,14 @@ export function DeviceDetails({
                 ['IMEI', device.imei || '—'],
                 ['External device ID', device.externalDeviceId || '—'],
                 ['Model', device.model || '—'],
-                ['Company', device.company],
+                ['Vendor', device.company],
+                ...(query.data.sku ? [['SKU', query.data.sku]] : []),
                 ['Organization', deviceOrganisationName(query.data, organizationNames) || '—'],
                 ['Device type', device.type],
                 ['Status', device.status],
                 ['Created', date(query.data.createdAt)],
                 ['Updated', date(query.data.updatedAt)],
-                ['Created by', query.data.createdBy || '—'],
+                ['Created by', deviceCreatedByName(query.data, organizationNames) || '—'],
                 ['Device ID', device.id],
               ].map(([label, value]) => {
                 const { icon: Icon, tone } = metadataIcons[label ?? ''] ?? {

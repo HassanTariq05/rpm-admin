@@ -27,14 +27,18 @@ export type DeviceRecord = {
 const typeAliases: Record<string, DeviceType> = {
   bp_cuff: 'Blood pressure',
   blood_pressure: 'Blood pressure',
+  blood_pressure_monitor: 'Blood pressure',
   bp: 'Blood pressure',
   glucometer: 'Blood glucose',
   blood_glucose: 'Blood glucose',
+  blood_glucose_monitor: 'Blood glucose',
   glucose: 'Blood glucose',
   scale: 'Weight',
+  weight_scale: 'Weight',
   weight: 'Weight',
   oximeter: 'Oximeter',
   pulse_ox: 'Oximeter',
+  pulse_oximeter: 'Oximeter',
   pulse_oximetry: 'Oximeter',
   thermometer: 'Temperature',
   temperature: 'Temperature',
@@ -48,7 +52,7 @@ export function normalizeCompany(value?: string | null): string {
     ? 'SmartMeter'
     : key === 'pylo'
       ? 'Pylo'
-      : value?.trim() || 'Unknown company'
+      : value?.trim() || 'Unknown vendor'
 }
 export function normalizeType(value?: string | null): string {
   return (
@@ -76,10 +80,21 @@ export function deviceOrganisationId(record?: ApiDevice) {
   return record?.organisationId === undefined ? record?.organisation?.id : record.organisationId
 }
 
+export function deviceCreatedById(record?: ApiDevice) {
+  return record?.createdByUser?.id
+}
+
 export function deviceOrganisationName(record?: ApiDevice, names?: ReadonlyMap<string, string>) {
   const id = deviceOrganisationId(record)
   if (!id) return ''
   const embedded = record?.organisation
+  return (embedded?.id === id ? embedded.name?.trim() : undefined) || names?.get(id) || id
+}
+
+export function deviceCreatedByName(record?: ApiDevice, names?: ReadonlyMap<string, string>) {
+  const id = deviceCreatedById(record)
+  if (!id) return ''
+  const embedded = record?.createdByUser
   return (embedded?.id === id ? embedded.name?.trim() : undefined) || names?.get(id) || id
 }
 
@@ -111,6 +126,7 @@ export type DeviceValues = {
   deviceModel: string
   imei: string
   vendor: string
+  sku?: string
   deviceType: string
   externalDeviceId: string
   organisationId: string
@@ -124,6 +140,7 @@ export function devicePayload(
     deviceModel: values.deviceModel.trim() || null,
     imei: values.imei.trim() || null,
     vendor: values.vendor.trim() || null,
+    ...(values.sku?.trim() ? { sku: values.sku.trim() } : {}),
     deviceType: values.deviceType.trim() || null,
     externalDeviceId: values.externalDeviceId.trim() || null,
     ...(organisationId ? { organisationId } : {}),

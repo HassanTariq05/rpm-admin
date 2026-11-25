@@ -11,6 +11,7 @@ export const deviceRecordSchema = z
     deviceModel: text,
     imei: text,
     vendor: text,
+    sku: text,
     deviceType: text,
     patientId: z.string().uuid().nullish(),
     patient: z
@@ -28,6 +29,7 @@ export const deviceRecordSchema = z
     updatedAt: text,
     isActive: z.boolean(),
     createdBy: text,
+    createdByUser: z.object({ id: z.string().uuid(), name: text }).passthrough().nullish(),
   })
   .passthrough()
 export type ApiDevice = z.infer<typeof deviceRecordSchema>
@@ -56,10 +58,12 @@ export interface DeviceWrite {
   deviceModel?: string | null
   imei?: string | null
   vendor?: string | null
+  sku?: string | null
   deviceType?: string | null
   organisationId?: string
   isActive?: boolean
   createdBy?: string | null
+  createdByUser?: any
 }
 export interface DeviceFilters {
   patientId?: string

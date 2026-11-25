@@ -12,7 +12,7 @@ export const glucoseDate = dateFormatter({
 export const glucoseBands = [
   { id: 'very-low', label: 'Very low', range: '<54', color: '#6366d8', min: 0, max: 54 },
   { id: 'low', label: 'Low', range: '54–69', color: '#3996dc', min: 54, max: 70 },
-  { id: 'in-range', label: 'In demo range', range: '70–180', color: '#15977c', min: 70, max: 180 },
+  { id: 'in-range', label: 'In range', range: '70–180', color: '#15977c', min: 70, max: 180 },
   { id: 'high', label: 'High', range: '181–250', color: '#c77d19', min: 180, max: 250 },
   { id: 'very-high', label: 'Very high', range: '>250', color: '#dc2626', min: 250, max: 300 },
 ] as const

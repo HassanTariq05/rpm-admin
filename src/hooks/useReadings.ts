@@ -6,6 +6,7 @@ import { useReadingsRealtime } from '@/hooks/use-readings-realtime'
 import {
   ReadingsResponseError,
   useReadingService,
+  type ReadingsByImeiParams,
   type ReadingsParams,
 } from '@/services/reading-services/reading-services'
 
@@ -21,6 +22,38 @@ export function useReadings(params: ReadingsParams) {
     enabled: !!user && !!token,
     staleTime: 30_000,
     // Only retain pages from the same account, organization, and source filter.
+    placeholderData: (previous, previousQuery) =>
+      scopeKey.every((value, index) => previousQuery?.queryKey[index + 1] === value)
+        ? previous
+        : undefined,
+    retry: (failureCount, error) => {
+      if (error instanceof ReadingsResponseError) return false
+      if (axios.isAxiosError(error) && error.response && error.response.status < 500) return false
+      return failureCount < 1
+    },
+  })
+}
+
+export function useReadingsByImei(
+  params: Partial<ReadingsByImeiParams> & { imei?: string | null },
+) {
+  useReadingsRealtime()
+  const service = useReadingService()
+  const { user, orgId } = useAdminScope()
+  const token = useAuthStore((state) => state.auth.accessToken)
+
+  const imei = params.imei?.trim() ?? ''
+  const page = params.page ?? 1
+  const pageSize = params.pageSize ?? 20
+  const source = params.source
+
+  const scopeKey = [user?.id ?? '', orgId ?? '', imei, source ?? 'all']
+
+  return useQuery({
+    queryKey: ['readings', 'imei', ...scopeKey, page, pageSize],
+    queryFn: ({ signal }) => service.getReadingsByImei({ imei, page, pageSize, source }, signal),
+    enabled: !!user && !!token && imei.length > 0,
+    staleTime: 30_000,
     placeholderData: (previous, previousQuery) =>
       scopeKey.every((value, index) => previousQuery?.queryKey[index + 1] === value)
         ? previous

@@ -29,7 +29,7 @@ export function createPulseOximetryPdf(
       metrics: [
         [t('Latest reading'), formatOxygen(latest.value)],
         [t('Average oxygen saturation'), formatOxygen(summary.average)],
-        [t('Readings in demo range'), oximetryPercent.format(summary.rangeFraction)],
+        [t('Readings in range'), oximetryPercent.format(summary.rangeFraction)],
         [t('Total readings'), String(readings.length)],
       ],
       chart: {
@@ -50,7 +50,7 @@ export function createPulseOximetryPdf(
         return { color: band.color, label: t(band.label) }
       },
       insights: [
-        `${t('Below demo range')}: ${summary.counts.low + summary.counts['very-low']} / ${readings.length} · ${t('Very low readings')}: ${summary.counts['very-low']}`,
+        `${t('Below range')}: ${summary.counts.low + summary.counts['very-low']} / ${readings.length} · ${t('Very low readings')}: ${summary.counts['very-low']}`,
         `${t('Lowest oxygen saturation')}: ${formatOxygen(summary.lowest.value)} · ${oximetryDate.format(summary.lowest.timestamp)} UTC`,
         `${t('Average pulse')}: ${whole.format(summary.averagePulse)} bpm · ${t('Latest pulse')}: ${latest.pulse} bpm`,
       ],

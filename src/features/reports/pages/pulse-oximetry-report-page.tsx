@@ -80,7 +80,7 @@ export function PulseOximetryReportPage() {
               <span className="monitoring-metric-icon">
                 <Target size={18} aria-hidden="true" />
               </span>
-              {t('Readings in demo range')}
+              {t('Readings in range')}
             </dt>
             <dd className="monitoring-range-metric">
               {oximetryPercent.format(summary.rangeFraction)}
@@ -124,7 +124,7 @@ export function PulseOximetryReportPage() {
                   className="monitoring-swatch"
                   style={{ background: oximetryBands[1].color }}
                 />
-                {t('Below demo range')}
+                {t('Below range')}
               </dt>
               <dd>
                 <strong>
@@ -163,9 +163,6 @@ export function PulseOximetryReportPage() {
               </dd>
             </div>
           </dl>
-          <p className="monitoring-range-note">
-            {t('Demo bands are illustrative and are not personalized care targets.')}
-          </p>
         </aside>
       </div>
 

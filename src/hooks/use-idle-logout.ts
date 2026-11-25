@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
 
-export const inactivityTimeoutMs = 120_000
+export const inactivityTimeoutMs = 15 * 60_000
 
 export function useIdleLogout(enabled: boolean) {
   const token = useAuthStore((state) => state.auth.accessToken)

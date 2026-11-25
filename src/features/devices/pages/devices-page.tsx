@@ -266,7 +266,7 @@ export function DevicesPage({
         icon={MonitorSmartphone}
         eyebrow={t('Device data')}
         title={t('Devices')}
-        description={t('Browse monitoring devices, company details, and inventory status.')}
+        description={t('Browse monitoring devices, vendor details, and inventory status.')}
         actions={
           <>
             <Button
@@ -291,7 +291,7 @@ export function DevicesPage({
       />
 
       <FilterTabs
-        label="Device company"
+        label="Device vendor"
         value={company}
         onChange={(value) => {
           setCompany(value)
@@ -301,7 +301,7 @@ export function DevicesPage({
         options={[
           {
             id: 'all',
-            label: 'All companies',
+            label: 'All vendors',
             count: query.data && !query.isError ? devices.length : undefined,
           },
           ...companyOptions.map((id) => ({
@@ -359,7 +359,7 @@ export function DevicesPage({
               className="device-search"
             >
               <Search size={17} aria-hidden="true" />
-              <Input placeholder={t('Search IMEI, name, company…')} />
+              <Input placeholder={t('Search IMEI, name, vendor…')} />
               {search && (
                 <button
                   type="button"
@@ -435,7 +435,7 @@ export function DevicesPage({
                   ? t('Unable to load devices')
                   : t('{{value0}} devices', { value0: filtered.length })}
               <span className="device-result-separator">/</span>
-              {t(company === 'all' ? 'All companies' : company)}
+              {t(company === 'all' ? 'All vendors' : company)}
               {type !== 'all' && <> · {t(type)}</>}
             </span>
             {(company !== 'all' || type !== 'all' || search || organizationFilter) && (

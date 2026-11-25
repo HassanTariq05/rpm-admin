@@ -27,6 +27,7 @@ import {
   Plus,
   RefreshCw,
   Loader2,
+  ChartNoAxesCombined,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useOrganizations } from '@/hooks/use-organizations'
@@ -47,6 +48,7 @@ import { patientsCsv, patientsExcel } from '../patients-export'
 import { dateFormatter, translate as t, useAppTranslation } from '@/i18n'
 import '@/features/device-readings/readings.css'
 import './patients-page.css'
+import { PatientInteractiveReportDialog } from '../components/patient-interactive-report-dialog'
 
 const groups = ['All patients', 'Active', 'Inactive'] as const
 const groupIcons = [UsersRound, ShieldCheck, UserRound]
@@ -92,6 +94,7 @@ export function PatientsPage({
   const [editor, setEditor] = useState<{ record?: PatientRecord } | null>(null)
   const [viewingId, setViewingId] = useState<string | null>(null)
   const [assigning, setAssigning] = useState<PatientRecord | null>(null)
+  const [interactiveReport, setInteractiveReport] = useState<PatientRecord | null>(null)
   const [confirmation, setConfirmation] = useState('')
   const [deleting, setDeleting] = useState<(typeof patients)[number] | null>(null)
   const filtered = patients
@@ -364,7 +367,7 @@ export function PatientsPage({
                         <td>
                           <RecordOpenButton
                             className="patient-identity"
-                            onOpen={() => setViewingId(patient.id)}
+                            onOpen={() => setInteractiveReport(patient.record)}
                           >
                             <span className="patient-avatar" aria-hidden="true">
                               {t(getInitials(patient.name))}
@@ -474,17 +477,6 @@ export function PatientsPage({
                                   {t('View patient')}
                                 </Dropdown.Item>
                                 <Dropdown.Item
-                                  id="assign-device"
-                                  isDisabled={
-                                    !scope.isSuperAdmin &&
-                                    patient.record.organisationId !== scope.orgId
-                                  }
-                                  onAction={() => setAssigning(patient.record)}
-                                >
-                                  <MonitorSmartphone size={15} />
-                                  {t('Assign Device')}
-                                </Dropdown.Item>
-                                <Dropdown.Item
                                   id="edit"
                                   isDisabled={
                                     !scope.isSuperAdmin &&
@@ -497,6 +489,29 @@ export function PatientsPage({
                                   <Pencil size={15} />
                                   {t(' Edit ')}
                                 </Dropdown.Item>
+                                <Dropdown.Item
+                                  id="assign-device"
+                                  isDisabled={
+                                    !scope.isSuperAdmin &&
+                                    patient.record.organisationId !== scope.orgId
+                                  }
+                                  onAction={() => setAssigning(patient.record)}
+                                >
+                                  <MonitorSmartphone size={15} />
+                                  {t('Assign Device')}
+                                </Dropdown.Item>
+                                <Dropdown.Item
+                                  id="interactive-report"
+                                  isDisabled={
+                                    !scope.isSuperAdmin &&
+                                    patient.record.organisationId !== scope.orgId
+                                  }
+                                  onAction={() => setInteractiveReport(patient.record)}
+                                >
+                                  <ChartNoAxesCombined size={15} />
+                                  {t('Interactive Report')}
+                                </Dropdown.Item>
+
                                 <Dropdown.Item
                                   id="delete"
                                   isDisabled={
@@ -604,6 +619,15 @@ export function PatientsPage({
           onClose={() => setAssigning(null)}
         />
       )}
+
+      {interactiveReport && (
+        <PatientInteractiveReportDialog
+          key={interactiveReport.id}
+          record={interactiveReport}
+          onClose={() => setInteractiveReport(null)}
+        />
+      )}
+
       {detailId && (
         <LinkedPatientDetails
           key={detailId}

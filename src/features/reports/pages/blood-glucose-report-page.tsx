@@ -89,7 +89,7 @@ export function BloodGlucoseReportPage() {
               <span className="monitoring-metric-icon">
                 <Target size={18} aria-hidden="true" />
               </span>
-              {t('Readings in demo range')}
+              {t('Readings in range')}
             </dt>
             <dd className="monitoring-range-metric">
               {percentage.format(summary.rangeFraction)}
@@ -130,7 +130,7 @@ export function BloodGlucoseReportPage() {
             <div>
               <dt>
                 <span className="monitoring-swatch glucose-high" />
-                {t('Above demo range')}
+                {t('Above range')}
               </dt>
               <dd>
                 <strong>
@@ -142,7 +142,7 @@ export function BloodGlucoseReportPage() {
             <div>
               <dt>
                 <span className="monitoring-swatch glucose-low" />
-                {t('Below demo range')}
+                {t('Below range')}
               </dt>
               <dd>
                 <strong>
@@ -162,9 +162,6 @@ export function BloodGlucoseReportPage() {
               </dd>
             </div>
           </dl>
-          <p className="monitoring-range-note">
-            {t('Demo bands are illustrative and are not personalized care targets.')}
-          </p>
         </aside>
       </div>
 

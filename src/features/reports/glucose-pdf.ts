@@ -27,7 +27,7 @@ export function createGlucosePdf(
       metrics: [
         [t('Latest reading'), `${readings[readings.length - 1]!.value} mg/dL`],
         [t('Average glucose'), `${whole.format(summary.average)} mg/dL`],
-        [t('Readings in demo range'), percent.format(summary.rangeFraction)],
+        [t('Readings in range'), percent.format(summary.rangeFraction)],
         [t('Total readings'), String(readings.length)],
       ],
       chart: {
@@ -51,8 +51,8 @@ export function createGlucosePdf(
         return { color: band.color, label: t(band.label) }
       },
       insights: [
-        `${t('Above demo range')}: ${summary.counts.high + summary.counts['very-high']} · ${t('Peak {{value}} mg/dL', { value: summary.largest.value })}`,
-        `${t('Below demo range')}: ${summary.counts.low + summary.counts['very-low']} · ${t('Lowest {{value}} mg/dL', { value: summary.smallest.value })}`,
+        `${t('Above range')}: ${summary.counts.high + summary.counts['very-high']} · ${t('Peak {{value}} mg/dL', { value: summary.largest.value })}`,
+        `${t('Below range')}: ${summary.counts.low + summary.counts['very-low']} · ${t('Lowest {{value}} mg/dL', { value: summary.smallest.value })}`,
         `${t('Fasting')}: ${whole.format(summary.fastingAverage)} mg/dL · ${t('After meal')}: ${whole.format(summary.afterMealAverage)} mg/dL`,
       ],
       history: {

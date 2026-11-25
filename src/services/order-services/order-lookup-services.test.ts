@@ -39,11 +39,25 @@ it('parses location and SKU arrays without expecting a wrapper', async () => {
   const country = { code: 'US', name: 'United States' }
   const state = { code: 'CA', name: 'California', countryCode: 'US' }
   const city = { name: 'Los Angeles', stateCode: 'CA', countryCode: 'US' }
-  const sku = { sku: 'BP-100', name: null, source: 'pylo' }
+  const sku = {
+    sku: 'PY-802-LTE',
+    name: null,
+    model: '802-LTE',
+    deviceType: 'Blood Pressure Monitor',
+    source: 'pylo',
+  }
+  const smartMeterSku = {
+    sku: 'SMiPX-12C',
+    name: 'iPulseOx 12 Months Commercial Membership',
+    model: 'iPulseOx',
+    deviceType: 'Oximeter',
+    source: 'smart_meter',
+  }
   expect(await setup([country]).service.getCountries()).toEqual([country])
   expect(await setup([state]).service.getStates('US')).toEqual([state])
   expect(await setup([city]).service.getCities('US', 'CA')).toEqual([city])
   expect(await setup([sku]).service.getSkus('pylo')).toEqual([sku])
+  expect(await setup([smartMeterSku]).service.getSkus('smart_meter')).toEqual([smartMeterSku])
   await expect(setup({ countries: [] }).service.getCountries()).rejects.toBeInstanceOf(
     OrderResponseError,
   )
