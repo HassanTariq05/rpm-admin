@@ -1,8 +1,9 @@
 import { useField, useFormikContext } from 'formik'
+import { useState } from 'react'
 import { FieldError, Input, Label, TextField } from '@heroui/react'
 import { Phone } from 'lucide-react'
 import { CountryCodeField } from '@/features/users/components/country-code-field'
-import { joinPhoneNumber, splitPhoneNumber } from '@/features/users/phone-number'
+import { formatPhoneNumber, joinPhoneNumber, splitPhoneNumber } from '@/features/users/phone-number'
 import { translate as t, useAppTranslation } from '@/i18n'
 import type { OrderValues } from '../orders'
 
@@ -10,6 +11,7 @@ export function OrderRecipientPhone({ disabled }: { disabled: boolean }) {
   useAppTranslation()
   const { values, setValues } = useFormikContext<OrderValues>()
   const [field, meta] = useField<string>('recipientPhone')
+  const [editing, setEditing] = useState(false)
   const code = values.recipientCallingCode ?? '+1'
   const { phoneNumber } = splitPhoneNumber(field.value)
   const error = meta.touched ? meta.error : undefined
@@ -32,8 +34,12 @@ export function OrderRecipientPhone({ disabled }: { disabled: boolean }) {
         isRequired
         isDisabled={disabled}
         isInvalid={!!error}
-        value={phoneNumber}
-        onBlur={field.onBlur}
+        value={editing ? phoneNumber : formatPhoneNumber(phoneNumber, code)}
+        onFocus={() => setEditing(true)}
+        onBlur={(event) => {
+          setEditing(false)
+          field.onBlur(event)
+        }}
         onChange={(value) => {
           const recipientPhone = value.trim() ? joinPhoneNumber(code, value) : ''
           void setValues((current) => ({

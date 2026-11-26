@@ -1,20 +1,22 @@
+import { readingTimestamp, valueOf } from '@/features/device-readings/readings'
+import type { DeviceReading } from '@/services/reading-services/reading-services'
 import type { OximetryReading } from './pulse-oximetry-report'
 
-export const parseOximetry = (raw: any[] = []) =>
-  raw
-    .flatMap((r) => {
-      if (r.readingType !== 'pulse_ox') return []
-      const value = Number(r.payload?.spo2)
-      const pulse = Number(r.payload?.pulse_bpm)
-      const timestamp = Date.parse(r.recordedAt)
-      if (!Number.isFinite(value) || value <= 0 || value > 100 || Number.isNaN(timestamp)) return []
-      return [{ timestamp, value, pulse: Number.isFinite(pulse) ? pulse : 0 }]
+export function parseOximetry(readings: DeviceReading[]): (OximetryReading & { id: string })[] {
+  return readings
+    .flatMap((reading) => {
+      if (reading.readingType !== 'pulse_ox') return []
+      const value = valueOf(reading, 'spo2')
+      const timestamp = readingTimestamp(reading, 'recorded')
+      if (value == null || value <= 0 || value > 100 || timestamp == null) return []
+      return [
+        {
+          id: reading.id,
+          timestamp,
+          value,
+          pulse: valueOf(reading, 'pulse_bpm') ?? valueOf(reading, 'pulse') ?? 0,
+        },
+      ]
     })
     .sort((a, b) => a.timestamp - b.timestamp)
-    .filter(
-      (r, i, a) =>
-        i ===
-        a.findIndex(
-          (x) => x.timestamp === r.timestamp && x.value === r.value && x.pulse === r.pulse,
-        ),
-    ) as OximetryReading[]
+}

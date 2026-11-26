@@ -6,6 +6,15 @@ import { useAuthStore } from '@/stores/auth-store'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { PatientRecord } from '@/services/patient-services/patient-services'
 import type { PatientContact } from '@/services/patient-services/patient-contact-services'
+vi.mock('../components/patient-interactive-report-dialog', () => ({
+  PatientInteractiveReportDialog: ({ record }: { record: PatientRecord }) => (
+    <section role="dialog" aria-label="Interactive Report">
+      <h3>
+        {record.firstName} {record.lastName}
+      </h3>
+    </section>
+  ),
+}))
 const rosterPatient = vi.hoisted(() => ({
   id: '123e4567-e89b-42d3-a456-426614174000',
   firstName: 'Alex',
@@ -139,6 +148,10 @@ it('renders API patient names and active status without fabricated doctors or re
     expect(table.getByRole('columnheader', { name: label })).toBeInTheDocument()
   expect(table.getByText('MRN-123')).toBeInTheDocument()
   expect(table.getByText('alex@example.test')).toBeInTheDocument()
+  expect(table.getByRole('link', { name: '(555) 123-4567' })).toHaveAttribute(
+    'href',
+    'tel:%2B15551234567',
+  )
   expect(table.getByText('North Clinic')).toBeInTheDocument()
   expect(table.queryByRole('columnheader', { name: 'Clinician' })).not.toBeInTheDocument()
   expect(table.queryByRole('columnheader', { name: 'Last reading' })).not.toBeInTheDocument()
@@ -365,11 +378,11 @@ it('opens a separate Assign Device dialog from patient actions with the selected
   expect(screen.queryByRole('dialog', { name: 'Assign Device' })).not.toBeInTheDocument()
 })
 
-it('opens patient details by selecting the first-column patient name', () => {
+it('opens the interactive report by selecting the first-column patient name', () => {
   render(<PatientsPage />)
   fireEvent.click(screen.getByRole('button', { name: 'Alex Rivera' }))
   expect(
-    within(screen.getByRole('dialog', { name: 'View patient' })).getByRole('heading', {
+    within(screen.getByRole('dialog', { name: 'Interactive Report' })).getByRole('heading', {
       name: 'Alex Rivera',
     }),
   ).toBeInTheDocument()

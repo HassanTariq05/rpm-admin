@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Button, Tabs } from '@heroui/react'
 import {
   Building2,
@@ -29,10 +29,10 @@ import { usePatientContacts } from '@/hooks/use-patient-contacts'
 import { StatusBadge } from '@/app/components/status-badge'
 import type { PatientRecord } from '@/services/patient-services/patient-services'
 import { getInitials } from '@/lib/initials'
+import { formatPhoneNumber } from '@/features/users/phone-number'
 import { dateFormatter, numberFormatter, translate as t, useAppTranslation } from '@/i18n'
 import {
   calculatePatientBmi,
-  formatPatientSsn,
   patientAge,
   patientAddressFields,
   patientContactHeadings,
@@ -78,28 +78,7 @@ function emailLink(email?: string | null) {
 }
 
 function phoneLink(phone?: string | null) {
-  return phone && <a href={`tel:${encodeURIComponent(phone)}`}>{phone}</a>
-}
-
-function PatientSsn({ value }: { value: string }) {
-  const [visible, setVisible] = useState(false)
-  const formatted = formatPatientSsn(value)
-  const canReveal = /^\d{3}-\d{2}-\d{4}$/.test(formatted)
-  return (
-    <div className="flex flex-wrap items-center gap-x-2">
-      <span>{visible && canReveal ? formatted : `•••-••-${formatted.slice(-4)}`}</span>
-      {canReveal && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onPress={() => setVisible((current) => !current)}
-        >
-          {t(visible ? 'Hide SSN' : 'Show SSN')}
-        </Button>
-      )}
-    </div>
-  )
+  return phone && <a href={`tel:${encodeURIComponent(phone)}`}>{formatPhoneNumber(phone)}</a>
 }
 
 function PatientReadOnlyAddress({
@@ -311,10 +290,7 @@ export function PatientDetails({
               </dl>
             </PatientBasicSection>
             <PatientBasicSection title="Identifiers">
-              <dl className="patient-basic-row patient-basic-row--three">
-                <Detail label="SSN" icon={ShieldCheck}>
-                  {record.ssn?.trim() && <PatientSsn value={record.ssn} />}
-                </Detail>
+              <dl className="patient-basic-row patient-basic-row--two">
                 <Detail label="MRN" icon={FileText}>
                   {record.mrn}
                 </Detail>
@@ -322,7 +298,7 @@ export function PatientDetails({
                   {record.nationalId}
                 </Detail>
               </dl>
-              <dl className="patient-basic-row patient-basic-row--three">
+              <dl className="patient-basic-row patient-basic-row--two">
                 <Detail label="External ID" icon={IdCard}>
                   {record.externalId}
                 </Detail>

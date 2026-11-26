@@ -148,6 +148,7 @@ export function OrganizationEditor({
                               name="phoneNumber"
                               label="Phone number"
                               type="tel"
+                              callingCode={values.callingCode}
                               required
                               placeholder="Enter phone number"
                               disabled={pending}

@@ -45,6 +45,7 @@ import { getInitials } from '@/lib/initials'
 import { AdminPageHeader } from '@/app/components/administration/admin-page'
 import { FormModal, ChoiceField } from '@/app/components/administration/admin-ui'
 import { patientsCsv, patientsExcel } from '../patients-export'
+import { formatPhoneNumber } from '@/features/users/phone-number'
 import { dateFormatter, translate as t, useAppTranslation } from '@/i18n'
 import '@/features/device-readings/readings.css'
 import './patients-page.css'
@@ -107,6 +108,7 @@ export function PatientsPage({
           patient.mrn,
           patient.record.email ?? '',
           patient.record.phone ?? '',
+          formatPhoneNumber(patient.phone),
           patient.organization,
         ]
           .join(' ')
@@ -428,7 +430,7 @@ export function PatientsPage({
                             {patient.phone && (
                               <a href={`tel:${encodeURIComponent(patient.phone)}`}>
                                 <Phone size={13} aria-hidden="true" />
-                                {patient.phone}
+                                {formatPhoneNumber(patient.phone)}
                               </a>
                             )}
                             {!patient.email && !patient.phone && (

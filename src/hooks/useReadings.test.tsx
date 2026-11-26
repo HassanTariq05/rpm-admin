@@ -2,11 +2,14 @@ import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { useReadings } from './useReadings'
+import { useReadings, useReadingsByPatient } from './useReadings'
 import { useAuthStore, type AuthUser } from '@/stores/auth-store'
 import { sampleReadings } from '@/features/device-readings/readings.fixtures'
 
-const service = vi.hoisted(() => ({ getReadings: vi.fn() }))
+const service = vi.hoisted(() => ({
+  getReadings: vi.fn(),
+  getReadingsByPatient: vi.fn(),
+}))
 vi.mock('@/hooks/use-readings-realtime', () => ({ useReadingsRealtime: vi.fn() }))
 vi.mock('@/services/reading-services/reading-services', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/services/reading-services/reading-services')>()),
@@ -54,6 +57,23 @@ it('does not fetch without a signed-in session', () => {
   useAuthStore.getState().auth.reset()
   renderHook(() => useReadings({ page: 1, pageSize: 25 }), { wrapper })
   expect(service.getReadings).not.toHaveBeenCalled()
+})
+it('automatically loads every patient page under the same date filters and signal', async () => {
+  const range = { from: '2026-11-01', to: '2026-11-30' }
+  const [first, second] = sampleReadings
+  service.getReadingsByPatient
+    .mockResolvedValueOnce({ readings: [first], page: 1, pageSize: 200, total: 201 })
+    .mockResolvedValueOnce({ readings: [second], page: 2, pageSize: 200, total: 201 })
+  const { result } = renderHook(() => useReadingsByPatient({ ...range, patientId: 'patient-a' }), {
+    wrapper,
+  })
+  await waitFor(() => expect(result.current.data).toEqual([first, second]))
+  const signal = service.getReadingsByPatient.mock.calls[0]?.[1]
+  expect(signal).toBeInstanceOf(AbortSignal)
+  expect(service.getReadingsByPatient.mock.calls).toEqual([
+    [{ ...range, patientId: 'patient-a', page: 1, pageSize: 200 }, signal],
+    [{ ...range, patientId: 'patient-a', page: 2, pageSize: 200 }, signal],
+  ])
 })
 it('retains the prior page during pagination but never across source or account changes', async () => {
   const view = renderHook(

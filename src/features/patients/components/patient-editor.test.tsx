@@ -129,15 +129,7 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
   fireEvent.change(screen.getByRole('textbox', { name: 'Other demographics' }), {
     target: { value: ' Self-described background ' },
   })
-  const ssn = screen.getByRole('textbox', { name: 'SSN' })
-  expect(ssn).not.toBeRequired()
-  expect(ssn).toHaveAttribute('placeholder', '123-12-3123')
-  fireEvent.change(ssn, { target: { value: '123-123' } })
-  fireEvent.blur(ssn)
-  expect(
-    await screen.findByText('Enter a nine-digit SSN, such as 123-12-3123.'),
-  ).toBeInTheDocument()
-  fireEvent.change(ssn, { target: { value: '000123123' } })
+  expect(screen.queryByRole('textbox', { name: 'SSN' })).not.toBeInTheDocument()
   const height = screen.getByRole('spinbutton', { name: 'Height (in)' })
   const weight = screen.getByRole('spinbutton', { name: 'Weight (lb)' })
   const bmi = screen.getByRole('textbox', { name: 'BMI' })
@@ -295,7 +287,7 @@ it('creates an inactive patient with calculated BMI, allergies and emergency con
     ethnicity: 'Puerto Rican',
     race: 'Native Hawaiian or Other Pacific Islander',
     otherDemographics: 'Self-described background',
-    ssn: '000-12-3123',
+    ssn: '000-00-0000',
     height: 68.5,
     weight: 152.4,
     phone: '+15551234567',
@@ -444,9 +436,7 @@ it('puts each requested group of basic information fields in its own row', () =>
   expect(textbox('Middle name')).not.toBeRequired()
   expect(textbox('Suffix')).not.toBeRequired()
 
-  const ssn = textbox('SSN')
-  expect(row(ssn)).toBe(row(textbox('MRN')))
-  expect(row(ssn)).toBe(row(textbox("Driver's License #")))
+  expect(row(textbox('MRN'))).toBe(row(textbox("Driver's License #")))
   const bmi = textbox('BMI')
   expect(row(bmi)).toBe(row(screen.getByRole('spinbutton', { name: 'Weight (lb)' })))
   expect(row(bmi)).toBe(row(screen.getByRole('spinbutton', { name: 'Height (in)' })))
@@ -562,7 +552,7 @@ it('loads and updates patient measurements, driver license and status', async ()
   expect(screen.getByRole('textbox', { name: "Driver's License #" })).toHaveValue('DL-123')
   expect(screen.getByLabelText('Height (in)')).toHaveValue(68.5)
   expect(screen.getByLabelText('Weight (lb)')).toHaveValue(152.4)
-  expect(screen.getByRole('textbox', { name: 'SSN' })).toHaveValue('000-12-3123')
+  expect(screen.queryByRole('textbox', { name: 'SSN' })).not.toBeInTheDocument()
   expect(screen.getByRole('button', { name: /Gender identity$/i })).toHaveAccessibleName(
     /Identifies as female/,
   )
@@ -578,7 +568,6 @@ it('loads and updates patient measurements, driver license and status', async ()
   )
   await user.click(ethnicity)
   await user.click(screen.getByRole('option', { name: 'Not specified' }))
-  fireEvent.change(screen.getByRole('textbox', { name: 'SSN' }), { target: { value: '' } })
   fireEvent.change(screen.getByLabelText('Height (in)'), { target: { value: '' } })
   fireEvent.change(screen.getByLabelText('Weight (lb)'), { target: { value: '150.2' } })
   fireEvent.change(screen.getByRole('textbox', { name: "Driver's License #" }), {
@@ -598,7 +587,6 @@ it('loads and updates patient measurements, driver license and status', async ()
         ethnicity: null,
         race: 'Asian',
         otherDemographics: 'Self-described background',
-        ssn: null,
         isActive: false,
       }),
     }),
@@ -606,6 +594,7 @@ it('loads and updates patient measurements, driver license and status', async ()
   expect(state.update.mock.calls[0]![0].payload).not.toHaveProperty('drivingLicence')
   expect(state.update.mock.calls[0]![0].payload).not.toHaveProperty('preferredLanguage')
   expect(state.update.mock.calls[0]![0].payload).not.toHaveProperty('initialBMI')
+  expect(state.update.mock.calls[0]![0].payload).not.toHaveProperty('ssn')
 })
 
 it('saves the patient before assigning the selected device using the returned patient ID', async () => {

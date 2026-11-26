@@ -30,7 +30,13 @@ function initialContent(value: string): string | JSONContent {
     })),
   }
 }
-export function PatientNotesEditor() {
+export function PatientNotesEditor({
+  label = 'Notes',
+  showLabel = true,
+}: {
+  label?: string
+  showLabel?: boolean
+}) {
   useAppTranslation()
   const [field, meta, helpers] = useField<string>('notes')
   const { isSubmitting } = useFormikContext()
@@ -51,7 +57,7 @@ export function PatientNotesEditor() {
     editorProps: {
       attributes: {
         role: 'textbox',
-        'aria-label': t('Notes'),
+        'aria-label': t(label),
         'aria-placeholder': t('Enter notes'),
         'aria-multiline': 'true',
         class: 'patient-rich-text-content',
@@ -145,9 +151,11 @@ export function PatientNotesEditor() {
   ]
   return (
     <div className="patient-rich-text-field">
-      <label className="text-xs font-semibold" onClick={() => editor?.commands.focus()}>
-        {t('Notes')}
-      </label>
+      {showLabel && (
+        <label className="text-xs font-semibold" onClick={() => editor?.commands.focus()}>
+          {t(label)}
+        </label>
+      )}
       <div className="patient-rich-text-editor">
         <div role="group" aria-label={t('Text formatting')} className="patient-rich-text-toolbar">
           {tools.map(({ label, icon: Icon, active, disabled, run }) => (
@@ -160,6 +168,7 @@ export function PatientNotesEditor() {
                 aria-label={t(label)}
                 aria-pressed={active}
                 isDisabled={!editor || isSubmitting || disabled}
+                onMouseDown={(event) => event.preventDefault()}
                 onPress={run}
               >
                 <Icon size={16} />

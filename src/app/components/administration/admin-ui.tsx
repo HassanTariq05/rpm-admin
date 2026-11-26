@@ -18,6 +18,7 @@ import { Activity, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { getInitials } from '@/lib/initials'
 import { apiErrorMessage } from '@/lib/administration'
 import { cn } from '@/lib/cn'
+import { formatPhoneNumber } from '@/features/users/phone-number'
 
 export type Choice = { id: string; label: string }
 
@@ -93,6 +94,7 @@ export function FormTextField({
   placeholder,
   icon,
   passwordToggle = false,
+  callingCode,
 }: {
   name: string
   label: string
@@ -105,10 +107,12 @@ export function FormTextField({
   placeholder?: string
   icon?: ReactNode
   passwordToggle?: boolean
+  callingCode?: string
 }) {
   useAppTranslation()
 
   const [visible, setVisible] = useState(false)
+  const [editingPhone, setEditingPhone] = useState(false)
   const [field, meta, helpers] = useField<string>(name)
   const error = meta.touched ? meta.error : undefined
   return (
@@ -116,11 +120,17 @@ export function FormTextField({
       name={name}
       isRequired={required}
       type={passwordToggle && visible ? 'text' : type}
-      value={field.value}
+      value={
+        type === 'tel' && !editingPhone ? formatPhoneNumber(field.value, callingCode) : field.value
+      }
       onChange={(value) => {
         if (allowExponent || !/e/i.test(value)) void helpers.setValue(value)
       }}
-      onBlur={field.onBlur}
+      onFocus={type === 'tel' ? () => setEditingPhone(true) : undefined}
+      onBlur={(event) => {
+        if (type === 'tel') setEditingPhone(false)
+        field.onBlur(event)
+      }}
       isInvalid={!!error}
       isDisabled={disabled}
     >
@@ -305,6 +315,7 @@ export function FormModal({
   dialogClassName,
   scroll = 'inside',
   headerIcon,
+  headerAction,
   cancelLabel = 'Cancel',
 }: {
   title: string
@@ -319,6 +330,7 @@ export function FormModal({
   dialogClassName?: string
   scroll?: 'inside' | 'outside'
   headerIcon?: ReactNode
+  headerAction?: ReactNode
   cancelLabel?: string
 }) {
   useAppTranslation()
@@ -339,7 +351,7 @@ export function FormModal({
         scroll={scroll}
       >
         <Modal.Dialog className={cn('app-dialog bg-surface text-foreground', dialogClassName)}>
-          <Modal.Header>
+          <Modal.Header className={headerAction ? 'pe-20!' : undefined}>
             {headerIcon ? (
               <div className="flex items-center gap-4">
                 <span className="modal-header-icon" aria-hidden="true">
@@ -357,6 +369,7 @@ export function FormModal({
               </>
             )}
           </Modal.Header>
+          {headerAction && <div className="absolute end-12 top-4">{headerAction}</div>}
           {!pending && <Modal.CloseTrigger aria-label={t('Close')} />}
           <Modal.Body className="space-y-4">{children}</Modal.Body>
           <Modal.Footer>

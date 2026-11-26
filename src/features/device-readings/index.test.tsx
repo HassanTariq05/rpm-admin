@@ -180,13 +180,37 @@ it('hides cached readings on forbidden responses and closes details when the acc
   )
 })
 
-it('filters with the reading-type tabs and reflects the selected type', async () => {
+it('shows server totals in the reading-type tabs and filters the visible rows', async () => {
   const user = userEvent.setup()
+  state.data = {
+    readings: sampleReadings,
+    page: 1,
+    pageSize: 25,
+    total: 56,
+    countsByDeviceType: [
+      { deviceType: 'blood_glucose', count: 9 },
+      { deviceType: 'blood_pressure', count: 8 },
+      { deviceType: 'pulse_ox', count: 18 },
+      { deviceType: 'thermometer', count: 9 },
+      { deviceType: 'weight', count: 12 },
+    ],
+  }
   render(<DeviceReadingsPage />)
+  for (const [label, count] of [
+    ['All readings', 56],
+    ['Blood glucose', 9],
+    ['Blood pressure', 8],
+    ['Pulse oximetry', 18],
+    ['Temperature', 9],
+    ['Weight', 12],
+  ] as const) {
+    const tab = screen.getByRole('tab', { name: new RegExp(`^${label}`) })
+    expect(within(tab).getByText(String(count))).toBeInTheDocument()
+  }
   const weight = screen.getByRole('tab', { name: /^Weight/ })
   await user.click(weight)
   expect(weight).toHaveAttribute('aria-selected', 'true')
-  expect(weight).toHaveTextContent('2')
+  expect(weight).toHaveTextContent('12')
   expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(3)
   await user.click(screen.getByRole('tab', { name: /^All readings/ }))
   expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(7)

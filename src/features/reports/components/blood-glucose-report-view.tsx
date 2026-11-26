@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { useId, type CSSProperties } from 'react'
 import {
   Activity,
   ArrowDown,
@@ -14,7 +14,7 @@ import { GlucoseChart } from './glucose-chart'
 import { glucoseBand, glucoseDate, summarizeGlucose, type GlucoseReading } from '../glucose-report'
 import '../pages/monitoring-report-page.css'
 
-const date = dateFormatter({ month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+const date = dateFormatter({ month: 'short', day: 'numeric', year: 'numeric' })
 const wholeNumber = numberFormatter({ maximumFractionDigits: 0 })
 const percentage = numberFormatter({ style: 'percent', maximumFractionDigits: 0 })
 const rangeIcons = {
@@ -36,6 +36,8 @@ export function BloodGlucoseReportView({
   total?: number
   chartKey?: string
 }) {
+  const chartHeadingId = useId()
+  const insightsHeadingId = useId()
   if (!readings.length)
     return (
       <p className="panel monitoring-range-note">
@@ -102,10 +104,10 @@ export function BloodGlucoseReportView({
       </div>
 
       <div className="monitoring-layout">
-        <section className="panel monitoring-card" aria-labelledby="glucose-trend">
+        <section className="panel monitoring-card" aria-labelledby={chartHeadingId}>
           <div className="monitoring-chart-heading">
             <div>
-              <h3 id="glucose-trend">{t('Glucose trend')}</h3>
+              <h3 id={chartHeadingId}>{t('Glucose trend')}</h3>
               <p>{t('Each point is a reading in mg/dL.')}</p>
             </div>
             <p className="monitoring-period">
@@ -115,8 +117,8 @@ export function BloodGlucoseReportView({
           </div>
           <GlucoseChart key={chartKey} readings={readings} device={device} />
         </section>
-        <aside className="panel monitoring-card" aria-labelledby="glucose-insights">
-          <h3 id="glucose-insights">{t('Reading insights')}</h3>
+        <aside className="panel monitoring-card" aria-labelledby={insightsHeadingId}>
+          <h3 id={insightsHeadingId}>{t('Reading insights')}</h3>
           <dl className="monitoring-insights">
             <div>
               <dt>
@@ -147,15 +149,18 @@ export function BloodGlucoseReportView({
               <dd>
                 {t('Fasting')}{' '}
                 <strong>
-                  {(typeof summary?.fastingAverage === 'number' &&
-                    !Number.isNaN(summary.fastingAverage)) ||
-                    0}{' '}
-                  mg/dL
+                  {Number.isFinite(summary.fastingAverage)
+                    ? `${wholeNumber.format(summary.fastingAverage)} mg/dL`
+                    : '—'}
                 </strong>
               </dd>
               <dd>
                 {t('After meal')}{' '}
-                <strong>{wholeNumber.format(summary.afterMealAverage)} mg/dL</strong>
+                <strong>
+                  {Number.isFinite(summary.afterMealAverage)
+                    ? `${wholeNumber.format(summary.afterMealAverage)} mg/dL`
+                    : '—'}
+                </strong>
               </dd>
             </div>
           </dl>
@@ -170,7 +175,7 @@ export function BloodGlucoseReportView({
           <table>
             <thead>
               <tr>
-                <th scope="col">{t('Recorded (UTC)')}</th>
+                <th scope="col">{t('Recorded (local time)')}</th>
                 <th scope="col">{t('Glucose (mg/dL)')}</th>
                 <th scope="col">{t('Meal context')}</th>
                 <th scope="col">{t('Range')}</th>

@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { joinPhoneNumber, resolveCountryCode, splitPhoneNumber } from './phone-number'
+import {
+  formatPhoneNumber,
+  joinPhoneNumber,
+  resolveCountryCode,
+  splitPhoneNumber,
+} from './phone-number'
+
+it('formats US phone numbers for display and preserves extensions and international numbers', () => {
+  for (const value of ['4155552671', '+14155552671', '1-415-555-2671', '(415) 555-2671']) {
+    expect(formatPhoneNumber(value)).toBe('(415) 555-2671')
+  }
+  expect(formatPhoneNumber('+14155552671 x42')).toBe('(415) 555-2671 ext. 42')
+  expect(formatPhoneNumber('+44 20 7123 4567')).toBe('+44 20 7123 4567')
+  expect(formatPhoneNumber('3001234567', '+92')).toBe('3001234567')
+  expect(formatPhoneNumber('41555')).toBe('41555')
+})
 
 describe('user phone numbers', () => {
   it('splits international numbers and preserves them when saved', () => {

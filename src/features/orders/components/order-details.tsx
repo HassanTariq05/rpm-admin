@@ -24,6 +24,7 @@ import { FormModal } from '@/app/components/administration/admin-ui'
 import { useOrder, useOrderEvents, useDeleteOrder, useSubmitOrder } from '@/hooks/use-orders'
 import { useOrganizations } from '@/hooks/use-organizations'
 import type { Order } from '@/services/order-services/order-services'
+import { formatPhoneNumber } from '@/features/users/phone-number'
 import { translate as t, useAppTranslation } from '@/i18n'
 import {
   canEditOrder,
@@ -283,7 +284,7 @@ export function OrderDetails({
                       {order.recipientEmail}
                     </OrderMetadata>
                     <OrderMetadata label="Phone" icon={Phone}>
-                      {order.recipientPhone}
+                      {formatPhoneNumber(order.recipientPhone)}
                     </OrderMetadata>
                     <OrderMetadata label="Company" icon={Building2} tone="amber">
                       {order.recipientCompany}

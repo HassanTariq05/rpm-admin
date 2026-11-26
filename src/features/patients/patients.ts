@@ -75,7 +75,6 @@ export const patientTextFields = [
   'ethnicity',
   'race',
   'otherDemographics',
-  'ssn',
   'phone',
   'email',
   'address',
@@ -183,10 +182,6 @@ export function patientAddressFields(record?: Pick<PatientRecord, 'address' | 'a
   return { address: street, addressUnitNo: unitLines.join(', ') }
 }
 
-export function formatPatientSsn(value: string) {
-  return value.trim().replace(/^(\d{3})(\d{2})(\d{4})$/, '$1-$2-$3')
-}
-
 export function scrollPatientFieldIntoView(field: HTMLElement) {
   const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
   field.scrollIntoView?.({ block: 'start', behavior: reduceMotion ? 'instant' : 'smooth' })
@@ -210,7 +205,6 @@ export function patientPayload(values: PatientValues, record?: PatientRecord): P
   const allergyText = values.allergies.trim()
   return {
     ...Object.fromEntries(patientTextFields.map((key) => [key, values[key].trim() || null])),
-    ssn: formatPatientSsn(values.ssn) || null,
     height: values.height.trim() ? Number(values.height) : null,
     weight: values.weight.trim() ? Number(values.weight) : null,
     ...(!record && { initialBMI: calculatePatientBmi(values.height, values.weight) }),

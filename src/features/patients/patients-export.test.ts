@@ -9,10 +9,12 @@ describe('patient CSV export', () => {
       name: 'Smith, "Alex"\nJr.',
       dob: '1980-05-12',
       email: 'alex@example.test',
+      phone: '+14155552671',
     }
     const csv = patientsCsv([patient])
     expect(csv).toContain('"Smith, ""Alex""\nJr."')
     expect(csv).toContain('"1980-05-12"')
+    expect(csv).toContain('"(415) 555-2671"')
     expect(csv).not.toContain(patients[1]!.id)
   })
   it('neutralizes spreadsheet formulas and exports only real demographic columns', () => {

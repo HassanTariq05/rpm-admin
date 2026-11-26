@@ -123,6 +123,9 @@ export function DeviceReadingsPage() {
     [data, search, type, sort],
   )
   const newReadingIds = useReadingFreshness(rows)
+  const countsByType = data?.countsByDeviceType
+    ? new Map(data.countsByDeviceType.map(({ deviceType, count }) => [deviceType, count]))
+    : undefined
   const readingTypes = [
     { id: 'all', label: 'All readings', icon: Activity, tone: 'blue' },
     { id: 'blood_pressure', label: 'Blood pressure', icon: HeartPulse, tone: 'violet' },
@@ -209,9 +212,7 @@ export function DeviceReadingsPage() {
                 tone: 'blue',
               })),
             ].map(({ id, label, icon: Icon, tone }) => {
-              const count = data?.readings.filter(
-                (reading) => id === 'all' || reading.readingType === id,
-              ).length
+              const count = id === 'all' ? data?.total : countsByType && (countsByType.get(id) ?? 0)
               return (
                 <Tabs.Tab key={id} id={id} className={`reading-tab admin-tone-${tone}`}>
                   <Icon size={17} aria-hidden="true" />

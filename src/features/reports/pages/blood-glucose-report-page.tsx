@@ -17,7 +17,7 @@ import { GlucoseChart } from '../components/glucose-chart'
 import { glucoseBand, glucoseDate, mockGlucosePatients, summarizeGlucose } from '../glucose-report'
 import './monitoring-report-page.css'
 
-const date = dateFormatter({ month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+const date = dateFormatter({ month: 'short', day: 'numeric', year: 'numeric' })
 const wholeNumber = numberFormatter({ maximumFractionDigits: 0 })
 const percentage = numberFormatter({ style: 'percent', maximumFractionDigits: 0 })
 const rangeIcons = {
@@ -173,7 +173,7 @@ export function BloodGlucoseReportPage() {
           <table>
             <thead>
               <tr>
-                <th scope="col">{t('Recorded (UTC)')}</th>
+                <th scope="col">{t('Recorded (local time)')}</th>
                 <th scope="col">{t('Glucose (mg/dL)')}</th>
                 <th scope="col">{t('Meal context')}</th>
                 <th scope="col">{t('Range')}</th>

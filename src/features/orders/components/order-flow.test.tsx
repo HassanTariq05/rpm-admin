@@ -829,7 +829,7 @@ it('autofills recipient fields on patient selection, preserves edits and clears 
   for (const [label, value] of [
     ['First name', 'Taylor'],
     ['Last name', 'Lee'],
-    ['Phone', '5555550123'],
+    ['Phone', '(555) 555-0123'],
     ['Email', 'taylor@example.test'],
     ['Company', 'Care Partners'],
   ])
@@ -963,7 +963,7 @@ it('edits recipient phone with the shared country-code picker and saves the comb
   await user.click(screen.getByRole('tab', { name: 'Recipient' }))
   const code = screen.getByRole('combobox', { name: 'Country code' })
   expect(code).toHaveValue('+1')
-  expect(screen.getByRole('textbox', { name: 'Phone' })).toHaveValue('5125550100')
+  expect(screen.getByRole('textbox', { name: 'Phone' })).toHaveValue('(512) 555-0100')
   await user.clear(code)
   await user.type(code, 'Pakistan')
   await user.click(await screen.findByRole('option', { name: 'Pakistan (+92)' }))

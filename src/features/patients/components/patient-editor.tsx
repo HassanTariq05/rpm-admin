@@ -70,7 +70,6 @@ import {
 import type { PatientRecord } from '@/services/patient-services/patient-services'
 import {
   calculatePatientBmi,
-  formatPatientSsn,
   hasPatientContactDetails,
   patientAge,
   patientContactPayload,
@@ -114,12 +113,6 @@ const schema = Yup.object({
       then: (field) => field.required('Enter the known allergies.'),
     }),
   gender: Yup.string().trim().required('Sex is required'),
-  ssn: Yup.string()
-    .trim()
-    .matches(/^(?:\d{9}|\d{3}-\d{2}-\d{4})$/, {
-      message: 'Enter a nine-digit SSN, such as 123-12-3123.',
-      excludeEmptyString: true,
-    }),
   height: Yup.number()
     .typeError('Enter a valid height in inches.')
     .positive('Enter a valid height in inches.')
@@ -251,6 +244,7 @@ function PatientPhoneField() {
         name="phone"
         label={t('Phone number')}
         type="tel"
+        callingCode={values.countryCode}
         placeholder={t('Enter phone number')}
         icon={<Phone size={17} className="admin-icon-blue" />}
       />
@@ -420,7 +414,6 @@ export function PatientEditor({
     <Formik<PatientValues>
       initialValues={{
         ...initial,
-        ssn: formatPatientSsn(initial.ssn),
         allergies,
         knownAllergies: allergies.trim() ? 'yes' : 'no',
         contacts: initialContacts,
@@ -446,7 +439,7 @@ export function PatientEditor({
         const wasNew = !patient
         try {
           if (!patient) {
-            patient = await create.mutateAsync(payload)
+            patient = await create.mutateAsync({ ...payload, ssn: '000-00-0000' })
             setCreatedPatient(patient)
             savedPayload.current = serialized
             onSaved()
@@ -621,13 +614,7 @@ export function PatientEditor({
                     </div>
                   </PatientBasicSection>
                   <PatientBasicSection title="Identifiers">
-                    <div className="patient-basic-row patient-basic-row--three">
-                      <FormTextField
-                        name="ssn"
-                        label="SSN"
-                        placeholder="123-12-3123"
-                        icon={<ShieldCheck size={17} className="admin-icon-amber" />}
-                      />
+                    <div className="patient-basic-row patient-basic-row--two">
                       <FormTextField
                         name="mrn"
                         label="MRN"

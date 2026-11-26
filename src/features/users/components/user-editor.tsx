@@ -59,6 +59,7 @@ function UserFields({
           label={t('Phone number')}
           placeholder={t('Enter phone number')}
           type="tel"
+          callingCode={values.countryCode}
           icon={<Phone size={17} className="admin-icon-teal" />}
         />
       </div>

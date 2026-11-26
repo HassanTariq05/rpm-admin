@@ -22,7 +22,7 @@ import {
 } from '../pulse-oximetry-report'
 import './monitoring-report-page.css'
 
-const date = dateFormatter({ month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+const date = dateFormatter({ month: 'short', day: 'numeric', year: 'numeric' })
 const whole = numberFormatter({ maximumFractionDigits: 0 })
 
 export function PulseOximetryReportPage() {
@@ -150,7 +150,7 @@ export function PulseOximetryReportPage() {
               <dt>{t('Lowest oxygen saturation')}</dt>
               <dd>
                 <strong>{oximetryPercent.format(summary.lowest.value / 100)}</strong> ·{' '}
-                {oximetryDate.format(summary.lowest.timestamp)} UTC
+                {oximetryDate.format(summary.lowest.timestamp)}
               </dd>
             </div>
             <div>
@@ -174,7 +174,7 @@ export function PulseOximetryReportPage() {
           <table>
             <thead>
               <tr>
-                <th scope="col">{t('Recorded (UTC)')}</th>
+                <th scope="col">{t('Recorded (local time)')}</th>
                 <th scope="col">{t('Oxygen saturation (%)')}</th>
                 <th scope="col">{t('Pulse (bpm)')}</th>
                 <th scope="col">{t('Range')}</th>

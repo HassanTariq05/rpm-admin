@@ -6,7 +6,6 @@ export const pressureDate = dateFormatter({
   day: 'numeric',
   hour: 'numeric',
   minute: '2-digit',
-  timeZone: 'UTC',
 })
 
 export const pressureBands = {

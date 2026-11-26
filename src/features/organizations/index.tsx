@@ -1,3 +1,4 @@
+import { formatPhoneNumber } from '@/features/users/phone-number'
 import { translate as t, useAppTranslation } from '@/i18n'
 import { useState } from 'react'
 import { Button, Dropdown } from '@heroui/react'
@@ -39,12 +40,12 @@ const columns: EntityColumn<Organization>[] = [
   {
     id: 'phoneNumber',
     label: 'Phone',
-    value: (row) => row.phoneNumber,
+    value: (row) => [row.phoneNumber, formatPhoneNumber(row.phoneNumber)].filter(Boolean).join(' '),
     render: (row) =>
       row.phoneNumber ? (
         <span className="admin-contact">
           <Phone size={14} aria-hidden="true" />
-          {row.phoneNumber}
+          {formatPhoneNumber(row.phoneNumber)}
         </span>
       ) : (
         '—'

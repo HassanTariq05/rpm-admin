@@ -18,7 +18,7 @@ import {
   type PressureReading,
 } from '../blood-pressure-report'
 
-const shortDate = dateFormatter({ month: 'short', day: 'numeric', timeZone: 'UTC' })
+const shortDate = dateFormatter({ month: 'short', day: 'numeric' })
 
 function PressureTooltip({ active, payload, device }: TooltipContentProps & { device: string }) {
   const reading = payload?.[0]?.payload as PressureReading | undefined
@@ -35,7 +35,7 @@ function PressureTooltip({ active, payload, device }: TooltipContentProps & { de
           {t(band.label)}
         </span>
       </div>
-      <p>{pressureDate.format(reading.timestamp)} UTC</p>
+      <p>{pressureDate.format(reading.timestamp)}</p>
       <p>
         {t('Pulse {{value}}', { value: `${reading.pulse} bpm` })} · {device}
       </p>
@@ -95,11 +95,11 @@ export function BloodPressureChart({
                 strokeWidth={2}
                 strokeDasharray={key === 'diastolic' ? '5 4' : undefined}
                 isAnimationActive={false}
-                dot={({ cx, cy, payload }) => {
+                dot={({ cx, cy, payload, index }) => {
                   const reading = payload as PressureReading
                   return (
                     <circle
-                      key={reading.timestamp}
+                      key={`${reading.timestamp}-${index}`}
                       cx={cx}
                       cy={cy}
                       r={4}

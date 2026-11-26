@@ -19,6 +19,7 @@ import { EntityTable } from '@/app/components/administration/entity-table'
 import { getInitials } from '@/lib/initials'
 import { useOrders } from '@/hooks/use-orders'
 import { useAdminScope } from '@/hooks/use-administration'
+import { formatPhoneNumber } from '@/features/users/phone-number'
 import { dateFormatter, translate as t, useAppTranslation } from '@/i18n'
 import type { Order } from '@/services/order-services/order-services'
 import {
@@ -259,6 +260,7 @@ export function OrdersPage() {
                     order.patientId,
                     order.recipientEmail,
                     order.recipientPhone,
+                    formatPhoneNumber(order.recipientPhone),
                   ]
                     .filter(Boolean)
                     .join(' '),

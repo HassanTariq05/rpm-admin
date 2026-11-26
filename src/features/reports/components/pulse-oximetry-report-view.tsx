@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { useId, type CSSProperties } from 'react'
 import {
   Activity,
   ArrowDown,
@@ -20,7 +20,7 @@ import {
 } from '../pulse-oximetry-report'
 import '../pages/monitoring-report-page.css'
 
-const date = dateFormatter({ month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+const date = dateFormatter({ month: 'short', day: 'numeric', year: 'numeric' })
 const whole = numberFormatter({ maximumFractionDigits: 0 })
 
 export function PulseOximetryReportView({
@@ -34,6 +34,8 @@ export function PulseOximetryReportView({
   total?: number
   chartKey?: string
 }) {
+  const chartHeadingId = useId()
+  const insightsHeadingId = useId()
   if (!readings.length)
     return (
       <p className="panel monitoring-range-note">
@@ -94,10 +96,10 @@ export function PulseOximetryReportView({
       </div>
 
       <div className="monitoring-layout">
-        <section className="panel monitoring-card" aria-labelledby="oximetry-trend">
+        <section className="panel monitoring-card" aria-labelledby={chartHeadingId}>
           <div className="monitoring-chart-heading">
             <div>
-              <h3 id="oximetry-trend">{t('Oxygen saturation trend')}</h3>
+              <h3 id={chartHeadingId}>{t('Oxygen saturation trend')}</h3>
               <p>{t('Each point shows oxygen saturation as a percentage.')}</p>
             </div>
             <p className="monitoring-period">
@@ -107,8 +109,8 @@ export function PulseOximetryReportView({
           </div>
           <PulseOximetryChart key={chartKey} readings={readings} device={device} />
         </section>
-        <aside className="panel monitoring-card" aria-labelledby="oximetry-insights">
-          <h3 id="oximetry-insights">{t('Reading insights')}</h3>
+        <aside className="panel monitoring-card" aria-labelledby={insightsHeadingId}>
+          <h3 id={insightsHeadingId}>{t('Reading insights')}</h3>
           <dl className="monitoring-insights">
             <div>
               <dt>
@@ -142,7 +144,7 @@ export function PulseOximetryReportView({
               <dt>{t('Lowest oxygen saturation')}</dt>
               <dd>
                 <strong>{oximetryPercent.format(summary.lowest.value / 100)}</strong> ·{' '}
-                {oximetryDate.format(summary.lowest.timestamp)} UTC
+                {oximetryDate.format(summary.lowest.timestamp)}
               </dd>
             </div>
             <div>
@@ -166,7 +168,7 @@ export function PulseOximetryReportView({
           <table>
             <thead>
               <tr>
-                <th scope="col">{t('Recorded (UTC)')}</th>
+                <th scope="col">{t('Recorded (local time)')}</th>
                 <th scope="col">{t('Oxygen saturation (%)')}</th>
                 <th scope="col">{t('Pulse (bpm)')}</th>
                 <th scope="col">{t('Range')}</th>

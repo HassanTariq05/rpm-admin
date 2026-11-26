@@ -36,7 +36,7 @@ interface ReadingTrendOptions<Reading extends ReadingPoint> {
   readingInfo: (reading: Reading) => string
 }
 
-const shortDate = dateFormatter({ month: 'short', day: 'numeric', timeZone: 'UTC' })
+const shortDate = dateFormatter({ month: 'short', day: 'numeric' })
 function ReadingTooltip<Reading extends ReadingPoint>({
   active,
   payload,
@@ -56,7 +56,7 @@ function ReadingTooltip<Reading extends ReadingPoint>({
           {t(band.label)}
         </span>
       </div>
-      <p>{options.readingDate(reading.timestamp)} UTC</p>
+      <p>{options.readingDate(reading.timestamp)}</p>
       <p>{options.readingInfo(reading)}</p>
     </div>
   )
@@ -118,12 +118,12 @@ export function SingleReadingTrend<Reading extends ReadingPoint>(
               strokeOpacity={0.58}
               strokeWidth={1.5}
               isAnimationActive={false}
-              dot={({ cx, cy, payload }) => {
+              dot={({ cx, cy, payload, index }) => {
                 const reading = payload as Reading
                 const band = bandFor(reading)
                 return (
                   <circle
-                    key={reading.timestamp}
+                    key={`${reading.timestamp}-${index}`}
                     cx={cx}
                     cy={cy}
                     r={4}

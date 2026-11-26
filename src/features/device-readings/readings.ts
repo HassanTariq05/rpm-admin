@@ -46,7 +46,7 @@ function numeric(value: unknown): number | null {
     return Number(value)
   return null
 }
-function valueOf(reading: DeviceReading, field: string) {
+export function valueOf(reading: DeviceReading, field: string) {
   if (reading.payload[field] != null) return numeric(reading.payload[field])
   const values = reading.payload.Values
   if (!Array.isArray(values)) return null

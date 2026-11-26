@@ -113,7 +113,7 @@
   border-top: 1px solid color-mix(in srgb, var(--editor-violet) 14%, var(--border));
 }
 
-.admin-editor-modal .modal__close-trigger {
+.admin-editor-modal :is(.modal__close-trigger, .patient-report-download) {
   border-radius: 50%;
   background: color-mix(in srgb, var(--panel) 65%, transparent);
 }

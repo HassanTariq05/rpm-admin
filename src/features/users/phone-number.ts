@@ -301,3 +301,17 @@ export function joinPhoneNumber(countryCode: string, phoneNumber: string) {
   const digits = phoneNumber.trim().replace(/[\s().-]/g, '')
   return digits.startsWith('+') ? digits : `${countryCode}${digits}`
 }
+
+export function formatPhoneNumber(phone?: string | null, countryCode = '+1') {
+  const value = phone?.trim() ?? ''
+  if (countryCode !== '+1') return value
+
+  const extension = value.match(/\s*(?:ext\.?|x|#)\s*(\d+)$/i)
+  const number = (extension ? value.slice(0, extension.index) : value)
+    .replace(/[\s().-]/g, '')
+    .replace(/^00/, '+')
+  const parts = /^(?:\+?1)?(\d{3})(\d{3})(\d{4})$/.exec(number)
+  if (!parts) return value
+
+  return `(${parts[1]}) ${parts[2]}-${parts[3]}${extension ? ` ext. ${extension[1]}` : ''}`
+}

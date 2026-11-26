@@ -112,13 +112,10 @@ it('shows the saved demographics, measurements, emergency contacts, notes and id
   expect(middleName?.parentElement?.children[1]).toBe(middleName)
   expect(sex?.parentElement?.children[1]).toBe(sex)
   expect(dialog.getByRole('region', { name: 'Measurements' })).toHaveTextContent('22.84')
-  const identifiers = within(dialog.getByRole('region', { name: 'Identifiers' }))
-  expect(identifiers.getByText('•••-••-3123')).toBeInTheDocument()
+  expect(dialog.queryByText('SSN')).not.toBeInTheDocument()
+  expect(dialog.queryByText('000123123')).not.toBeInTheDocument()
   expect(dialog.queryByText('000-12-3123')).not.toBeInTheDocument()
-  fireEvent.click(identifiers.getByRole('button', { name: 'Show SSN' }))
-  expect(identifiers.getByText('000-12-3123')).toBeInTheDocument()
-  fireEvent.click(identifiers.getByRole('button', { name: 'Hide SSN' }))
-  expect(identifiers.queryByText('000-12-3123')).not.toBeInTheDocument()
+  expect(dialog.queryByText('•••-••-3123')).not.toBeInTheDocument()
   for (const value of [
     'Choose not to disclose',
     'Urdu',
@@ -153,7 +150,7 @@ it('shows the saved demographics, measurements, emergency contacts, notes and id
   ] as const) {
     expect(contact.getByText(label).nextElementSibling).toHaveTextContent(value)
   }
-  expect(contact.getByRole('link', { name: '+15551234567' })).toHaveAttribute(
+  expect(contact.getByRole('link', { name: '(555) 123-4567' })).toHaveAttribute(
     'href',
     'tel:%2B15551234567',
   )

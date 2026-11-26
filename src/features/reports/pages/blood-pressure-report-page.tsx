@@ -23,7 +23,7 @@ import {
 } from '../blood-pressure-report'
 import './monitoring-report-page.css'
 
-const date = dateFormatter({ month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+const date = dateFormatter({ month: 'short', day: 'numeric', year: 'numeric' })
 const whole = numberFormatter({ maximumFractionDigits: 0 })
 const percent = numberFormatter({ style: 'percent', maximumFractionDigits: 0 })
 
@@ -180,7 +180,7 @@ export function BloodPressureReportPage() {
           <table>
             <thead>
               <tr>
-                <th scope="col">{t('Recorded (UTC)')}</th>
+                <th scope="col">{t('Recorded (local time)')}</th>
                 <th scope="col">{t('Blood pressure (mmHg)')}</th>
                 <th scope="col">{t('Pulse (bpm)')}</th>
                 <th scope="col">{t('Range')}</th>

@@ -1,3 +1,4 @@
+import { formatPhoneNumber } from '@/features/users/phone-number'
 import i18n from '@/i18n'
 export interface PatientExportRecord {
   id: string
@@ -46,7 +47,7 @@ function exportRow(patient: PatientExportRecord, t: (key: string) => string) {
         )
       : '',
     email: patient.email ?? '',
-    phone: patient.phone ?? '',
+    phone: formatPhoneNumber(patient.phone),
     bloodGroup: patient.bloodGroup ?? '',
     organization: patient.organization ?? '',
     status: t(patient.status),

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Autocomplete, Button, Label, ListBox, SearchField } from '@heroui/react'
 import { Download } from 'lucide-react'
-import { toast } from 'sonner'
 import { translate as t } from '@/i18n'
+import { downloadReportPdf } from '../download-report-pdf'
 
 export function ReportActions({
   patients,
@@ -21,24 +21,8 @@ export function ReportActions({
 
   async function downloadPdf() {
     setExporting(true)
-    const toastId = toast.loading(t('Generating PDF…'))
     try {
-      const logo = await fetch(`${import.meta.env.BASE_URL}icon-192.png`)
-      if (!logo.ok) throw new Error('RPM logo unavailable')
-      const bytes = await createPdf(await logo.arrayBuffer())
-      const url = URL.createObjectURL(
-        new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }),
-      )
-      const link = document.createElement('a')
-      link.href = url
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-      toast.success(t('PDF downloaded'), { id: toastId })
-    } catch {
-      toast.error(t('Could not generate the PDF. Please try again.'), { id: toastId })
+      await downloadReportPdf(filename, createPdf)
     } finally {
       setExporting(false)
     }
