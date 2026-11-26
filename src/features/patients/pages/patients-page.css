@@ -1269,6 +1269,10 @@
   margin-top: 16px;
   max-height: none;
 }
+.patient-interactive-report-modal .modal__body {
+  min-inline-size: 0;
+  overflow-x: hidden;
+}
 .patient-details-modal .modal__footer {
   flex-shrink: 0;
   margin-top: 12px;

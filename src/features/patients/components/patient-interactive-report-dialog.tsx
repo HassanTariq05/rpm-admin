@@ -207,7 +207,7 @@ export function PatientInteractiveReportDialog({
       footer={null}
       scroll="inside"
       className="patient-details-container w-full p-3 sm:w-full sm:max-w-[1180px] sm:p-3"
-      dialogClassName="admin-editor-modal patient-editor-modal patient-details-modal patient-assignment-modal"
+      dialogClassName="admin-editor-modal patient-editor-modal patient-details-modal patient-assignment-modal patient-interactive-report-modal"
     >
       <div className="grid gap-4 md:grid-cols-2">
         <PatientDetailCard record={record} compact />
@@ -300,20 +300,22 @@ export function PatientInteractiveReportDialog({
                 data-vital={type === 'pulse_ox' ? 'pulse-oximetry' : undefined}
               >
                 <header className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 rounded-xl border border-border bg-surface-muted px-5 py-4">
-                  <div className="flex items-center gap-3">
-                    <span className="grid size-9 place-items-center rounded-lg bg-violet-500/10 admin-icon-violet">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-violet-500/10 admin-icon-violet">
                       <Smartphone size={18} aria-hidden="true" />
                     </span>
                     <h3 className="text-base font-semibold text-foreground">{label}</h3>
                   </div>
-                  <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                    <div>
+                  <dl className="flex min-w-0 flex-wrap gap-x-6 gap-y-2 text-sm">
+                    <div className="min-w-0">
                       <dt className="text-xs text-muted">{t('Model')}</dt>
-                      <dd className="font-medium text-foreground">{model || '—'}</dd>
+                      <dd className="font-medium wrap-anywhere text-foreground">{model || '—'}</dd>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <dt className="text-xs text-muted">{t('IMEI')}</dt>
-                      <dd className="font-medium tabular-nums text-foreground">{imei || '—'}</dd>
+                      <dd className="font-medium wrap-anywhere tabular-nums text-foreground">
+                        {imei || '—'}
+                      </dd>
                     </div>
                   </dl>
                 </header>

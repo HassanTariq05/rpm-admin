@@ -1,5 +1,7 @@
 .monitoring-report {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-inline-size: 0;
   gap: 16px;
   --monitoring-header-accent: #10967d;
 }
@@ -255,7 +257,10 @@
 }
 
 .monitoring-table-wrap {
+  min-inline-size: 0;
+  max-inline-size: 100%;
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
 }
 
 .monitoring-log table {
