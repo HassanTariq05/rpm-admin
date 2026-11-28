@@ -2,6 +2,7 @@ import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/rea
 import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { useAuthStore, type AuthUser } from '@/stores/auth-store'
+import { PERMISSIONS } from '@/types/permissions'
 import { router as appRouter } from './router'
 
 vi.mock('@/app/layout/app-shell', () => ({
@@ -9,6 +10,9 @@ vi.mock('@/app/layout/app-shell', () => ({
 }))
 vi.mock('@/features/dashboard/pages/dashboard-page', () => ({
   DashboardPage: () => <h1>Dashboard test</h1>,
+}))
+vi.mock('@/features/billing/billing-page', () => ({
+  BillingPage: () => <h1>Billing test</h1>,
 }))
 vi.mock('@/features/orders/pages/orders-page', () => ({
   OrdersPage: () => <h1>Orders test</h1>,
@@ -106,7 +110,7 @@ it.each([
     search: {},
     direct: '/device-readings',
     denied: ['devices.read', 'readings.read'],
-    grant: 'device-readings.read',
+    grant: PERMISSIONS.READ_DEVICE_READINGS,
     heading: 'Device Readings test',
   },
 ] as const)(
@@ -139,3 +143,46 @@ it.each([
     expect(history.location.pathname).toBe('/')
   },
 )
+
+it('requires Billing Read and a valid scope to navigate directly to Billing', async () => {
+  const auth = useAuthStore.getState().auth
+  const user: AuthUser = {
+    id: 'viewer',
+    name: 'Test viewer',
+    email: 'viewer@example.test',
+    organisation: { id: 'org-a', name: 'Test clinic', status: 'active' },
+    permissions: ['billing.create', 'billing.update', 'billing.delete'],
+    role: { id: 'role', name: 'Clinician' },
+  }
+  auth.setAccessToken('synthetic-test-token')
+  auth.setUser(user)
+  const history = createMemoryHistory({ initialEntries: ['/billing'] })
+  const router = createRouter({ routeTree: appRouter.routeTree, history })
+  render(<RouterProvider router={router} />)
+  expect(await screen.findByRole('heading', { name: 'Dashboard test' })).toBeInTheDocument()
+
+  await act(async () => {
+    auth.setUser({ ...user, permissions: ['billing.read'] })
+    await router.navigate({ to: '/billing' })
+  })
+  expect(await screen.findByRole('heading', { name: 'Billing test' })).toBeInTheDocument()
+  await act(async () => auth.setUser(user))
+  expect(await screen.findByRole('heading', { name: 'Dashboard test' })).toBeInTheDocument()
+
+  await act(async () => {
+    auth.setUser({ ...user, organisation: undefined, permissions: ['billing.read'] })
+    await router.navigate({ to: '/billing' })
+  })
+  expect(await screen.findByRole('heading', { name: 'Dashboard test' })).toBeInTheDocument()
+
+  await act(async () => {
+    auth.setUser({
+      ...user,
+      organisation: undefined,
+      permissions: ['billing.read'],
+      role: { id: 'admin', name: 'Super Admin' },
+    })
+    await router.navigate({ to: '/billing' })
+  })
+  expect(await screen.findByRole('heading', { name: 'Billing test' })).toBeInTheDocument()
+})

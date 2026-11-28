@@ -19,13 +19,14 @@ describe('permission editing', () => {
       'patients',
       'interactive_report',
       'devices',
-      'device-readings',
+      'device_readings',
       'readings',
       'reports',
       'orders',
+      'billing',
     ])
     const selected = togglePermissions(new Set<string>(), values, true)
-    expect(selected.size).toBe(22)
+    expect(selected.size).toBe(26)
     expect(
       [...selected].some((value) => /^(users|roles|organizations|manage-roles)\./.test(value)),
     ).toBe(false)

@@ -19,6 +19,7 @@ import {
   Moon,
   MonitorSmartphone,
   Package,
+  ReceiptText,
   Sun,
   UsersRound,
   ChartNoAxesCombined,
@@ -37,6 +38,7 @@ import { NotificationPanel } from '@/features/notifications/notification-panel'
 import { patientPermissions } from '@/features/patients/patient-permissions'
 import { devicePermissions } from '@/features/devices/device-permissions'
 import { orderPermissions } from '@/features/orders/order-permissions'
+import { billingPermissions } from '@/features/billing/billing-permissions'
 import './app-shell.css'
 
 type AppPath =
@@ -44,6 +46,7 @@ type AppPath =
   | '/patients'
   | '/devices'
   | '/orders'
+  | '/billing'
   | '/device-readings'
   | '/reports'
   | '/reports/blood-glucose'
@@ -67,6 +70,7 @@ const navItems: {
   { label: 'Device Readings', to: '/device-readings', icon: Activity },
   { label: 'Reports', to: '/reports', icon: ChartNoAxesCombined },
   { label: 'Orders', to: '/orders', icon: Package },
+  { label: 'Billing', to: '/billing', icon: ReceiptText },
   { label: 'Users', to: '/users', administration: true, icon: UserRoundCog },
   { label: 'Organizations', to: '/organizations', administration: true, icon: Building2 },
   { label: 'Roles', to: '/roles', administration: true, icon: Shield },
@@ -79,6 +83,7 @@ const pageTitles: Record<AppPath, string> = {
   '/devices': 'Devices',
   '/device-readings': 'Device Readings',
   '/orders': 'Orders',
+  '/billing': 'Billing',
   '/reports': 'Reports',
   '/reports/blood-glucose': 'Blood Glucose',
   '/reports/blood-pressure': 'Blood pressure',
@@ -119,10 +124,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const canReadDeviceReadings = hasPermission(auth.user, PERMISSIONS.READ_DEVICE_READINGS)
   const canReadDevices = devicePermissions(auth.user).read
   const canReadOrders = orderPermissions(auth.user).read
+  const canReadBilling = billingPermissions(auth.user).read
   const visibleNavItems = navItems.filter(
     (item) =>
       (!item.administration || showAdministration) &&
       (item.to !== '/orders' || canReadOrders) &&
+      (item.to !== '/billing' || canReadBilling) &&
       (item.to !== '/devices' || canReadDevices) &&
       (item.to !== '/device-readings' || canReadDeviceReadings) &&
       (item.to !== '/patients' || canReadPatients),

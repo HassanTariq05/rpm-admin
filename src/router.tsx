@@ -16,6 +16,8 @@ import { AppShell } from '@/app/layout/app-shell'
 import { DashboardPage } from '@/features/dashboard/pages/dashboard-page'
 import { PatientsPage } from '@/features/patients/pages/patients-page'
 import { DeviceReadingsPage } from '@/features/device-readings'
+import { BillingPage } from '@/features/billing/billing-page'
+import { billingPermissions } from '@/features/billing/billing-permissions'
 import { OrdersPage } from '@/features/orders/pages/orders-page'
 import { patientPermissions } from '@/features/patients/patient-permissions'
 import { devicePermissions } from '@/features/devices/device-permissions'
@@ -177,6 +179,19 @@ const ordersRoute = createRoute({
   },
 })
 
+const billingRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/billing',
+  beforeLoad: () => {
+    if (!billingPermissions(useAuthStore.getState().auth.user).read)
+      throw redirect({ to: '/', replace: true })
+  },
+  component: function BillingRoutePage() {
+    const canRead = useAuthStore((state) => billingPermissions(state.auth.user).read)
+    return canRead ? <BillingPage /> : <Navigate to="/" replace />
+  },
+})
+
 const deviceReadingsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/device-readings',
@@ -289,6 +304,7 @@ const routeTree = rootRoute.addChildren([
     patientsRoute,
     devicesRoute,
     ordersRoute,
+    billingRoute,
     deviceReadingsRoute,
     reportsRoute,
     bloodGlucoseReportRoute,

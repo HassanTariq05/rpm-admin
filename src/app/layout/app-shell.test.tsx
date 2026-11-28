@@ -69,6 +69,7 @@ it.each([
     expect(navigation.queryByRole('link', { name: 'Devices' })).not.toBeInTheDocument()
     expect(navigation.getByRole('link', { name: 'Reports' })).toHaveAttribute('href', '/reports')
     expect(navigation.queryByRole('link', { name: 'Orders' })).not.toBeInTheDocument()
+    expect(navigation.queryByRole('link', { name: 'Billing' })).not.toBeInTheDocument()
     expect(navigation.queryByRole('link', { name: 'Overview' })).not.toBeInTheDocument()
   }
   if (allowed) expect(screen.getByText('Administration')).toBeInTheDocument()
@@ -80,16 +81,21 @@ it('lists protected pages on desktop and mobile when their Read permission is as
     id: 'user-1',
     name: 'Test User',
     email: 'test@example.com',
+    organisation: { id: 'org-1', name: 'Clinic', status: 'active' },
     role: { id: 'role-1', name: 'Clinician' },
     permissions: [
       'VIEW_DEVICE',
       PERMISSIONS.READ_PATIENT,
       PERMISSIONS.READ_DEVICE_READINGS,
+      PERMISSIONS.READ_BILLING,
       { id: 8, name: 'Orders', actions: [{ label: 'Read', value: PERMISSIONS.READ_ORDER }] },
     ],
   })
   render(<AppShell>Page content</AppShell>)
   for (const name of ['Main navigation', 'Mobile navigation']) {
+    expect(
+      within(screen.getByRole('navigation', { name })).getByRole('link', { name: 'Billing' }),
+    ).toHaveAttribute('href', '/billing')
     expect(
       within(screen.getByRole('navigation', { name })).getByRole('link', { name: 'Orders' }),
     ).toHaveAttribute('href', '/orders')

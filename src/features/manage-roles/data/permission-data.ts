@@ -54,4 +54,14 @@ export const permissionsData: PermissionData = [
       { label: 'Delete', value: PERMISSIONS.DELETE_ORDER },
     ],
   },
+  {
+    id: 9,
+    name: 'Billing',
+    actions: [
+      { label: 'Read', value: PERMISSIONS.READ_BILLING },
+      { label: 'Create', value: PERMISSIONS.CREATE_BILLING },
+      { label: 'Update', value: PERMISSIONS.UPDATE_BILLING },
+      { label: 'Delete', value: PERMISSIONS.DELETE_BILLING },
+    ],
+  },
 ]

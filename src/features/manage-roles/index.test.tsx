@@ -71,15 +71,20 @@ it('lets an administrator edit a role from the organization-scoped list when det
   })
 })
 
-it('saves the four Orders permissions using the backend keys', async () => {
+it.each([
+  ['Orders', 'orders'],
+  ['Billing', 'billing'],
+])('saves the four %s permissions using the backend keys', async (group, resource) => {
   const user = userEvent.setup()
   render(<ManageRolesPage />)
-  await user.click(screen.getByRole('checkbox', { name: 'Select all Orders' }))
+  await user.click(screen.getByRole('checkbox', { name: `Select all ${group}` }))
   await user.click(screen.getByRole('button', { name: 'Save changes' }))
   expect(state.update).toHaveBeenCalledWith(
     expect.objectContaining({
       payload: expect.objectContaining({
-        permissions: ['orders.read', 'orders.create', 'orders.update', 'orders.delete'],
+        permissions: ['read', 'create', 'update', 'delete'].map(
+          (action) => `${resource}.${action}`,
+        ),
       }),
     }),
   )
@@ -155,7 +160,7 @@ it('saves Read Device Readings independently from Devices CRUD', async () => {
   await user.click(screen.getByRole('button', { name: 'Save changes' }))
   expect(state.update).toHaveBeenCalledWith(
     expect.objectContaining({
-      payload: expect.objectContaining({ permissions: ['device-readings.read'] }),
+      payload: expect.objectContaining({ permissions: ['device_readings.read'] }),
     }),
   )
 })

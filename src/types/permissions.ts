@@ -17,6 +17,11 @@ export const PERMISSIONS = {
   CREATE_ORDER: 'orders.create',
   UPDATE_ORDER: 'orders.update',
   DELETE_ORDER: 'orders.delete',
+  // Billing
+  READ_BILLING: 'billing.read',
+  CREATE_BILLING: 'billing.create',
+  UPDATE_BILLING: 'billing.update',
+  DELETE_BILLING: 'billing.delete',
   // Vital readings
   READ_READING: 'readings.read',
   CREATE_READING: 'readings.create',
