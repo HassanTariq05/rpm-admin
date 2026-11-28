@@ -2,6 +2,7 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { AppShell } from './app-shell'
 import { useAuthStore } from '@/stores/auth-store'
+import { PERMISSIONS } from '@/types/permissions'
 
 const route = vi.hoisted(() => ({ pathname: '/' }))
 
@@ -62,18 +63,48 @@ it.each([
       if (allowed) expect(link).toBeInTheDocument()
       else expect(link).not.toBeInTheDocument()
     }
-    expect(navigation.getByRole('link', { name: 'Device Readings' })).toHaveAttribute(
-      'href',
-      '/device-readings',
-    )
+    expect(navigation.queryByRole('link', { name: 'Device Readings' })).not.toBeInTheDocument()
     expect(navigation.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/')
-    expect(navigation.getByRole('link', { name: 'Patients' })).toHaveAttribute('href', '/patients')
-    expect(navigation.getByRole('link', { name: 'Devices' })).toHaveAttribute('href', '/devices')
+    expect(navigation.queryByRole('link', { name: 'Patients' })).not.toBeInTheDocument()
+    expect(navigation.queryByRole('link', { name: 'Devices' })).not.toBeInTheDocument()
     expect(navigation.getByRole('link', { name: 'Reports' })).toHaveAttribute('href', '/reports')
+    expect(navigation.queryByRole('link', { name: 'Orders' })).not.toBeInTheDocument()
     expect(navigation.queryByRole('link', { name: 'Overview' })).not.toBeInTheDocument()
   }
   if (allowed) expect(screen.getByText('Administration')).toBeInTheDocument()
   else expect(screen.queryByText('Administration')).not.toBeInTheDocument()
+})
+
+it('lists protected pages on desktop and mobile when their Read permission is assigned', () => {
+  useAuthStore.getState().auth.setUser({
+    id: 'user-1',
+    name: 'Test User',
+    email: 'test@example.com',
+    role: { id: 'role-1', name: 'Clinician' },
+    permissions: [
+      'VIEW_DEVICE',
+      PERMISSIONS.READ_PATIENT,
+      PERMISSIONS.READ_DEVICE_READINGS,
+      { id: 8, name: 'Orders', actions: [{ label: 'Read', value: PERMISSIONS.READ_ORDER }] },
+    ],
+  })
+  render(<AppShell>Page content</AppShell>)
+  for (const name of ['Main navigation', 'Mobile navigation']) {
+    expect(
+      within(screen.getByRole('navigation', { name })).getByRole('link', { name: 'Orders' }),
+    ).toHaveAttribute('href', '/orders')
+    expect(
+      within(screen.getByRole('navigation', { name })).getByRole('link', { name: 'Devices' }),
+    ).toHaveAttribute('href', '/devices')
+    expect(
+      within(screen.getByRole('navigation', { name })).getByRole('link', { name: 'Patients' }),
+    ).toHaveAttribute('href', '/patients')
+    expect(
+      within(screen.getByRole('navigation', { name })).getByRole('link', {
+        name: 'Device Readings',
+      }),
+    ).toHaveAttribute('href', '/device-readings')
+  }
 })
 
 it.each([

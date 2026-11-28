@@ -10,6 +10,7 @@ import { createMonitoringPdfDocument, type MonitoringPdf } from '@/features/repo
 import type { PatientRecord } from '@/services/patient-services/patient-services'
 import type { DeviceReading } from '@/services/reading-services/reading-services'
 import type { NoteLine } from './report-notes'
+import type { ReadingSummary } from './report-ai-readings'
 import { patientAge, patientName } from './patients'
 
 export interface PatientReadingGroup {
@@ -21,13 +22,15 @@ export interface PatientReadingGroup {
 
 interface PatientRpmReport {
   patient: PatientRecord
+  icd10Codes?: string[]
   generatedBy?: string
   generatedAt: Date
-  from: string
-  to: string
+  from?: string
+  to?: string
   devices: string[]
   groups: PatientReadingGroup[]
   notes: NoteLine[]
+  readingSummary?: ReadingSummary[]
 }
 
 const missing = '—'
@@ -35,13 +38,15 @@ const date = dateFormatter({ dateStyle: 'medium', timeZone: 'UTC' })
 const timestamp = dateFormatter({ dateStyle: 'medium', timeStyle: 'short' })
 
 export async function createPatientRpmPdf(report: PatientRpmReport, logo: ArrayBuffer) {
-  const { patient, generatedBy, generatedAt, from, to, devices, groups, notes } = report
+  const { patient, generatedBy, generatedAt, from, to, devices, groups, notes, readingSummary } =
+    report
   const name = patientName(patient)
   const birthDate = patient.dob?.slice(0, 10)
   const birth = birthDate ? new Date(birthDate) : null
   const age = patientAge(birthDate, generatedAt)
   const sex = patient.gender?.trim().replace(/^./u, (letter) => letter.toLocaleUpperCase())
-  const dateRange = `${date.format(new Date(from))} - ${date.format(new Date(to))}`
+  const dateRange =
+    from && to ? `${date.format(new Date(from))} - ${date.format(new Date(to))}` : t('All dates')
   const pdf = await createMonitoringPdfDocument(t('RPM Report'), logo)
   const total = groups.reduce((count, group) => count + group.readings.length, 0)
 
@@ -66,9 +71,31 @@ export async function createPatientRpmPdf(report: PatientRpmReport, logo: ArrayB
           ? devices.map((device, index) => `${index + 1}. ${device}`).join('\n')
           : t('No devices assigned'),
       ],
-      [t('Reading Count'), total ? String(total) : t('No readings in this date range')],
+      [
+        t('Reading Count'),
+        total
+          ? String(total)
+          : from && to
+            ? t('No readings in this date range')
+            : t('No readings yet'),
+      ],
     ],
-    notes.length ? [{ title: t("Doctor's Notes"), lines: notes }] : [],
+    [
+      ...(notes.length ? [{ title: t("Doctor's Notes"), lines: notes }] : []),
+      ...(readingSummary?.length
+        ? [
+            {
+              title: t('AI-generated summary'),
+              lines: readingSummary.flatMap(({ title, lines }, index): NoteLine[] => [
+                ...(index ? [{ spans: [], indent: 0, quote: false }] : []),
+                { spans: [{ text: title, bold: true }], indent: 0, quote: false },
+                ...lines.map((line) => ({ spans: [{ text: line }], indent: 0, quote: false })),
+              ]),
+            },
+          ]
+        : []),
+    ],
+    { label: t('ICD-10'), values: report.icd10Codes ?? [] },
   )
 
   for (const { type, model, imei, readings } of groups) {

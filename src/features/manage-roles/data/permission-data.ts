@@ -10,6 +10,7 @@ export const permissionsData: PermissionData = [
       { label: 'Create', value: PERMISSIONS.CREATE_PATIENT },
       { label: 'Update', value: PERMISSIONS.UPDATE_PATIENT },
       { label: 'Delete', value: PERMISSIONS.DELETE_PATIENT },
+      { label: 'Read Interactive Report', value: PERMISSIONS.READ_INTERACTIVE_REPORT },
     ],
   },
   {
@@ -20,6 +21,7 @@ export const permissionsData: PermissionData = [
       { label: 'Create', value: PERMISSIONS.CREATE_DEVICE },
       { label: 'Update', value: PERMISSIONS.UPDATE_DEVICE },
       { label: 'Delete', value: PERMISSIONS.DELETE_DEVICE },
+      { label: 'Read Device Readings', value: PERMISSIONS.READ_DEVICE_READINGS },
     ],
   },
   {
@@ -40,6 +42,16 @@ export const permissionsData: PermissionData = [
       { label: 'Create', value: PERMISSIONS.CREATE_REPORT },
       { label: 'Update', value: PERMISSIONS.UPDATE_REPORT },
       { label: 'Delete', value: PERMISSIONS.DELETE_REPORT },
+    ],
+  },
+  {
+    id: 8,
+    name: 'Orders',
+    actions: [
+      { label: 'Read', value: PERMISSIONS.READ_ORDER },
+      { label: 'Create', value: PERMISSIONS.CREATE_ORDER },
+      { label: 'Update', value: PERMISSIONS.UPDATE_ORDER },
+      { label: 'Delete', value: PERMISSIONS.DELETE_ORDER },
     ],
   },
 ]

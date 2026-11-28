@@ -6,6 +6,11 @@ import { useAuthStore } from '@/stores/auth-store'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { PatientRecord } from '@/services/patient-services/patient-services'
 import type { PatientContact } from '@/services/patient-services/patient-contact-services'
+vi.mock('@/hooks/use-patient-icd10', () => ({
+  usePatientIcd10: () => ({}),
+  useSavePatientIcd10: () => ({ mutateAsync: vi.fn(), reset: vi.fn() }),
+  useIcd10Catalog: () => ({}),
+}))
 vi.mock('../components/patient-interactive-report-dialog', () => ({
   PatientInteractiveReportDialog: ({ record }: { record: PatientRecord }) => (
     <section role="dialog" aria-label="Interactive Report">
@@ -112,7 +117,7 @@ vi.mock('@/hooks/use-administration', async (original) => ({
     ready: true,
     isSuperAdmin: state.superAdmin,
     orgId: 'org-a',
-    user: { id: 'viewer' },
+    user: useAuthStore((state) => state.auth.user),
   }),
 }))
 vi.mock('@/hooks/use-organizations', () => ({
@@ -129,6 +134,19 @@ beforeEach(() => {
   state.createContact.mockReset()
   state.removeContact.mockReset()
   useAuthStore.getState().auth.setAccessToken('synthetic-test-token')
+  useAuthStore.getState().auth.setUser({
+    id: 'operator',
+    name: 'Test operator',
+    email: 'operator@example.test',
+    role: { id: 'role-a', name: 'Administrator' },
+    permissions: [
+      'patients.read',
+      'patients.create',
+      'patients.update',
+      'patients.delete',
+      'interactive_report.read',
+    ],
+  })
 })
 afterEach(() => {
   state.detailPending = false
@@ -141,6 +159,10 @@ afterEach(() => {
 })
 it('renders API patient names and active status without fabricated doctors or reading timestamps', () => {
   render(<PatientsPage />)
+  const searchRow = screen
+    .getByRole('textbox', { name: 'Search patients' })
+    .closest('.readings-toolbar')
+  expect(searchRow).toContainElement(screen.getByRole('button', { name: 'Columns' }))
   const table = within(screen.getByRole('table', { name: 'Patients' }))
   expect(table.getByText('Alex Rivera')).toBeInTheDocument()
   expect(table.getByText('Active')).toBeInTheDocument()
@@ -416,4 +438,22 @@ it('shows loading and retry states for a linked patient without fabricating pati
     .setup()
     .click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Try again' }))
   expect(state.refetch).toHaveBeenCalled()
+})
+
+it.each([
+  ['Read', ['patients.read'], false, false, false],
+  ['Create', ['patients.read', 'patients.create'], true, false, false],
+  ['Update', ['patients.read', 'patients.update'], false, true, false],
+  ['Delete', ['patients.read', 'patients.delete'], false, false, true],
+] as const)('shows only patient actions permitted by %s', (_, grants, create, update, remove) => {
+  const auth = useAuthStore.getState().auth
+  auth.setUser({ ...auth.user!, permissions: [...grants] })
+  render(<PatientsPage />)
+  expect(!!screen.queryByRole('button', { name: 'Add patient' })).toBe(create)
+  fireEvent.click(screen.getByRole('button', { name: 'Actions for Alex Rivera' }))
+  expect(screen.getByRole('menuitem', { name: 'View patient' })).toBeInTheDocument()
+  expect(screen.queryByRole('menuitem', { name: 'Interactive Report' })).not.toBeInTheDocument()
+  expect(!!screen.queryByRole('menuitem', { name: 'Edit' })).toBe(update)
+  expect(!!screen.queryByRole('menuitem', { name: 'Assign Device' })).toBe(update)
+  expect(!!screen.queryByRole('menuitem', { name: 'Delete' })).toBe(remove)
 })

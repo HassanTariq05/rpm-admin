@@ -7,6 +7,9 @@ const state = vi.hoisted(() => ({
   create: vi.fn(),
   update: vi.fn(),
   saveContacts: vi.fn(),
+  saveIcd10: vi.fn(),
+  linkedIcd10: [] as { code: string; description: string; category: string }[],
+  catalogIcd10: vi.fn(),
   superAdmin: false,
   creating: false,
   updating: false,
@@ -18,6 +21,11 @@ const state = vi.hoisted(() => ({
 vi.mock('@/services/address-services/address-services', async (original) => ({
   ...(await original<typeof import('@/services/address-services/address-services')>()),
   searchAddresses: state.searchAddresses,
+}))
+vi.mock('@/hooks/use-patient-icd10', () => ({
+  useIcd10Catalog: state.catalogIcd10,
+  usePatientIcd10: (id?: string) => ({ data: id ? state.linkedIcd10 : undefined }),
+  useSavePatientIcd10: () => ({ mutateAsync: state.saveIcd10, reset: vi.fn() }),
 }))
 vi.mock('@/hooks/use-patient-contacts', () => ({
   useSavePatientContacts: () => ({ mutateAsync: state.saveContacts }),
@@ -55,7 +63,10 @@ vi.mock('@/hooks/use-administration', () => ({
     ready: true,
     isSuperAdmin: state.superAdmin,
     orgId: '223e4567-e89b-42d3-a456-426614174000',
-    user: { id: 'viewer' },
+    user: {
+      id: 'viewer',
+      permissions: ['patients.read', 'patients.create', 'patients.update', 'patients.delete'],
+    },
   }),
 }))
 vi.mock('@/hooks/use-organizations', () => ({
@@ -82,6 +93,22 @@ beforeEach(() => {
   state.update.mockResolvedValue(savedPatient)
   state.assign.mockResolvedValue({})
   state.saveContacts.mockReset().mockResolvedValue(undefined)
+  state.saveIcd10.mockReset().mockResolvedValue(undefined)
+  state.linkedIcd10 = []
+  state.catalogIcd10.mockReturnValue({
+    data: {
+      codes: [
+        {
+          code: 'E11.9',
+          description: 'Type 2 diabetes mellitus without complications',
+          category: 'Diabetes',
+        },
+      ],
+      page: 1,
+      pageSize: 20,
+      total: 1,
+    },
+  })
   state.searchAddresses.mockReset().mockResolvedValue([])
 })
 afterEach(() => {
@@ -735,4 +762,69 @@ it('offers the same assignment tab on edit and updates the patient before assign
   )
   expect(state.create).not.toHaveBeenCalled()
   await waitFor(() => expect(onClose).toHaveBeenCalled())
+})
+
+it('searches the ICD-10 catalog and links a selected code after creating the patient', async () => {
+  const user = userEvent.setup()
+  render(<PatientEditor onSaved={vi.fn()} onClose={vi.fn()} />)
+  await fillDemographics()
+  await user.click(screen.getByRole('tab', { name: 'ICD-10' }))
+  const search = screen.getByRole('searchbox', { name: 'Search ICD-10 codes' })
+  await user.type(search, 'E11')
+  await waitFor(() =>
+    expect(state.catalogIcd10).toHaveBeenLastCalledWith({ q: 'E11', page: 1, pageSize: 20 }),
+  )
+  await user.click(await screen.findByRole('button', { name: 'Add E11.9' }))
+  const selected = within(screen.getByRole('region', { name: 'Selected ICD-10 codes' }))
+  expect(selected.getByText('Category: Diabetes')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Save Patient' }))
+  await waitFor(() =>
+    expect(state.saveIcd10).toHaveBeenCalledWith(
+      expect.objectContaining({
+        patientId: savedPatient.id,
+        changes: [
+          {
+            type: 'add',
+            code: {
+              code: 'E11.9',
+              description: 'Type 2 diabetes mellitus without complications',
+              category: 'Diabetes',
+            },
+          },
+        ],
+      }),
+    ),
+  )
+  expect(state.create.mock.invocationCallOrder[0]).toBeLessThan(
+    state.saveIcd10.mock.invocationCallOrder[0]!,
+  )
+  expect(state.create.mock.calls[0]?.[0]).not.toHaveProperty('icd10Codes')
+})
+
+it('shows linked ICD-10 codes and stages an unlink when editing a patient', async () => {
+  state.linkedIcd10 = [
+    { code: 'I10', description: 'Essential hypertension', category: 'Hypertension' },
+  ]
+  const user = userEvent.setup()
+  render(
+    <PatientEditor
+      record={{ ...savedPatient, dob: '2000-01-01', gender: 'female' }}
+      onSaved={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  )
+  await user.click(screen.getByRole('tab', { name: 'ICD-10' }))
+  expect(screen.getByText('Category: Hypertension')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Remove I10' }))
+  expect(state.saveIcd10).not.toHaveBeenCalled()
+  expect(screen.getByText('No ICD-10 codes selected.')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Save changes' }))
+  await waitFor(() =>
+    expect(state.saveIcd10).toHaveBeenCalledWith(
+      expect.objectContaining({
+        patientId: savedPatient.id,
+        changes: [{ type: 'remove', code: 'I10' }],
+      }),
+    ),
+  )
 })

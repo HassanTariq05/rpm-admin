@@ -262,6 +262,7 @@ export async function createMonitoringPdfDocument(title: string, logoBytes: Arra
     fields: readonly (readonly [string, string])[],
     summary: readonly [readonly [string, string], readonly [string, string]],
     sections: { title: string; lines: NoteLine[] }[],
+    tags?: { label: string; values: string[] },
   ) {
     let page = newPage('')
     const fieldRows: (typeof fields)[] = []
@@ -274,7 +275,55 @@ export async function createMonitoringPdfDocument(title: string, logoBytes: Arra
         24 + 16 * Math.max(...row.map(([, value]) => wrap(value, 13, false, fieldWidth).length)),
     )
     const cardTop = 694
-    const cardHeight = rowHeights.reduce((sum, height) => sum + height, 10)
+    const fieldsHeight = rowHeights.reduce((sum, height) => sum + height, 10)
+    const chipRows: { text: string; width: number }[][] = []
+    const chipGap = 6
+    const chipRowHeight = 22
+    const chipPanelHeader = 25
+    const chipAvailableWidth = width - 24
+    let rowWidth = 0
+    for (const text of tags?.values ?? []) {
+      const chip = { text, width: Math.min(chipAvailableWidth, textWidth(text, 10, true) + 16) }
+      if (!chipRows.length || rowWidth + chip.width > chipAvailableWidth) {
+        chipRows.push([])
+        rowWidth = 0
+      }
+      chipRows.at(-1)!.push(chip)
+      rowWidth += chip.width + chipGap
+    }
+
+    function drawTags(rows: typeof chipRows, top: number) {
+      if (!rows.length || !tags) return
+      write(page, tags.label, left + 12, top - 10, 9, true, muted)
+      rows.forEach((row, index) => {
+        let x = left + 12
+        const bottom = top - 31 - index * chipRowHeight
+        for (const chip of row) {
+          page.drawRectangle({
+            x,
+            y: bottom,
+            width: chip.width,
+            height: 17,
+            color: rgb(0.86, 0.9, 0.95),
+          })
+          const size = Math.min(
+            10,
+            (10 * (chip.width - 16)) / Math.max(1, textWidth(chip.text, 10, true)),
+          )
+          drawLine(page, chip.text, x + 8, bottom + 5, size, true, ink)
+          x += chip.width + chipGap
+        }
+      })
+    }
+
+    const firstPageCapacity = Math.max(
+      0,
+      Math.floor((cardTop - fieldsHeight - chipPanelHeader - 110) / chipRowHeight),
+    )
+    const firstPageTags = chipRows.splice(0, firstPageCapacity)
+    const cardHeight =
+      fieldsHeight +
+      (firstPageTags.length ? chipPanelHeader + firstPageTags.length * chipRowHeight : 0)
     page.drawRectangle({
       x: left,
       y: cardTop - cardHeight,
@@ -291,7 +340,24 @@ export async function createMonitoringPdfDocument(title: string, logoBytes: Arra
       })
       y -= rowHeights[index]!
     })
-    y -= 12
+    drawTags(firstPageTags, cardTop - fieldsHeight)
+    y -= cardHeight - fieldsHeight + 12
+
+    const continuationCapacity = Math.floor((cardTop - chipPanelHeader - 110) / chipRowHeight)
+    while (chipRows.length) {
+      page = newPage('')
+      const rows = chipRows.splice(0, continuationCapacity)
+      const panelHeight = chipPanelHeader + rows.length * chipRowHeight + 10
+      page.drawRectangle({
+        x: left,
+        y: cardTop - panelHeight,
+        width,
+        height: panelHeight,
+        color: neutralPanel,
+      })
+      drawTags(rows, cardTop - 10)
+      y = cardTop - panelHeight - 12
+    }
 
     const [[leftLabel, leftValue], [rightLabel, rightValue]] = summary
     const columnWidth = width / 2 - 20

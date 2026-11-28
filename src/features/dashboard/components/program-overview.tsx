@@ -1,3 +1,8 @@
+import {
+  ColumnCell,
+  ColumnHeading,
+  ColumnTable,
+} from '@/app/components/administration/table-columns'
 import { count } from '../dashboard-format'
 import { lazy, Suspense } from 'react'
 import { CheckCircle2, TrendingUp } from 'lucide-react'
@@ -173,40 +178,49 @@ export function OrganizationPerformance({ view = 'table' }: { view?: 'table' | '
           ))}
         </div>
       ) : (
-        <div className="dash-table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>{t('Organization')}</th>
-                <th>{t('Patients')}</th>
-                <th>{t('Adherence')}</th>
-                <th>{t('Weekly change')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((org) => (
-                <tr key={org.name}>
-                  <td>
-                    <span className="dash-org-name">
-                      <Avatar initials={org.initials} tone="blue" />
-                      <strong>{org.name}</strong>
-                    </span>
-                  </td>
-                  <td>{count(org.patients)}</td>
-                  <td>
-                    <span className="dash-table-progress">
-                      <i style={{ width: `${org.adherence}%` }} />
-                    </span>
-                    <strong>{org.adherence}%</strong>
-                  </td>
-                  <td>
-                    <span className="dash-positive">{org.change}</span>
-                  </td>
+        <ColumnTable
+          columns={{
+            organization: 'Organization',
+            patients: 'Patients',
+            adherence: 'Adherence',
+            change: 'Weekly change',
+          }}
+        >
+          <div className="dash-table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <ColumnHeading column="organization">{t('Organization')}</ColumnHeading>
+                  <ColumnHeading column="patients">{t('Patients')}</ColumnHeading>
+                  <ColumnHeading column="adherence">{t('Adherence')}</ColumnHeading>
+                  <ColumnHeading column="change">{t('Weekly change')}</ColumnHeading>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {sorted.map((org) => (
+                  <tr key={org.name}>
+                    <ColumnCell column="organization">
+                      <span className="dash-org-name">
+                        <Avatar initials={org.initials} tone="blue" />
+                        <strong>{org.name}</strong>
+                      </span>
+                    </ColumnCell>
+                    <ColumnCell column="patients">{count(org.patients)}</ColumnCell>
+                    <ColumnCell column="adherence">
+                      <span className="dash-table-progress">
+                        <i style={{ width: `${org.adherence}%` }} />
+                      </span>
+                      <strong>{org.adherence}%</strong>
+                    </ColumnCell>
+                    <ColumnCell column="change">
+                      <span className="dash-positive">{org.change}</span>
+                    </ColumnCell>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </ColumnTable>
       )}
     </section>
   )

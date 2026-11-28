@@ -18,6 +18,7 @@ const state = vi.hoisted(() => ({
   update: vi.fn(),
   refetch: vi.fn(),
   pending: false,
+  permissions: [] as string[],
   patients: [] as PatientRecord[],
   patientsPending: false,
   patientsError: false,
@@ -58,7 +59,7 @@ vi.mock('@/hooks/use-orders', () => ({
 vi.mock('@/hooks/use-administration', () => ({
   useAdminScope: () => ({
     orgId: orderFixture.organisationId,
-    user: { id: 'creator' },
+    user: { id: 'creator', permissions: state.permissions },
     isSuperAdmin: false,
   }),
 }))
@@ -150,6 +151,7 @@ vi.mock('@/hooks/use-organizations', () => ({
   }),
 }))
 beforeEach(() => {
+  state.permissions = ['orders.read', 'orders.create', 'orders.update', 'orders.delete']
   vi.clearAllMocks()
   state.order = orderFixture
   state.organizationAddress = {}
@@ -196,6 +198,29 @@ it('prevents edit and submission for submitted orders while retaining tracking',
   expect(screen.queryByRole('button', { name: 'Edit order' })).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Submit to SmartMeter' })).not.toBeInTheDocument()
   expect(screen.getByText('TRACK-123')).toBeInTheDocument()
+})
+it('limits order details actions to the assigned permissions', async () => {
+  state.permissions = ['orders.read']
+  const renderDetails = () => (
+    <OrderDetails id={orderFixture.id} onClose={vi.fn()} onEdit={vi.fn()} />
+  )
+  const view = render(renderDetails())
+  expect(screen.getByRole('dialog', { name: 'Order details' })).toBeInTheDocument()
+  for (const name of ['Edit order', 'Submit to SmartMeter', 'Delete order']) {
+    expect(screen.queryByRole('button', { name })).not.toBeInTheDocument()
+  }
+
+  state.permissions = ['orders.read', 'orders.update']
+  view.rerender(renderDetails())
+  expect(screen.getByRole('button', { name: 'Edit order' })).toBeInTheDocument()
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Submit to SmartMeter' }))
+  expect(screen.getByRole('button', { name: 'Confirm submission' })).toBeInTheDocument()
+  state.permissions = ['orders.read', 'orders.delete']
+  view.rerender(renderDetails())
+  expect(screen.queryByRole('button', { name: 'Confirm submission' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Edit order' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Delete order' })).toBeInTheDocument()
+  expect(state.submit).not.toHaveBeenCalled()
 })
 it('blocks submission until SmartMeter requirements are met', () => {
   state.order = { ...orderFixture, orderNumber: null }

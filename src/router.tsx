@@ -1,9 +1,12 @@
+import { hasPermission } from '@/lib/permissions'
+import { PERMISSIONS } from '@/types/permissions'
 import { translate as t, useAppTranslation } from '@/i18n'
 import {
   createRootRoute,
   createRoute,
   createRouter,
   redirect,
+  Navigate,
   Outlet,
   Link,
 } from '@tanstack/react-router'
@@ -14,6 +17,9 @@ import { DashboardPage } from '@/features/dashboard/pages/dashboard-page'
 import { PatientsPage } from '@/features/patients/pages/patients-page'
 import { DeviceReadingsPage } from '@/features/device-readings'
 import { OrdersPage } from '@/features/orders/pages/orders-page'
+import { patientPermissions } from '@/features/patients/patient-permissions'
+import { devicePermissions } from '@/features/devices/device-permissions'
+import { orderPermissions } from '@/features/orders/order-permissions'
 import { DevicesPage } from '@/features/devices/pages/devices-page'
 import { BloodGlucoseReportPage } from '@/features/reports/pages/blood-glucose-report-page'
 import { BloodPressureReportPage } from '@/features/reports/pages/blood-pressure-report-page'
@@ -95,6 +101,10 @@ const dashboardRoute = createRoute({
 const patientsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/patients',
+  beforeLoad: () => {
+    if (!patientPermissions(useAuthStore.getState().auth.user).read)
+      throw redirect({ to: '/', replace: true })
+  },
   validateSearch: (search: Record<string, unknown>): { patientId?: string } => ({
     patientId:
       typeof search.patientId === 'string' &&
@@ -109,6 +119,8 @@ const patientsRoute = createRoute({
 function PatientsRoutePage() {
   const { patientId } = patientsRoute.useSearch()
   const navigate = patientsRoute.useNavigate()
+  const canRead = useAuthStore((state) => patientPermissions(state.auth.user).read)
+  if (!canRead) return <Navigate to="/" replace />
   return (
     <PatientsPage
       linkedPatientId={patientId}
@@ -122,6 +134,10 @@ function PatientsRoutePage() {
 const devicesRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/devices',
+  beforeLoad: () => {
+    if (!devicePermissions(useAuthStore.getState().auth.user).read)
+      throw redirect({ to: '/', replace: true })
+  },
   validateSearch: (search: Record<string, unknown>): { deviceId?: string } => ({
     deviceId:
       typeof search.deviceId === 'string' &&
@@ -136,6 +152,8 @@ const devicesRoute = createRoute({
 function DevicesRoutePage() {
   const { deviceId } = devicesRoute.useSearch()
   const navigate = devicesRoute.useNavigate()
+  const canRead = useAuthStore((state) => devicePermissions(state.auth.user).read)
+  if (!canRead) return <Navigate to="/" replace />
   return (
     <DevicesPage
       linkedDeviceId={deviceId}
@@ -149,13 +167,29 @@ function DevicesRoutePage() {
 const ordersRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/orders',
-  component: OrdersPage,
+  beforeLoad: () => {
+    if (!orderPermissions(useAuthStore.getState().auth.user).read)
+      throw redirect({ to: '/', replace: true })
+  },
+  component: function OrdersRoutePage() {
+    const canRead = useAuthStore((state) => orderPermissions(state.auth.user).read)
+    return canRead ? <OrdersPage /> : <Navigate to="/" replace />
+  },
 })
 
 const deviceReadingsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/device-readings',
-  component: DeviceReadingsPage,
+  beforeLoad: () => {
+    if (!hasPermission(useAuthStore.getState().auth.user, PERMISSIONS.READ_DEVICE_READINGS))
+      throw redirect({ to: '/', replace: true })
+  },
+  component: function DeviceReadingsRoutePage() {
+    const canRead = useAuthStore((state) =>
+      hasPermission(state.auth.user, PERMISSIONS.READ_DEVICE_READINGS),
+    )
+    return canRead ? <DeviceReadingsPage /> : <Navigate to="/" replace />
+  },
 })
 
 const reportsRoute = createRoute({

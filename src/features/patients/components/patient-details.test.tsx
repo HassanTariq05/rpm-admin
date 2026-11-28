@@ -1,10 +1,16 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, expect, it, vi } from 'vitest'
+import { useAuthStore } from '@/stores/auth-store'
+import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { PatientDetails } from './patient-details'
 import type { PatientContact } from '@/services/patient-services/patient-contact-services'
 
 const state = vi.hoisted(() => ({ contacts: [] as PatientContact[] }))
 const contactAddress = '20 Park Avenue, Boston, MA, USA'
+vi.mock('@/hooks/use-patient-icd10', () => ({
+  usePatientIcd10: () => ({
+    data: [{ code: 'I10', description: 'Essential hypertension', category: 'Hypertension' }],
+  }),
+}))
 vi.mock('@/hooks/use-saved-address-details', () => ({
   useSavedAddressDetails: (address: string) => ({
     details:
@@ -25,7 +31,17 @@ vi.mock('@/hooks/use-saved-address-details', () => ({
 vi.mock('@/hooks/use-patient-contacts', () => ({
   usePatientContacts: () => ({ data: state.contacts }),
 }))
+beforeEach(() => {
+  useAuthStore.getState().auth.setUser({
+    id: 'operator',
+    name: 'Test operator',
+    email: 'operator@example.test',
+    role: { id: 'role-a', name: 'Administrator' },
+    permissions: ['patients.read'],
+  })
+})
 afterEach(() => {
+  useAuthStore.getState().auth.reset()
   state.contacts = []
   cleanup()
 })
@@ -45,6 +61,9 @@ it('handles missing data and displays stored allergy text without executing HTML
   )
   const dialog = within(screen.getByRole('dialog', { name: 'View patient' }))
   expect(dialog.getByText('Inactive')).toBeInTheDocument()
+  const diagnoses = within(dialog.getByRole('region', { name: 'ICD-10' }))
+  expect(diagnoses.getByText('I10')).toBeInTheDocument()
+  expect(diagnoses.getByText('Essential hypertension')).toBeInTheDocument()
   expect(dialog.queryByRole('tab', { name: 'Assign Device' })).not.toBeInTheDocument()
   expect(dialog.getByText("Driver's License #")).toBeInTheDocument()
   expect(dialog.queryByText('National ID')).not.toBeInTheDocument()

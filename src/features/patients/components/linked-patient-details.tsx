@@ -1,6 +1,8 @@
 import { Button } from '@heroui/react'
 import { LoaderCircle, UserRound } from 'lucide-react'
 import { FormModal } from '@/app/components/administration/admin-ui'
+import { useAdminScope } from '@/hooks/use-administration'
+import { patientPermissions } from '../patient-permissions'
 import { usePatient } from '@/hooks/use-patients'
 import { translate as t, useAppTranslation } from '@/i18n'
 import { patientErrorMessage } from '../patients'
@@ -16,7 +18,9 @@ export function LinkedPatientDetails({
   organizationNames: Map<string, string>
 }) {
   useAppTranslation()
-  const query = usePatient(id)
+  const canRead = patientPermissions(useAdminScope().user).read
+  const query = usePatient(canRead ? id : undefined)
+  if (!canRead) return null
   if (query.data)
     return (
       <PatientDetails

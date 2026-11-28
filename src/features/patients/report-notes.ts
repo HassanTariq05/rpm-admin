@@ -1,3 +1,25 @@
+import { dateFormatter } from '@/i18n'
+
+export function providerNoteTimestamp(value: string) {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime())
+    ? '—'
+    : dateFormatter({ dateStyle: 'medium', timeStyle: 'short' }).format(date)
+}
+
+export function isRichTextNote(value: string) {
+  return /<\/?(?:p|div|br|strong|b|em|i|u|s|ul|ol|li|blockquote)(?:\s[^>]*|\s*\/?)>/i.test(value)
+}
+
+export function providerNoteLines(body: string): NoteLine[] {
+  if (!body.trim()) return []
+  if (isRichTextNote(body)) return reportNotes(body)
+  return body
+    .trim()
+    .split(/\r?\n/)
+    .map((text) => ({ spans: [{ text }], indent: 0, quote: false }))
+}
+
 export interface NoteSpan {
   text: string
   bold?: boolean

@@ -1,3 +1,10 @@
+import {
+  ColumnCell,
+  ColumnHeading,
+  ColumnVisibilityMenu,
+  VisibleTableColumns,
+} from '@/app/components/administration/table-columns'
+import { useTableColumnVisibility } from '@/app/components/administration/use-table-column-visibility'
 import { RecordOpenButton } from '@/app/components/administration/record-open-button'
 import { useState } from 'react'
 import { Button, Dropdown, Input, TextField } from '@heroui/react'
@@ -31,6 +38,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useOrganizations } from '@/hooks/use-organizations'
+import { canReadInteractiveReport, patientPermissions } from '../patient-permissions'
 import { usePatients, useDeletePatient } from '@/hooks/use-patients'
 import { useAdminScope } from '@/hooks/use-administration'
 import { useAuthStore } from '@/stores/auth-store'
@@ -66,9 +74,11 @@ export function PatientsPage({
 
   const query = usePatients()
   const scope = useAdminScope()
+  const permissions = patientPermissions(scope.user)
+  const canViewReport = canReadInteractiveReport(scope.user)
   const token = useAuthStore((state) => state.auth.accessToken)
   const deletion = useDeletePatient()
-  const organizations = useOrganizations(scope.isSuperAdmin)
+  const organizations = useOrganizations(scope.isSuperAdmin && permissions.read)
   const organizationNames = new Map((organizations.data ?? []).map((org) => [org.id, org.name]))
   const canLoad = scope.ready && !!token && (scope.isSuperAdmin || !!scope.orgId)
   const loading = canLoad && query.isPending
@@ -88,6 +98,16 @@ export function PatientsPage({
   }))
   const [group, setGroup] = useState<string>('All patients')
   const [search, setSearch] = useState('')
+  const columns = useTableColumnVisibility({
+    patient: 'Patient',
+    mrn: 'MRN',
+    dob: 'Date of birth',
+    gender: 'Gender',
+    contact: 'Contact',
+    blood: 'Blood group',
+    ...(scope.isSuperAdmin ? { organization: 'Organization' } : {}),
+    status: 'Status',
+  })
   const [descending, setDescending] = useState(false)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
@@ -158,6 +178,8 @@ export function PatientsPage({
     }
   }
 
+  if (!permissions.read) return null
+
   return (
     <div className="admin-page patient-register">
       <div className="patient-heading-card">
@@ -167,10 +189,12 @@ export function PatientsPage({
           eyebrow={t('Connected care')}
           description={t('A clearer view of every person in your care.')}
           actions={
-            <Button onPress={() => setEditor({})} isDisabled={!canLoad}>
-              <Plus size={16} />
-              {t(' Add patient ')}
-            </Button>
+            permissions.create && (
+              <Button onPress={() => setEditor({})} isDisabled={!canLoad}>
+                <Plus size={16} />
+                {t(' Add patient ')}
+              </Button>
+            )
           }
         />
       </div>
@@ -234,7 +258,7 @@ export function PatientsPage({
                 setSearch(value)
                 setPage(0)
               }}
-              className="min-w-48 flex-1 sm:max-w-sm"
+              className="min-w-0 flex-1 sm:min-w-48 sm:max-w-sm"
             >
               <div className="relative">
                 <Search
@@ -252,6 +276,7 @@ export function PatientsPage({
               <Button
                 variant="ghost"
                 size="sm"
+                className="max-sm:order-2"
                 onPress={() => {
                   setSearch('')
                   setPage(0)
@@ -261,7 +286,7 @@ export function PatientsPage({
                 {t(' Clear ')}
               </Button>
             )}
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ms-auto flex items-center justify-end gap-2 max-sm:order-2">
               <Button
                 variant="outline"
                 isDisabled={!canLoad || query.isFetching}
@@ -312,6 +337,9 @@ export function PatientsPage({
                 </Dropdown.Popover>
               </Dropdown>
             </div>
+            {!loading && !query.isError && (
+              <ColumnVisibilityMenu {...columns} className="max-sm:order-1 sm:ms-0!" />
+            )}
           </div>
 
           {!canLoad && (
@@ -338,224 +366,252 @@ export function PatientsPage({
                 </Button>
               </div>
             ) : (
-              <div className="patient-table-scroll">
-                <table className="readings-table patient-roster-table" aria-label={t('Patients')}>
-                  <thead>
-                    <tr>
-                      <th aria-sort={descending ? 'descending' : 'ascending'}>
-                        <button onClick={() => setDescending(!descending)}>
-                          {t(' Patient ')}
-                          {descending ? '↓' : '↑'}
-                        </button>
-                      </th>
-                      <th>{t('MRN')}</th>
-                      <th>{t('Date of birth')}</th>
-                      <th>{t('Gender')}</th>
-                      <th>{t('Contact')}</th>
-                      <th>{t('Blood group')}</th>
-                      {scope.isSuperAdmin && <th>{t('Organization')}</th>}
-                      <th>{t('Status')}</th>
-                      <th>
-                        <span className="sr-only">{t('Actions')}</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visible.map((patient) => (
-                      <tr
-                        key={patient.id}
-                        className={`patient-tone-${tones[groups.indexOf(patient.status)]}`}
-                      >
-                        <td>
-                          <RecordOpenButton
-                            className="patient-identity"
-                            onOpen={() => setInteractiveReport(patient.record)}
-                          >
-                            <span className="patient-avatar" aria-hidden="true">
-                              {t(getInitials(patient.name))}
-                            </span>
-                            <div>
-                              <strong className="record-open-label">{patient.name}</strong>
+              <VisibleTableColumns visible={columns.visible}>
+                <div className="patient-table-scroll">
+                  <table className="readings-table patient-roster-table" aria-label={t('Patients')}>
+                    <thead>
+                      <tr>
+                        <ColumnHeading
+                          column="patient"
+                          aria-sort={descending ? 'descending' : 'ascending'}
+                        >
+                          <button onClick={() => setDescending(!descending)}>
+                            {t(' Patient ')}
+                            {descending ? '↓' : '↑'}
+                          </button>
+                        </ColumnHeading>
+                        <ColumnHeading column="mrn">{t('MRN')}</ColumnHeading>
+                        <ColumnHeading column="dob">{t('Date of birth')}</ColumnHeading>
+                        <ColumnHeading column="gender">{t('Gender')}</ColumnHeading>
+                        <ColumnHeading column="contact">{t('Contact')}</ColumnHeading>
+                        <ColumnHeading column="blood">{t('Blood group')}</ColumnHeading>
+                        {scope.isSuperAdmin && (
+                          <ColumnHeading column="organization">{t('Organization')}</ColumnHeading>
+                        )}
+                        <ColumnHeading column="status">{t('Status')}</ColumnHeading>
+                        <th>
+                          <span className="sr-only">{t('Actions')}</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visible.map((patient) => (
+                        <tr
+                          key={patient.id}
+                          className={`patient-tone-${tones[groups.indexOf(patient.status)]}`}
+                        >
+                          <ColumnCell column="patient">
+                            <RecordOpenButton
+                              className="patient-identity"
+                              onOpen={() => {
+                                if (
+                                  canViewReport &&
+                                  (scope.isSuperAdmin ||
+                                    patient.record.organisationId === scope.orgId)
+                                )
+                                  setInteractiveReport(patient.record)
+                                else setViewingId(patient.id)
+                              }}
+                            >
+                              <span className="patient-avatar" aria-hidden="true">
+                                {t(getInitials(patient.name))}
+                              </span>
+                              <div>
+                                <strong className="record-open-label">{patient.name}</strong>
+                              </div>
+                            </RecordOpenButton>
+                          </ColumnCell>
+                          <ColumnCell column="mrn">
+                            <span className="patient-mrn">{patient.mrn || '—'}</span>
+                          </ColumnCell>
+                          <ColumnCell column="dob">
+                            <div className="patient-birth-cell">
+                              <CalendarDays size={17} aria-hidden="true" />
+                              <div>
+                                {patient.age == null ? (
+                                  <span className="text-muted">—</span>
+                                ) : (
+                                  <>
+                                    <strong>
+                                      {dateFormatter({ dateStyle: 'medium' }).format(
+                                        new Date(`${patient.dob}T00:00:00`),
+                                      )}
+                                    </strong>
+                                    <span>
+                                      {patient.age} {t('yrs')}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                          </RecordOpenButton>
-                        </td>
-                        <td>
-                          <span className="patient-mrn">{patient.mrn || '—'}</span>
-                        </td>
-                        <td>
-                          <div className="patient-birth-cell">
-                            <CalendarDays size={17} aria-hidden="true" />
-                            <div>
-                              {patient.age == null ? (
+                          </ColumnCell>
+                          <ColumnCell column="gender">
+                            <span className="patient-gender">
+                              {patient.gender
+                                ? t(
+                                    (
+                                      {
+                                        male: 'Male',
+                                        female: 'Female',
+                                        other: 'Other',
+                                        unknown: 'Unknown',
+                                      } as Record<string, string>
+                                    )[patient.gender.toLowerCase()] ?? patient.gender,
+                                  )
+                                : '—'}
+                            </span>
+                          </ColumnCell>
+                          <ColumnCell column="contact">
+                            <div className="patient-contact-cell">
+                              {patient.email && (
+                                <a href={`mailto:${encodeURIComponent(patient.email)}`}>
+                                  <Mail size={13} aria-hidden="true" />
+                                  {patient.email}
+                                </a>
+                              )}
+                              {patient.phone && (
+                                <a href={`tel:${encodeURIComponent(patient.phone)}`}>
+                                  <Phone size={13} aria-hidden="true" />
+                                  {formatPhoneNumber(patient.phone)}
+                                </a>
+                              )}
+                              {!patient.email && !patient.phone && (
                                 <span className="text-muted">—</span>
-                              ) : (
-                                <>
-                                  <strong>
-                                    {dateFormatter({ dateStyle: 'medium' }).format(
-                                      new Date(`${patient.dob}T00:00:00`),
-                                    )}
-                                  </strong>
-                                  <span>
-                                    {patient.age} {t('yrs')}
-                                  </span>
-                                </>
                               )}
                             </div>
-                          </div>
-                        </td>
-                        <td>
-                          <span className="patient-gender">
-                            {patient.gender
-                              ? t(
-                                  (
-                                    {
-                                      male: 'Male',
-                                      female: 'Female',
-                                      other: 'Other',
-                                      unknown: 'Unknown',
-                                    } as Record<string, string>
-                                  )[patient.gender.toLowerCase()] ?? patient.gender,
-                                )
-                              : '—'}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="patient-contact-cell">
-                            {patient.email && (
-                              <a href={`mailto:${encodeURIComponent(patient.email)}`}>
-                                <Mail size={13} aria-hidden="true" />
-                                {patient.email}
-                              </a>
-                            )}
-                            {patient.phone && (
-                              <a href={`tel:${encodeURIComponent(patient.phone)}`}>
-                                <Phone size={13} aria-hidden="true" />
-                                {formatPhoneNumber(patient.phone)}
-                              </a>
-                            )}
-                            {!patient.email && !patient.phone && (
+                          </ColumnCell>
+                          <ColumnCell column="blood">
+                            {patient.bloodGroup ? (
+                              <span className="patient-blood-pill">
+                                <HeartPulse size={13} aria-hidden="true" />
+                                {patient.bloodGroup === 'unknown'
+                                  ? t('Unknown')
+                                  : patient.bloodGroup}
+                              </span>
+                            ) : (
                               <span className="text-muted">—</span>
                             )}
-                          </div>
-                        </td>
-                        <td>
-                          {patient.bloodGroup ? (
-                            <span className="patient-blood-pill">
-                              <HeartPulse size={13} aria-hidden="true" />
-                              {patient.bloodGroup === 'unknown' ? t('Unknown') : patient.bloodGroup}
-                            </span>
-                          ) : (
-                            <span className="text-muted">—</span>
-                          )}
-                        </td>
-                        {scope.isSuperAdmin && (
-                          <td>
-                            <span className="patient-org-cell">
-                              <Building2 size={14} aria-hidden="true" />
-                              <span title={patient.organization}>
-                                {patient.organization || '—'}
+                          </ColumnCell>
+                          {scope.isSuperAdmin && (
+                            <ColumnCell column="organization">
+                              <span className="patient-org-cell">
+                                <Building2 size={14} aria-hidden="true" />
+                                <span title={patient.organization}>
+                                  {patient.organization || '—'}
+                                </span>
                               </span>
-                            </span>
-                          </td>
-                        )}
-                        <td>
-                          <StatusBadge status={patient.status} />
-                        </td>
-                        <td>
-                          <Dropdown>
-                            <Dropdown.Trigger
-                              className="patient-action"
-                              aria-label={t('Actions for {{value0}}', { value0: patient.name })}
-                            >
-                              {t(' Actions ')}
-                              <ChevronDown size={13} />
-                            </Dropdown.Trigger>
-                            <Dropdown.Popover placement="bottom end">
-                              <Dropdown.Menu
+                            </ColumnCell>
+                          )}
+                          <ColumnCell column="status">
+                            <StatusBadge status={patient.status} />
+                          </ColumnCell>
+                          <td>
+                            <Dropdown>
+                              <Dropdown.Trigger
+                                className="patient-action"
                                 aria-label={t('Actions for {{value0}}', { value0: patient.name })}
                               >
-                                <Dropdown.Item id="view" onAction={() => setViewingId(patient.id)}>
-                                  <Eye size={15} />
-                                  {t('View patient')}
-                                </Dropdown.Item>
-                                <Dropdown.Item
-                                  id="edit"
-                                  isDisabled={
-                                    !scope.isSuperAdmin &&
-                                    patient.record.organisationId !== scope.orgId
-                                  }
-                                  onAction={() => {
-                                    setEditor({ record: patient.record })
-                                  }}
+                                {t(' Actions ')}
+                                <ChevronDown size={13} />
+                              </Dropdown.Trigger>
+                              <Dropdown.Popover placement="bottom end">
+                                <Dropdown.Menu
+                                  aria-label={t('Actions for {{value0}}', { value0: patient.name })}
                                 >
-                                  <Pencil size={15} />
-                                  {t(' Edit ')}
-                                </Dropdown.Item>
-                                <Dropdown.Item
-                                  id="assign-device"
-                                  isDisabled={
-                                    !scope.isSuperAdmin &&
-                                    patient.record.organisationId !== scope.orgId
-                                  }
-                                  onAction={() => setAssigning(patient.record)}
-                                >
-                                  <MonitorSmartphone size={15} />
-                                  {t('Assign Device')}
-                                </Dropdown.Item>
-                                <Dropdown.Item
-                                  id="interactive-report"
-                                  isDisabled={
-                                    !scope.isSuperAdmin &&
-                                    patient.record.organisationId !== scope.orgId
-                                  }
-                                  onAction={() => setInteractiveReport(patient.record)}
-                                >
-                                  <ChartNoAxesCombined size={15} />
-                                  {t('Interactive Report')}
-                                </Dropdown.Item>
+                                  <Dropdown.Item
+                                    id="view"
+                                    onAction={() => setViewingId(patient.id)}
+                                  >
+                                    <Eye size={15} />
+                                    {t('View patient')}
+                                  </Dropdown.Item>
+                                  {permissions.update && (
+                                    <Dropdown.Item
+                                      id="edit"
+                                      isDisabled={
+                                        !scope.isSuperAdmin &&
+                                        patient.record.organisationId !== scope.orgId
+                                      }
+                                      onAction={() => {
+                                        setEditor({ record: patient.record })
+                                      }}
+                                    >
+                                      <Pencil size={15} />
+                                      {t(' Edit ')}
+                                    </Dropdown.Item>
+                                  )}
+                                  {permissions.update && (
+                                    <Dropdown.Item
+                                      id="assign-device"
+                                      isDisabled={
+                                        !scope.isSuperAdmin &&
+                                        patient.record.organisationId !== scope.orgId
+                                      }
+                                      onAction={() => setAssigning(patient.record)}
+                                    >
+                                      <MonitorSmartphone size={15} />
+                                      {t('Assign Device')}
+                                    </Dropdown.Item>
+                                  )}
+                                  {canViewReport && (
+                                    <Dropdown.Item
+                                      id="interactive-report"
+                                      isDisabled={
+                                        !scope.isSuperAdmin &&
+                                        patient.record.organisationId !== scope.orgId
+                                      }
+                                      onAction={() => setInteractiveReport(patient.record)}
+                                    >
+                                      <ChartNoAxesCombined size={15} />
+                                      {t('Interactive Report')}
+                                    </Dropdown.Item>
+                                  )}
 
-                                <Dropdown.Item
-                                  id="delete"
-                                  isDisabled={
-                                    !scope.isSuperAdmin &&
-                                    patient.record.organisationId !== scope.orgId
-                                  }
-                                  className="text-danger"
-                                  onAction={() => {
-                                    setConfirmation('')
-                                    deletion.reset()
-                                    setDeleting(patient)
-                                  }}
-                                >
-                                  <Trash2 size={15} />
-                                  {t(' Delete ')}
-                                </Dropdown.Item>
-                              </Dropdown.Menu>
-                            </Dropdown.Popover>
-                          </Dropdown>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {!visible.length && (
-                  <div className="patient-empty">
-                    <UsersRound size={28} />
-                    <h3>{t('No patients found')}</h3>
-                    <p>{t('Try another name or adjust your filters.')}</p>
-                    <Button
-                      variant="outline"
-                      onPress={() => {
-                        setSearch('')
-                        setGroup('All patients')
-                        setPage(0)
-                      }}
-                    >
-                      {t(' Clear filters ')}
-                    </Button>
-                  </div>
-                )}
-              </div>
+                                  {permissions.delete && (
+                                    <Dropdown.Item
+                                      id="delete"
+                                      isDisabled={
+                                        !scope.isSuperAdmin &&
+                                        patient.record.organisationId !== scope.orgId
+                                      }
+                                      className="text-danger"
+                                      onAction={() => {
+                                        setConfirmation('')
+                                        deletion.reset()
+                                        setDeleting(patient)
+                                      }}
+                                    >
+                                      <Trash2 size={15} />
+                                      {t(' Delete ')}
+                                    </Dropdown.Item>
+                                  )}
+                                </Dropdown.Menu>
+                              </Dropdown.Popover>
+                            </Dropdown>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {!visible.length && (
+                    <div className="patient-empty">
+                      <UsersRound size={28} />
+                      <h3>{t('No patients found')}</h3>
+                      <p>{t('Try another name or adjust your filters.')}</p>
+                      <Button
+                        variant="outline"
+                        onPress={() => {
+                          setSearch('')
+                          setGroup('All patients')
+                          setPage(0)
+                        }}
+                      >
+                        {t(' Clear filters ')}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </VisibleTableColumns>
             )}
           </>
           {!loading && (
@@ -614,7 +670,7 @@ export function PatientsPage({
           )}
         </section>
       </div>
-      {assigning && (
+      {permissions.update && assigning && (
         <PatientAssignDeviceDialog
           key={assigning.id}
           record={assigning}
@@ -622,7 +678,7 @@ export function PatientsPage({
         />
       )}
 
-      {interactiveReport && (
+      {canViewReport && interactiveReport && (
         <PatientInteractiveReportDialog
           key={interactiveReport.id}
           record={interactiveReport}
@@ -642,17 +698,19 @@ export function PatientsPage({
         />
       )}
       {editor &&
-        (editor.record ? (
-          <PatientEditDialog
-            key={editor.record.id}
-            patient={editor.record}
-            onClose={() => setEditor(null)}
-            onSaved={onPatientSaved}
-          />
-        ) : (
-          <PatientEditor onClose={() => setEditor(null)} onSaved={onPatientSaved} />
-        ))}
-      {deleting && (
+        (editor.record
+          ? permissions.update && (
+              <PatientEditDialog
+                key={editor.record.id}
+                patient={editor.record}
+                onClose={() => setEditor(null)}
+                onSaved={onPatientSaved}
+              />
+            )
+          : permissions.create && (
+              <PatientEditor onClose={() => setEditor(null)} onSaved={onPatientSaved} />
+            ))}
+      {permissions.delete && deleting && (
         <FormModal
           open
           title={t('Delete patient')}
@@ -675,6 +733,13 @@ export function PatientsPage({
                 (!scope.isSuperAdmin && deleting.record.organisationId !== scope.orgId)
               }
               onPress={async () => {
+                if (
+                  !permissions.delete ||
+                  confirmation !== deleting.name ||
+                  deletion.isPending ||
+                  (!scope.isSuperAdmin && deleting.record.organisationId !== scope.orgId)
+                )
+                  return
                 try {
                   await deletion.mutateAsync(deleting.id)
                   setDeleting(null)

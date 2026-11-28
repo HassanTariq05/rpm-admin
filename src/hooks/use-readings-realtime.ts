@@ -13,14 +13,14 @@ const ticketSchema = z.object({
   expiresIn: z.number().positive(),
 })
 
-export function useReadingsRealtime() {
+export function useReadingsRealtime(enabled = true) {
   const client = useQueryClient()
   const token = useAuthStore((state) => state.auth.accessToken)
   const { user, orgId } = useAdminScope()
   const userId = user?.id
 
   useEffect(() => {
-    if (!token || !userId || typeof WebSocket === 'undefined') return
+    if (!enabled || !token || !userId || typeof WebSocket === 'undefined') return
 
     let disposed = false
     let socket: WebSocket | undefined
@@ -114,5 +114,5 @@ export function useReadingsRealtime() {
       clearTimeout(retryTimer)
       socket?.close()
     }
-  }, [client, token, userId, orgId])
+  }, [client, enabled, token, userId, orgId])
 }

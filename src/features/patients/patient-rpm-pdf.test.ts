@@ -4,6 +4,7 @@ import { PDFArray, PDFDict, PDFDocument, PDFName, PDFRawStream, decodePDFRawStre
 import { expect, it } from 'vitest'
 import { sampleReadings, thermometerReading } from '@/features/device-readings/readings.fixtures'
 import { createPatientRpmPdf } from './patient-rpm-pdf'
+import { prepareReportAiReadings } from './report-ai-readings'
 
 it('prints the selected dates, patient details, device charts, insights, and all reading pages', async () => {
   const logo = Uint8Array.from(
@@ -117,4 +118,44 @@ it('prints the selected dates, patient details, device charts, insights, and all
   expect(pages[0]).toContain(displayedTime.replace(/[\u00a0\u202f]/g, ' '))
   expect(pages.join('\n')).not.toMatch(/\bUTC\b/)
   expect(pages.join('\n')).not.toMatch(/mock patients|sample readings/i)
+})
+
+it('prints an all-dates report without date bounds', async () => {
+  const logo = Uint8Array.from(
+    await readFile(new URL('../../../public/icon-192.png', import.meta.url)),
+  )
+  const groups = [{ type: 'thermometer', model: 'Thermometer', readings: [thermometerReading] }]
+  const bytes = await createPatientRpmPdf(
+    {
+      patient: { id: 'patient-a', isActive: true, firstName: 'Alex' },
+      icd10Codes: ['I10', 'E11.9'],
+      generatedAt: new Date('2026-11-01T12:00:00Z'),
+      devices: ['Thermometer'],
+      groups,
+      readingSummary: prepareReportAiReadings(groups, 'en', null)?.display({
+        devices: [{ group: 0, overview: 'Recorded temperature was 36.33 °C.', events: [] }],
+      }),
+      notes: [],
+    },
+    logo.buffer,
+  )
+
+  const pdf = await PDFDocument.load(bytes)
+  expect(pdf.getPageCount()).toBe(2)
+  for (const page of pdf.getPages()) {
+    const contents = page.node.Contents()!
+    const stream = pdf.context.lookup(contents instanceof PDFArray ? contents.get(0) : contents)
+    if (!(stream instanceof PDFRawStream)) throw new Error('Expected a PDF page content stream')
+    const operators = new TextDecoder().decode(decodePDFRawStream(stream).decode())
+    expect(operators.toLowerCase()).toContain(Buffer.from('All dates').toString('hex'))
+    if (page === pdf.getPage(0)) {
+      expect(operators.toLowerCase()).toContain(Buffer.from('AI-generated summary').toString('hex'))
+      expect(operators.toLowerCase()).toContain(Buffer.from('ICD-10').toString('hex'))
+      expect(operators.toLowerCase()).toContain(Buffer.from('I10').toString('hex'))
+      expect(operators.toLowerCase()).toContain(Buffer.from('E11.9').toString('hex'))
+      expect(operators.toLowerCase()).toContain(
+        Buffer.from('Recorded temperature was 36.33').toString('hex'),
+      )
+    }
+  }
 })

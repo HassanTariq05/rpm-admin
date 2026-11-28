@@ -17,6 +17,8 @@ import {
 import { FormModal } from '@/app/components/administration/admin-ui'
 import { StatusBadge } from '@/app/components/status-badge'
 import { usePatientDevices, useUnassignDevice } from '@/hooks/use-devices'
+import { devicePermissions } from '@/features/devices/device-permissions'
+import { patientPermissions } from '../patient-permissions'
 import { useAdminScope } from '@/hooks/use-administration'
 import { deviceErrorMessage, deviceView } from '@/features/devices/devices'
 import type { ApiDevice } from '@/services/device-services/device-services'
@@ -27,12 +29,17 @@ import { patientName } from '../patients'
 export function PatientDevices({ patient }: { patient: PatientRecord }) {
   useAppTranslation()
   const navigate = useNavigate()
-  const query = usePatientDevices(patient.id)
-  const unassign = useUnassignDevice()
   const scope = useAdminScope()
-  const canManage = scope.isSuperAdmin || (!!scope.orgId && scope.orgId === patient.organisationId)
+  const permissions = patientPermissions(scope.user)
+  const canOpenDevice = devicePermissions(scope.user).read
+  const canManage =
+    permissions.update &&
+    (scope.isSuperAdmin || (!!scope.orgId && scope.orgId === patient.organisationId))
+  const query = usePatientDevices(permissions.read ? patient.id : undefined)
+  const unassign = useUnassignDevice()
   const [selected, setSelected] = useState<ApiDevice | null>(null)
   const devices = query.data
+  if (!permissions.read) return null
   return (
     <>
       <div className="patient-devices-heading">
@@ -93,13 +100,19 @@ export function PatientDevices({ patient }: { patient: PatientRecord }) {
                     <Icon size={19} />
                   </span>
                   <div>
-                    <Link
-                      className="patient-device-name"
-                      to="/devices"
-                      search={{ deviceId: raw.id }}
-                    >
-                      {raw.deviceModel ? device.name : t(device.name)}
-                    </Link>
+                    {canOpenDevice ? (
+                      <Link
+                        className="patient-device-name"
+                        to="/devices"
+                        search={{ deviceId: raw.id }}
+                      >
+                        {raw.deviceModel ? device.name : t(device.name)}
+                      </Link>
+                    ) : (
+                      <span className="patient-device-name">
+                        {raw.deviceModel ? device.name : t(device.name)}
+                      </span>
+                    )}
                     <p className="patient-device-vendor">{t(device.company)}</p>
                   </div>
                 </div>
@@ -113,49 +126,55 @@ export function PatientDevices({ patient }: { patient: PatientRecord }) {
                 </div>
                 <div className="patient-device-row-actions">
                   <StatusBadge status={device.status} />
-                  <Dropdown>
-                    <Button
-                      isIconOnly
-                      size="sm"
-                      variant="ghost"
-                      aria-label={t('Device actions for {{device}}', {
-                        device: `${device.name} ${device.imei || device.id}`,
-                      })}
-                    >
-                      <MoreHorizontal size={18} />
-                    </Button>
-                    <Dropdown.Popover>
-                      <Dropdown.Menu aria-label={t('Device actions')}>
-                        <Dropdown.Item
-                          id="view"
-                          onAction={() => {
-                            void navigate({ to: '/devices', search: { deviceId: raw.id } })
-                          }}
-                        >
-                          <Eye size={15} />
-                          {t('View device')}
-                        </Dropdown.Item>
-                        <Dropdown.Item
-                          id="unassign"
-                          isDisabled={!canManage || unassign.isPending}
-                          onAction={() => {
-                            unassign.reset()
-                            setSelected(raw)
-                          }}
-                        >
-                          <Unlink size={15} />
-                          {t('Unassign')}
-                        </Dropdown.Item>
-                      </Dropdown.Menu>
-                    </Dropdown.Popover>
-                  </Dropdown>
+                  {(canOpenDevice || canManage) && (
+                    <Dropdown>
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="ghost"
+                        aria-label={t('Device actions for {{device}}', {
+                          device: `${device.name} ${device.imei || device.id}`,
+                        })}
+                      >
+                        <MoreHorizontal size={18} />
+                      </Button>
+                      <Dropdown.Popover>
+                        <Dropdown.Menu aria-label={t('Device actions')}>
+                          {canOpenDevice && (
+                            <Dropdown.Item
+                              id="view"
+                              onAction={() => {
+                                void navigate({ to: '/devices', search: { deviceId: raw.id } })
+                              }}
+                            >
+                              <Eye size={15} />
+                              {t('View device')}
+                            </Dropdown.Item>
+                          )}
+                          {canManage && (
+                            <Dropdown.Item
+                              id="unassign"
+                              isDisabled={!canManage || unassign.isPending}
+                              onAction={() => {
+                                unassign.reset()
+                                setSelected(raw)
+                              }}
+                            >
+                              <Unlink size={15} />
+                              {t('Unassign')}
+                            </Dropdown.Item>
+                          )}
+                        </Dropdown.Menu>
+                      </Dropdown.Popover>
+                    </Dropdown>
+                  )}
                 </div>
               </li>
             )
           })}
         </ul>
       )}
-      {selected && (
+      {canManage && selected && (
         <FormModal
           open
           title={t('Unassign device')}

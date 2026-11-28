@@ -1,5 +1,6 @@
 import { joinPhoneNumber } from '@/features/users/phone-number'
 import axios from 'axios'
+import { PatientPermissionError } from './patient-permissions'
 import type { AddressDetails } from '@/services/address-services/address-services'
 import {
   PatientResponseError,
@@ -39,7 +40,8 @@ export function patientAge(dob?: string | null, today = new Date()): number | nu
   return age < 0 ? null : age
 }
 export function patientErrorMessage(error: unknown) {
-  if (error instanceof PatientResponseError) return error.message
+  if (error instanceof PatientResponseError || error instanceof PatientPermissionError)
+    return error.message
   if (axios.isAxiosError(error)) {
     switch (error.response?.status) {
       case 400:

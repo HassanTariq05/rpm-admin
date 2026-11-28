@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { DevicesPage } from './devices-page'
 import { deviceFixture } from '../devices.fixtures'
 const state = vi.hoisted(() => ({
+  permissions: ['devices.read', 'devices.create', 'devices.update', 'devices.delete'],
   total: 12,
   isSuperAdmin: false,
   pending: false,
@@ -67,7 +68,7 @@ vi.mock('@/features/patients/components/device-scan-handoff', () => ({
 vi.mock('@/hooks/use-administration', () => ({
   useAdminScope: () => ({
     ready: true,
-    user: { id: 'operator', organisation: northClinic },
+    user: { id: 'operator', organisation: northClinic, permissions: state.permissions },
     orgId: northClinic.id,
     isSuperAdmin: state.isSuperAdmin,
   }),
@@ -134,6 +135,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   localStorage.removeItem('rpm.devices.view.v1')
   Object.assign(state, {
+    permissions: ['devices.read', 'devices.create', 'devices.update', 'devices.delete'],
     total: 12,
     isSuperAdmin: false,
     pending: false,
@@ -154,10 +156,41 @@ afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
 })
+it.each([
+  ['read only', ['devices.read'], false, false, false],
+  ['create', ['devices.read', 'devices.create'], true, false, false],
+  ['update', ['devices.read', 'devices.update'], false, true, false],
+  ['delete', ['devices.read', 'devices.delete'], false, false, true],
+] as const)(
+  'enforces %s grants across the page and details dialog',
+  async (_, grants, create, update, remove) => {
+    state.permissions = [...grants]
+    render(<DevicesPage />)
+    expect(!!screen.queryByRole('button', { name: 'Add Device' })).toBe(create)
+    fireEvent.click(screen.getByRole('button', { name: 'View LS802-GA, IMEI 860000000000000' }))
+    const dialog = within(await screen.findByRole('dialog'))
+    expect(dialog.getByRole('heading', { name: 'Device details' })).toBeInTheDocument()
+    expect(!!dialog.queryByRole('button', { name: 'Edit device' })).toBe(update)
+    expect(!!dialog.queryByRole('button', { name: 'Delete device' })).toBe(remove)
+  },
+)
+
+it('dismisses an open delete confirmation if Delete is revoked', async () => {
+  const { rerender } = render(<DevicesPage linkedDeviceId="device-0" />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Delete device' }))
+  expect(screen.getByRole('heading', { name: 'Delete device' })).toBeInTheDocument()
+  state.permissions = ['devices.read']
+  rerender(<DevicesPage linkedDeviceId="device-0" />)
+  expect(await screen.findByRole('heading', { name: 'Device details' })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Delete device' })).toBeNull()
+  expect(state.remove).not.toHaveBeenCalled()
+})
+
 it('filters real vendor aliases, types, and IMEI and resets pagination', async () => {
   state.total = 20
   const user = userEvent.setup()
   render(<DevicesPage />)
+  await user.click(screen.getByRole('button', { name: 'Grid view' }))
   expect(screen.getAllByRole('article')).toHaveLength(16)
   await user.click(screen.getByRole('button', { name: 'Next devices page' }))
   expect(screen.getByText('Showing 17–20 of 20 devices')).toBeInTheDocument()
@@ -350,6 +383,13 @@ it('switches to a list without resetting pagination, opens details and restores 
   state.total = 20
   const user = userEvent.setup()
   const first = render(<DevicesPage />)
+  expect(screen.getByRole('button', { name: 'List view' })).toHaveAttribute('aria-pressed', 'true')
+  const searchRow = screen
+    .getByRole('textbox', { name: 'Search devices' })
+    .closest('.device-catalog-controls')
+  expect(searchRow).toContainElement(screen.getByRole('button', { name: 'Columns' }))
+  await user.click(screen.getByRole('button', { name: 'Grid view' }))
+  expect(screen.queryByRole('button', { name: 'Columns' })).not.toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Next devices page' }))
   await user.click(screen.getByRole('button', { name: 'List view' }))
   let table = within(screen.getByRole('table', { name: 'Devices' }))
@@ -365,15 +405,19 @@ it('switches to a list without resetting pagination, opens details and restores 
   expect(await screen.findByRole('dialog', { name: 'Device details' })).toBeInTheDocument()
   expect(state.detail).toHaveBeenCalledWith('device-0')
   second.unmount()
-  render(<DevicesPage />)
+  const third = render(<DevicesPage />)
   await user.click(screen.getByRole('button', { name: 'Grid view' }))
   expect(screen.queryByRole('table', { name: 'Devices' })).not.toBeInTheDocument()
   expect(screen.getAllByRole('article')).toHaveLength(16)
   expect(localStorage.getItem('rpm.devices.view.v1')).toBe('grid')
+  third.unmount()
+  render(<DevicesPage />)
+  expect(screen.getByRole('button', { name: 'Grid view' })).toHaveAttribute('aria-pressed', 'true')
 })
 it('keeps filters and search applied when switching views', async () => {
   const user = userEvent.setup()
   render(<DevicesPage />)
+  await user.click(screen.getByRole('button', { name: 'Grid view' }))
   await user.type(screen.getByRole('textbox', { name: 'Search devices' }), '860000000000007')
   await user.click(screen.getByRole('button', { name: 'List view' }))
   expect(within(screen.getByRole('table', { name: 'Devices' })).getAllByRole('row')).toHaveLength(2)
@@ -384,17 +428,19 @@ it('ignores invalid preferences and allows switching when storage is blocked', a
   localStorage.setItem('rpm.devices.view.v1', 'invalid')
   const user = userEvent.setup()
   render(<DevicesPage />)
-  expect(screen.getByRole('button', { name: 'Grid view' })).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByRole('button', { name: 'List view' })).toHaveAttribute('aria-pressed', 'true')
   vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
     throw new Error('Storage blocked')
   })
-  await user.click(screen.getByRole('button', { name: 'List view' }))
-  expect(screen.getByRole('table', { name: 'Devices' })).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Grid view' }))
+  expect(screen.getByRole('button', { name: 'Grid view' })).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.queryByRole('table', { name: 'Devices' })).not.toBeInTheDocument()
 })
 
 it('displays the embedded assigned patient name in both grid and list views', async () => {
   const user = userEvent.setup()
   render(<DevicesPage />)
+  await user.click(screen.getByRole('button', { name: 'Grid view' }))
   expect(screen.getByText('Hassan Tariq')).toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'List view' }))
   const row = screen.getByText('Hassan Tariq').closest('tr')!

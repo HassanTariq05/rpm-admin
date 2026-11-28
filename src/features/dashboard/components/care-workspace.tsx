@@ -1,3 +1,8 @@
+import {
+  ColumnCell,
+  ColumnHeading,
+  ColumnTable,
+} from '@/app/components/administration/table-columns'
 import { useRef, type CSSProperties } from 'react'
 import {
   ArrowRight,
@@ -70,60 +75,74 @@ export function CareFollowUp({ view = 'rows' }: { view?: 'rows' | 'cards' | 'tab
           </label>
         </div>
         {view === 'table' ? (
-          <div className="dash-table-scroll">
-            <table className="dash-clinical-table" aria-label={t('Patient follow-up')}>
-              <thead>
-                <tr>
-                  <th>{t('Patient')}</th>
-                  <th>{t('Latest reading')}</th>
-                  <th>{t('Reading alerts')}</th>
-                  <th>{t('Status')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((patient) => (
-                  <tr key={patient.id} className={selected.id === patient.id ? 'is-selected' : ''}>
-                    <td>
-                      <button
-                        type="button"
-                        aria-pressed={selected.id === patient.id}
-                        onClick={() => selectPatient(patient)}
-                      >
-                        <Avatar initials={patient.initials} tone="blue" />
-                        <span>
-                          <strong>{patient.name}</strong>
-                          <small>{t(patient.condition)}</small>
-                        </span>
-                      </button>
-                    </td>
-                    <td>
-                      <strong>{patient.reading}</strong>
-                      <small>
-                        {patient.unit} · {t(patient.last)}
-                      </small>
-                    </td>
-                    <td>{t(patient.issue)}</td>
-                    <td>
-                      <Pill
-                        tone={
-                          reviewed.includes(patient.id)
-                            ? 'teal'
-                            : patient.kind === 'clinical'
-                              ? 'rose'
-                              : 'amber'
-                        }
-                      >
-                        {t(reviewed.includes(patient.id) ? 'Reviewed' : patient.severity)}
-                      </Pill>
-                    </td>
+          <ColumnTable
+            columns={{
+              patient: 'Patient',
+              latest: 'Latest reading',
+              alerts: 'Reading alerts',
+              status: 'Status',
+            }}
+          >
+            <div className="dash-table-scroll">
+              <table className="dash-clinical-table" aria-label={t('Patient follow-up')}>
+                <thead>
+                  <tr>
+                    <ColumnHeading column="patient">{t('Patient')}</ColumnHeading>
+                    <ColumnHeading column="latest">{t('Latest reading')}</ColumnHeading>
+                    <ColumnHeading column="alerts">{t('Reading alerts')}</ColumnHeading>
+                    <ColumnHeading column="status">{t('Status')}</ColumnHeading>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {!filtered.length && (
-              <div className="dash-empty">{t('No patients match your search.')}</div>
-            )}
-          </div>
+                </thead>
+                <tbody>
+                  {filtered.map((patient) => (
+                    <tr
+                      key={patient.id}
+                      className={selected.id === patient.id ? 'is-selected' : ''}
+                    >
+                      <ColumnCell column="patient" data-column="patient">
+                        <button
+                          type="button"
+                          aria-pressed={selected.id === patient.id}
+                          onClick={() => selectPatient(patient)}
+                        >
+                          <Avatar initials={patient.initials} tone="blue" />
+                          <span>
+                            <strong>{patient.name}</strong>
+                            <small>{t(patient.condition)}</small>
+                          </span>
+                        </button>
+                      </ColumnCell>
+                      <ColumnCell column="latest">
+                        <strong>{patient.reading}</strong>
+                        <small>
+                          {patient.unit} · {t(patient.last)}
+                        </small>
+                      </ColumnCell>
+                      <ColumnCell column="alerts" data-column="alerts">
+                        {t(patient.issue)}
+                      </ColumnCell>
+                      <ColumnCell column="status">
+                        <Pill
+                          tone={
+                            reviewed.includes(patient.id)
+                              ? 'teal'
+                              : patient.kind === 'clinical'
+                                ? 'rose'
+                                : 'amber'
+                          }
+                        >
+                          {t(reviewed.includes(patient.id) ? 'Reviewed' : patient.severity)}
+                        </Pill>
+                      </ColumnCell>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!filtered.length && (
+                <div className="dash-empty">{t('No patients match your search.')}</div>
+              )}
+            </div>
+          </ColumnTable>
         ) : (
           <div className="dash-patient-list">
             {filtered.map((p) => (

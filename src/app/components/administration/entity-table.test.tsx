@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { EntityTable, type EntityColumn } from '@/app/components/administration/entity-table'
 
@@ -12,6 +13,36 @@ const actions = () => <span>Edit</span>
 afterEach(cleanup)
 
 describe('administration table', () => {
+  it('shows checkmarks for visible columns and keeps row actions available', async () => {
+    const user = userEvent.setup()
+    render(
+      <EntityTable
+        data={records}
+        label="records"
+        columns={[...columns, { id: 'count', label: 'Count', value: (row) => row.count }]}
+        actions={actions}
+      />,
+    )
+    const trigger = screen.getByRole('button', { name: 'Columns' })
+    await user.click(trigger)
+    const count = await screen.findByRole('menuitemcheckbox', { name: 'Count' })
+    expect(count).toHaveAttribute('aria-checked', 'true')
+    expect(
+      count.querySelector('[data-slot="menu-item-indicator"][data-visible]'),
+    ).toBeInTheDocument()
+    await user.click(count)
+    if (screen.queryByRole('menu')) await user.keyboard('{Escape}')
+    expect(screen.queryByRole('columnheader', { name: 'Count' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('gridcell', { name: '10' })).not.toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Actions' })).toBeInTheDocument()
+    await user.click(trigger)
+    const hidden = await screen.findByRole('menuitemcheckbox', { name: 'Count' })
+    expect(hidden).toHaveAttribute('aria-checked', 'false')
+    expect(hidden.querySelector('[data-slot="menu-item-indicator"][data-visible]')).toBeNull()
+    await user.click(hidden)
+    if (screen.queryByRole('menu')) await user.keyboard('{Escape}')
+    expect(screen.getByRole('gridcell', { name: '10' })).toBeInTheDocument()
+  })
   it('updates row cells when the column structure changes', async () => {
     const view = render(
       <EntityTable data={records} label="records" columns={columns} actions={actions} />,

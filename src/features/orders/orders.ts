@@ -2,6 +2,7 @@ import { locale, translate as t } from '@/i18n'
 import axios from 'axios'
 import { z } from 'zod'
 import { splitPhoneNumber } from '@/features/users/phone-number'
+import { OrderPermissionError } from './order-permissions'
 import {
   orderWriteSchema,
   OrderResponseError,
@@ -210,7 +211,8 @@ export function orderPayload(values: OrderValues) {
   })
 }
 export function orderErrorMessage(error: unknown): string {
-  if (error instanceof OrderResponseError) return error.message
+  if (error instanceof OrderResponseError || error instanceof OrderPermissionError)
+    return error.message
   if (axios.isAxiosError(error)) {
     const status = error.response?.status
     if (status === 401) return 'Your session has expired. Sign in again.'

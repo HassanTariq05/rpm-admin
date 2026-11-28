@@ -1,16 +1,9 @@
 import { RecordOpenButton } from './record-open-button'
+import { ColumnVisibilityMenu } from './table-columns'
 import { translate as t, useAppTranslation } from '@/i18n'
 import { useMemo, useState, type ReactNode } from 'react'
-import { Button, Dropdown, Input, Table, TextField } from '@heroui/react'
-import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
-  Columns3,
-  Search,
-} from 'lucide-react'
+import { Button, Input, Table, TextField } from '@heroui/react'
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import {
   flexRender,
   getCoreRowModel,
@@ -144,36 +137,15 @@ export function EntityTable<T extends { id: string }>({
           </div>
         )}
         {toolbarContent}
-        <Dropdown>
-          <Dropdown.Trigger className="ml-auto flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-xs">
-            <Columns3 size={14} />
-            {t(' Columns ')}
-          </Dropdown.Trigger>
-          <Dropdown.Popover>
-            <Dropdown.Menu
-              aria-label={t('Visible columns')}
-              selectionMode="multiple"
-              disallowEmptySelection
-              selectedKeys={definitions
-                .filter((column) => visibility[column.id] !== false)
-                .map((column) => column.id)}
-              onSelectionChange={(keys) => {
-                if (keys !== 'all')
-                  setVisibility(
-                    Object.fromEntries(
-                      definitions.map((column) => [column.id, keys.has(column.id)]),
-                    ),
-                  )
-              }}
-            >
-              {definitions.map((column) => (
-                <Dropdown.Item id={column.id} key={column.id}>
-                  {t(column.label)}
-                </Dropdown.Item>
-              ))}
-            </Dropdown.Menu>
-          </Dropdown.Popover>
-        </Dropdown>
+        <ColumnVisibilityMenu
+          columns={definitions}
+          visible={
+            new Set(definitions.filter(({ id }) => visibility[id] !== false).map(({ id }) => id))
+          }
+          onChange={(keys) =>
+            setVisibility(Object.fromEntries(definitions.map(({ id }) => [id, keys.has(id)])))
+          }
+        />
       </div>
       <Table className="rounded-none shadow-none">
         <Table.ScrollContainer>

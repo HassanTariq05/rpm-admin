@@ -17,12 +17,15 @@ describe('permission editing', () => {
     const values = permissionsData.flatMap((group) => group.actions.map((action) => action.value))
     expect([...new Set(values.map((value) => value.split('.')[0]))]).toEqual([
       'patients',
+      'interactive_report',
       'devices',
+      'device-readings',
       'readings',
       'reports',
+      'orders',
     ])
     const selected = togglePermissions(new Set<string>(), values, true)
-    expect(selected.size).toBe(16)
+    expect(selected.size).toBe(22)
     expect(
       [...selected].some((value) => /^(users|roles|organizations|manage-roles)\./.test(value)),
     ).toBe(false)

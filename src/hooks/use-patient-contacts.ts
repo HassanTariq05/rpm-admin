@@ -1,5 +1,9 @@
 import { isAxiosError } from 'axios'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  patientPermissions,
+  requirePatientPermission,
+} from '@/features/patients/patient-permissions'
+import { skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   usePatientContactService,
   type PatientContactWrite,
@@ -19,12 +23,14 @@ export function usePatientContacts(patientId?: string) {
   const token = useAuthStore((state) => state.auth.accessToken)
   return useQuery({
     queryKey: contactQueryKey(patientId, scope),
-    queryFn: ({ signal }) => service.getAll(patientId!, signal),
-    enabled: scope.ready && !!token && !!patientId,
+    queryFn:
+      scope.ready && token && patientId && patientPermissions(scope.user).read
+        ? ({ signal }) => service.getAll(patientId, signal)
+        : skipToken,
   })
 }
 
-export function useSavePatientContacts() {
+export function useSavePatientContacts(action: 'create' | 'update') {
   const service = usePatientContactService()
   const scope = useAdminScope()
   const client = useQueryClient()
@@ -39,6 +45,7 @@ export function useSavePatientContacts() {
       drafts: { key: string; payload: PatientContactWrite }[]
       saved: SavedPatientContacts
     }) => {
+      requirePatientPermission(action)
       for (const { key, payload } of drafts) {
         const previous = saved.get(key)
         let contact
@@ -49,8 +56,10 @@ export function useSavePatientContacts() {
             ),
           )
           if (!Object.keys(changes).length) continue
+          requirePatientPermission('update')
           contact = await service.update(patientId, previous.id, changes)
         } else {
+          requirePatientPermission(action)
           contact = await service.create(patientId, payload)
         }
         // Record each success so retrying a partially saved form does not repeat completed writes.
@@ -60,6 +69,7 @@ export function useSavePatientContacts() {
       for (const [key, { id }] of saved) {
         if (draftKeys.has(key)) continue
         try {
+          requirePatientPermission('update')
           await service.remove(patientId, id)
         } catch (error) {
           if (!isAxiosError(error) || error.response?.status !== 404) throw error

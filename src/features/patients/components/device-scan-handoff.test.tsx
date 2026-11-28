@@ -42,6 +42,13 @@ function show(ui: React.ReactNode) {
 beforeEach(() => {
   vi.resetAllMocks()
   useAuthStore.getState().auth.setAccessToken('synthetic-test-token')
+  useAuthStore.getState().auth.setUser({
+    id: 'operator',
+    name: 'Test operator',
+    email: 'operator@example.test',
+    role: { id: 'role-a', name: 'Administrator' },
+    permissions: ['patients.read', 'patients.update'],
+  })
   window.history.replaceState({}, '', '/')
   const token = makeToken()
   api.create.mockResolvedValue(token)

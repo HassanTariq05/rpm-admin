@@ -1,3 +1,8 @@
+import {
+  ColumnCell,
+  ColumnHeading,
+  ColumnTable,
+} from '@/app/components/administration/table-columns'
 import { useState, type CSSProperties } from 'react'
 import {
   Activity,
@@ -169,40 +174,61 @@ export function BloodGlucoseReportPage() {
         <summary>
           {t('Reading history')} <span>{readings.length}</span>
         </summary>
-        <div className="monitoring-table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">{t('Recorded (local time)')}</th>
-                <th scope="col">{t('Glucose (mg/dL)')}</th>
-                <th scope="col">{t('Meal context')}</th>
-                <th scope="col">{t('Range')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...readings].reverse().map((reading) => {
-                const band = glucoseBand(reading.value)
-                const RangeIcon = rangeIcons[band.id]
-                return (
-                  <tr
-                    key={reading.timestamp}
-                    style={{ '--monitoring-row-accent': band.color } as CSSProperties}
-                  >
-                    <td>{glucoseDate.format(reading.timestamp)}</td>
-                    <td className="monitoring-log-value">{reading.value}</td>
-                    <td>{t(reading.context)}</td>
-                    <td>
-                      <span className="monitoring-log-range">
-                        <RangeIcon size={13} aria-hidden="true" />
-                        {t(band.label)}
-                      </span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <ColumnTable
+          columns={{
+            recorded: 'Recorded (local time)',
+            glucose: 'Glucose (mg/dL)',
+            context: 'Meal context',
+            range: 'Range',
+          }}
+        >
+          <div className="monitoring-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <ColumnHeading column="recorded" scope="col">
+                    {t('Recorded (local time)')}
+                  </ColumnHeading>
+                  <ColumnHeading column="glucose" scope="col">
+                    {t('Glucose (mg/dL)')}
+                  </ColumnHeading>
+                  <ColumnHeading column="context" scope="col">
+                    {t('Meal context')}
+                  </ColumnHeading>
+                  <ColumnHeading column="range" scope="col">
+                    {t('Range')}
+                  </ColumnHeading>
+                </tr>
+              </thead>
+              <tbody>
+                {[...readings].reverse().map((reading) => {
+                  const band = glucoseBand(reading.value)
+                  const RangeIcon = rangeIcons[band.id]
+                  return (
+                    <tr
+                      key={reading.timestamp}
+                      style={{ '--monitoring-row-accent': band.color } as CSSProperties}
+                    >
+                      <ColumnCell column="recorded">
+                        {glucoseDate.format(reading.timestamp)}
+                      </ColumnCell>
+                      <ColumnCell column="glucose" className="monitoring-log-value">
+                        {reading.value}
+                      </ColumnCell>
+                      <ColumnCell column="context">{t(reading.context)}</ColumnCell>
+                      <ColumnCell column="range">
+                        <span className="monitoring-log-range">
+                          <RangeIcon size={13} aria-hidden="true" />
+                          {t(band.label)}
+                        </span>
+                      </ColumnCell>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </ColumnTable>
       </details>
     </div>
   )

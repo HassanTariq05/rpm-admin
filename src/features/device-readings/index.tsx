@@ -1,3 +1,13 @@
+import { hasPermission } from '@/lib/permissions'
+import { PERMISSIONS } from '@/types/permissions'
+import {
+  ColumnCell,
+  ColumnHeading,
+  ColumnSpanCell,
+  ColumnVisibilityMenu,
+  VisibleTableColumns,
+} from '@/app/components/administration/table-columns'
+import { useTableColumnVisibility } from '@/app/components/administration/use-table-column-visibility'
 import { RecordOpenButton } from '@/app/components/administration/record-open-button'
 import { locale, translate as t, useAppTranslation } from '@/i18n'
 import { Link } from '@tanstack/react-router'
@@ -91,6 +101,13 @@ function ReadingValue({ reading, isNew }: { reading: DeviceReading; isNew: boole
 }
 
 export function DeviceReadingsPage() {
+  const canRead = useAuthStore((state) =>
+    hasPermission(state.auth.user, PERMISSIONS.READ_DEVICE_READINGS),
+  )
+  return canRead ? <DeviceReadingsPageContent /> : null
+}
+
+function DeviceReadingsPageContent() {
   useAppTranslation()
 
   const scope = useAdminScope()
@@ -100,6 +117,13 @@ export function DeviceReadingsPage() {
   const [source, setSource] = useState('all')
   const [type, setType] = useState('all')
   const [search, setSearch] = useState('')
+  const columns = useTableColumnVisibility({
+    reading: 'Reading',
+    device: 'Device',
+    patient: 'Patient',
+    recorded: 'Recorded',
+    received: 'Received',
+  })
   const [sort, setSort] = useState<{ field: 'recorded' | 'received'; desc: boolean }>({
     field: 'recorded',
     desc: true,
@@ -245,7 +269,7 @@ export function DeviceReadingsPage() {
                   aria-label={t('Search readings on this page')}
                   value={search}
                   onChange={setSearch}
-                  className="min-w-48 flex-1 sm:max-w-sm"
+                  className="min-w-0 flex-1 sm:min-w-48 sm:max-w-sm"
                 >
                   <div className="relative">
                     <Search
@@ -260,7 +284,7 @@ export function DeviceReadingsPage() {
                   </div>
                 </TextField>
                 <Tabs.List
-                  className="readings-tabs readings-source-tabs"
+                  className="readings-tabs readings-source-tabs max-sm:order-2"
                   aria-label={t('Reading sources')}
                 >
                   <Tabs.Tab id="all" className="reading-tab admin-tone-blue">
@@ -286,6 +310,7 @@ export function DeviceReadingsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="max-sm:order-2"
                     onPress={() => {
                       setSearch('')
                       setType('all')
@@ -294,6 +319,9 @@ export function DeviceReadingsPage() {
                     <X size={14} />
                     {t(' Clear ')}
                   </Button>
+                )}
+                {scope.ready && token && data && (
+                  <ColumnVisibilityMenu {...columns} className="max-sm:order-1" />
                 )}
               </div>
               <Tabs.Panel key={source} id={source} className="readings-tab-panel">
@@ -331,137 +359,151 @@ export function DeviceReadingsPage() {
                   <ReadingsSkeleton />
                 ) : data ? (
                   <>
-                    <div className="overflow-x-auto" aria-busy={query.isFetching}>
-                      <table className="readings-table" aria-label={t('Device readings')}>
-                        <thead>
-                          <tr>
-                            <th scope="col">{t('Reading')}</th>
-                            <th scope="col">{t('Device')}</th>
-                            <th scope="col">{t('Patient')}</th>
-                            <th
-                              scope="col"
-                              aria-sort={
-                                sort.field === 'recorded'
-                                  ? sort.desc
-                                    ? 'descending'
-                                    : 'ascending'
-                                  : 'none'
-                              }
-                            >
-                              {t(sortButton('recorded', 'Recorded'))}
-                            </th>
-                            <th
-                              scope="col"
-                              aria-sort={
-                                sort.field === 'received'
-                                  ? sort.desc
-                                    ? 'descending'
-                                    : 'ascending'
-                                  : 'none'
-                              }
-                            >
-                              {t(sortButton('received', 'Received'))}
-                            </th>
-                            <th scope="col">
-                              <span className="sr-only">{t('Details')}</span>
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rows.length ? (
-                            rows.map((reading) => (
-                              <tr key={reading.id}>
-                                <th scope="row">
-                                  <RecordOpenButton
-                                    onOpen={() => setSelected({ reading, userId: scope.user?.id })}
-                                  >
-                                    <ReadingValue
-                                      reading={reading}
-                                      isNew={newReadingIds.has(reading.id)}
-                                    />
-                                  </RecordOpenButton>
-                                  <span className="mt-2 block text-[10px] font-normal text-muted">
-                                    {t(' Reading #')}
-                                    {reading.id}
-                                  </span>
-                                </th>
-                                <td>
-                                  <DeviceBrand source={reading.source} />
-                                  <p className="reading-device-model">
-                                    {displayText(reading.deviceModel) ?? t('Unknown model')}
-                                  </p>
-                                  <p className="mt-1 font-mono text-[11px] text-muted">
-                                    {displayText(reading.deviceId) ?? t('No device ID')}
-                                  </p>
-                                </td>
-                                <td>
-                                  <UnassignedPatient />
-                                </td>
-                                <td>
-                                  <ReadingTime reading={reading} kind="recorded" />
-                                </td>
-                                <td>
-                                  <ReadingTime reading={reading} kind="received" />
-                                </td>
-                                <td>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="admin-edit-button reading-details-button"
-                                    aria-label={t('View reading {{value0}}', {
-                                      value0: reading.id,
-                                    })}
-                                    onPress={() => setSelected({ reading, userId: scope.user?.id })}
-                                  >
-                                    <Eye size={15} />
-                                    {t(' Details ')}
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
+                    <VisibleTableColumns visible={columns.visible}>
+                      <div className="overflow-x-auto" aria-busy={query.isFetching}>
+                        <table className="readings-table" aria-label={t('Device readings')}>
+                          <thead>
                             <tr>
-                              <td colSpan={6}>
-                                <div className="readings-empty">
-                                  <Activity size={28} aria-hidden="true" />
-                                  <p className="mt-3 font-semibold text-foreground">
-                                    {hasLocalFilters
-                                      ? t('No readings match on this page')
-                                      : t('No readings found')}
-                                  </p>
-                                  <p className="mt-1 text-sm">
-                                    {hasLocalFilters
-                                      ? t(
-                                          'Clear the search or type filter, or move to another page.',
-                                        )
-                                      : source !== 'all'
-                                        ? t(
-                                            'Choose another source or refresh to check for new readings.',
-                                          )
-                                        : t(
-                                            'New device measurements will appear here when they are received.',
-                                          )}
-                                  </p>
-                                  {hasLocalFilters && (
+                              <ColumnHeading column="reading" scope="col">
+                                {t('Reading')}
+                              </ColumnHeading>
+                              <ColumnHeading column="device" scope="col">
+                                {t('Device')}
+                              </ColumnHeading>
+                              <ColumnHeading column="patient" scope="col">
+                                {t('Patient')}
+                              </ColumnHeading>
+                              <ColumnHeading
+                                column="recorded"
+                                scope="col"
+                                aria-sort={
+                                  sort.field === 'recorded'
+                                    ? sort.desc
+                                      ? 'descending'
+                                      : 'ascending'
+                                    : 'none'
+                                }
+                              >
+                                {t(sortButton('recorded', 'Recorded'))}
+                              </ColumnHeading>
+                              <ColumnHeading
+                                column="received"
+                                scope="col"
+                                aria-sort={
+                                  sort.field === 'received'
+                                    ? sort.desc
+                                      ? 'descending'
+                                      : 'ascending'
+                                    : 'none'
+                                }
+                              >
+                                {t(sortButton('received', 'Received'))}
+                              </ColumnHeading>
+                              <th scope="col">
+                                <span className="sr-only">{t('Details')}</span>
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.length ? (
+                              rows.map((reading) => (
+                                <tr key={reading.id}>
+                                  <ColumnHeading column="reading" scope="row">
+                                    <RecordOpenButton
+                                      onOpen={() =>
+                                        setSelected({ reading, userId: scope.user?.id })
+                                      }
+                                    >
+                                      <ReadingValue
+                                        reading={reading}
+                                        isNew={newReadingIds.has(reading.id)}
+                                      />
+                                    </RecordOpenButton>
+                                    <span className="mt-2 block text-[10px] font-normal text-muted">
+                                      {t(' Reading #')}
+                                      {reading.id}
+                                    </span>
+                                  </ColumnHeading>
+                                  <ColumnCell column="device">
+                                    <DeviceBrand source={reading.source} />
+                                    <p className="reading-device-model">
+                                      {displayText(reading.deviceModel) ?? t('Unknown model')}
+                                    </p>
+                                    <p className="mt-1 font-mono text-[11px] text-muted">
+                                      {displayText(reading.deviceId) ?? t('No device ID')}
+                                    </p>
+                                  </ColumnCell>
+                                  <ColumnCell column="patient">
+                                    <UnassignedPatient />
+                                  </ColumnCell>
+                                  <ColumnCell column="recorded">
+                                    <ReadingTime reading={reading} kind="recorded" />
+                                  </ColumnCell>
+                                  <ColumnCell column="received">
+                                    <ReadingTime reading={reading} kind="received" />
+                                  </ColumnCell>
+                                  <td>
                                     <Button
                                       size="sm"
-                                      variant="outline"
-                                      className="mt-4"
-                                      onPress={() => {
-                                        setSearch('')
-                                        setType('all')
-                                      }}
+                                      variant="ghost"
+                                      className="admin-edit-button reading-details-button"
+                                      aria-label={t('View reading {{value0}}', {
+                                        value0: reading.id,
+                                      })}
+                                      onPress={() =>
+                                        setSelected({ reading, userId: scope.user?.id })
+                                      }
                                     >
-                                      {t(' Clear page filters ')}
+                                      <Eye size={15} />
+                                      {t(' Details ')}
                                     </Button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <ColumnSpanCell fixedColumns={1}>
+                                  <div className="readings-empty">
+                                    <Activity size={28} aria-hidden="true" />
+                                    <p className="mt-3 font-semibold text-foreground">
+                                      {hasLocalFilters
+                                        ? t('No readings match on this page')
+                                        : t('No readings found')}
+                                    </p>
+                                    <p className="mt-1 text-sm">
+                                      {hasLocalFilters
+                                        ? t(
+                                            'Clear the search or type filter, or move to another page.',
+                                          )
+                                        : source !== 'all'
+                                          ? t(
+                                              'Choose another source or refresh to check for new readings.',
+                                            )
+                                          : t(
+                                              'New device measurements will appear here when they are received.',
+                                            )}
+                                    </p>
+                                    {hasLocalFilters && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="mt-4"
+                                        onPress={() => {
+                                          setSearch('')
+                                          setType('all')
+                                        }}
+                                      >
+                                        {t(' Clear page filters ')}
+                                      </Button>
+                                    )}
+                                  </div>
+                                </ColumnSpanCell>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </VisibleTableColumns>
                     <div className="readings-pagination">
                       <div>
                         <p>

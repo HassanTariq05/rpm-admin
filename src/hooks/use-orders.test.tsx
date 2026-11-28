@@ -2,17 +2,31 @@ import type { ReactNode } from 'react'
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { useOrders, useOrder, useOrderEvents, useSubmitOrder } from './use-orders'
-import { useAuthStore } from '@/stores/auth-store'
+import {
+  useCreateOrder,
+  useDeleteOrder,
+  useOrders,
+  useOrder,
+  useOrderEvents,
+  useSubmitOrder,
+  useUpdateOrder,
+} from './use-orders'
+import { useAuthStore, type AuthUser } from '@/stores/auth-store'
+import { orderFixture } from '@/features/orders/orders.fixtures'
+import { orderInitialValues, orderPayload } from '@/features/orders/orders'
 const state = vi.hoisted(() => ({
   ready: true,
   isSuperAdmin: false,
   userId: 'viewer-a',
+  permissions: [] as string[],
   orgId: 'org-a' as string | undefined,
   getAll: vi.fn(),
   getById: vi.fn(),
   getEvents: vi.fn(),
   submit: vi.fn(),
+  create: vi.fn(),
+  update: vi.fn(),
+  remove: vi.fn(),
   success: vi.fn(),
   error: vi.fn(),
 }))
@@ -21,7 +35,7 @@ vi.mock('@/hooks/use-administration', () => ({
   useAdminScope: () => ({
     ready: state.ready,
     isSuperAdmin: state.isSuperAdmin,
-    user: { id: state.userId },
+    user: { id: state.userId, permissions: state.permissions },
     orgId: state.orgId,
   }),
 }))
@@ -38,6 +52,13 @@ function setup() {
     ),
   }
 }
+const user: AuthUser = {
+  id: 'viewer-a',
+  name: 'Test viewer',
+  email: 'viewer@example.test',
+  permissions: ['orders.read', 'orders.update'],
+  role: { id: 'role-1', name: 'Clinician' },
+}
 beforeEach(() => {
   vi.clearAllMocks()
   Object.assign(state, { ready: true, isSuperAdmin: false, userId: 'viewer-a', orgId: 'org-a' })
@@ -45,7 +66,47 @@ beforeEach(() => {
   state.getById.mockResolvedValue({ id: 'order-a' })
   state.getEvents.mockResolvedValue([])
   state.submit.mockResolvedValue({ id: 'order-a' })
+  state.permissions = ['orders.read', 'orders.update']
+  useAuthStore.getState().auth.setUser(user)
   useAuthStore.getState().auth.setAccessToken('synthetic-test-token')
+})
+it('blocks order queries without Read even with other Orders grants', () => {
+  state.permissions = ['orders.create', 'orders.update', 'orders.delete']
+  const { result } = renderHook(
+    () => ({ list: useOrders(), detail: useOrder('order-a'), events: useOrderEvents('order-a') }),
+    setup(),
+  )
+  expect(Object.values(result.current).every((query) => query.fetchStatus === 'idle')).toBe(true)
+  expect(state.getAll).not.toHaveBeenCalled()
+  expect(state.getById).not.toHaveBeenCalled()
+  expect(state.getEvents).not.toHaveBeenCalled()
+})
+
+it('blocks write requests when the session grants only Read', async () => {
+  const { result } = renderHook(
+    () => ({
+      create: useCreateOrder(),
+      update: useUpdateOrder(),
+      remove: useDeleteOrder(),
+      submit: useSubmitOrder(),
+    }),
+    setup(),
+  )
+  useAuthStore.getState().auth.setUser({ ...user, permissions: ['orders.read'] })
+  const payload = orderPayload(orderInitialValues(orderFixture))
+  await act(async () => {
+    const attempts = [
+      result.current.create.mutateAsync(payload),
+      result.current.update.mutateAsync({ id: orderFixture.id, payload }),
+      result.current.remove.mutateAsync(orderFixture.id),
+      result.current.submit.mutateAsync(orderFixture.id),
+    ]
+    await Promise.all(attempts.map((attempt) => expect(attempt).rejects.toThrow('permission')))
+  })
+  expect(state.create).not.toHaveBeenCalled()
+  expect(state.update).not.toHaveBeenCalled()
+  expect(state.remove).not.toHaveBeenCalled()
+  expect(state.submit).not.toHaveBeenCalled()
 })
 afterEach(() => {
   cleanup()

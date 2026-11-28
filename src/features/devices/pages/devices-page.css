@@ -696,7 +696,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  width: min(100%, 434px);
+  width: min(100%, 534px);
   min-width: 0;
 }
 .device-catalog-controls .device-search {
@@ -706,7 +706,7 @@
 }
 .device-catalog-controls-scoped {
   align-items: end;
-  width: min(100%, 650px);
+  width: min(100%, 750px);
 }
 .device-organization-filter {
   flex: 0 1 208px;

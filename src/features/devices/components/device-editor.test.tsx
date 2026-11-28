@@ -10,6 +10,7 @@ import { deviceFixture } from '../devices.fixtures'
 const api = vi.hoisted(() => ({
   organisationId: '423e4567-e89b-42d3-a456-426614174000' as string | undefined,
   isSuperAdmin: false,
+  permissions: ['devices.read', 'devices.create', 'devices.update', 'devices.delete'],
   createToken: vi.fn(),
   getToken: vi.fn(),
   save: vi.fn(),
@@ -31,7 +32,7 @@ vi.mock('@/services/patient-services/device-assignment-tokens', async (original)
 vi.mock('@/hooks/use-administration', () => ({
   useAdminScope: () => ({
     ready: true,
-    user: { id: 'operator' },
+    user: { id: 'operator', permissions: api.permissions },
     orgId: api.organisationId,
     isSuperAdmin: api.isSuperAdmin,
   }),
@@ -83,6 +84,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   api.organisationId = northClinicId
   api.isSuperAdmin = false
+  api.permissions = ['devices.read', 'devices.create', 'devices.update', 'devices.delete']
   useAuthStore.getState().auth.setAccessToken('synthetic-test-token')
   api.createToken.mockResolvedValue(token())
   api.getToken.mockResolvedValue({
@@ -92,6 +94,17 @@ beforeEach(() => {
   })
   api.save.mockResolvedValue(deviceFixture)
 })
+it('requires the matching grant before rendering the add or edit dialog', () => {
+  api.permissions = ['devices.read', 'devices.update']
+  const add = show()
+  expect(screen.queryByRole('dialog')).toBeNull()
+  add.unmount()
+
+  api.permissions = ['devices.read', 'devices.create']
+  show(deviceFixture)
+  expect(screen.queryByRole('dialog')).toBeNull()
+})
+
 afterEach(() => {
   cleanup()
   clients.splice(0).forEach((client) => client.clear())

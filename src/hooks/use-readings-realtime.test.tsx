@@ -34,7 +34,7 @@ const user: AuthUser = {
   id: 'user-a',
   name: 'Example',
   email: 'test@example.invalid',
-  permissions: [],
+  permissions: ['device-readings.read'],
   role: { id: 'role-a', name: 'Administrator' },
   organisation: { id: 'org-a', name: 'Example', status: 'active' },
 }

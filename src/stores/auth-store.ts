@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { getCookie, setCookie, removeCookie } from '@/lib/cookies'
-import type { PermissionData } from '@/types/permission-data'
+import type { Permission } from '@/types/permission-data'
 
 const ACCESS_TOKEN = 'thisisjustarandomstring'
 
@@ -12,7 +12,7 @@ export interface AuthUser {
   organization?: Organisation
   organisationId?: string
   organizationId?: string
-  permissions: PermissionData
+  permissions: (string | Permission)[]
   role: Role
 }
 

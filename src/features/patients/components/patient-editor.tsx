@@ -45,6 +45,7 @@ import {
   UserRound,
   UsersRound,
   TriangleAlert,
+  Tags,
 } from 'lucide-react'
 import {
   FormModal,
@@ -56,6 +57,7 @@ import { useFormikContext } from 'formik'
 import { CountryCodeField } from '@/features/users/components/country-code-field'
 import { splitPhoneNumber } from '@/features/users/phone-number'
 import { useOrganizations } from '@/hooks/use-organizations'
+import { patientPermissions } from '../patient-permissions'
 import { useAdminScope } from '@/hooks/use-administration'
 import { useCreatePatient, usePatient, useUpdatePatient } from '@/hooks/use-patients'
 import {
@@ -87,6 +89,12 @@ import { translate as t, useAppTranslation } from '@/i18n'
 import { useAssignDevice } from '@/hooks/use-devices'
 import { emptyDeviceLabel } from '../device-scanning/label-parser'
 import { PatientDeviceAssignmentForm } from './patient-device-assignment-form'
+import {
+  usePatientIcd10,
+  useSavePatientIcd10,
+  type PatientIcd10Change,
+} from '@/hooks/use-patient-icd10'
+import { PatientIcd10Editor } from './patient-icd10-editor'
 import { PatientContactsFields } from './patient-contacts-fields'
 
 const PatientNotesEditor = lazy(() =>
@@ -311,7 +319,7 @@ function choiceOptions(choices: string[], current?: string | null) {
     ),
   }))
 }
-type PatientTab = 'basic' | 'contact' | 'notes' | 'assign'
+type PatientTab = 'basic' | 'contact' | 'notes' | 'icd10' | 'assign'
 const contactFields = new Set(['phone', 'email', 'address', 'contacts'])
 function PatientTabValidation({ onSelect }: { onSelect: (tab: PatientTab) => void }) {
   const { submitCount, errors, isValidating, isSubmitting } = useFormikContext<PatientValues>()
@@ -386,15 +394,22 @@ export function PatientEditor({
       }),
     [savedContacts],
   )
-  const saveContacts = useSavePatientContacts()
+  const saveContacts = useSavePatientContacts(record ? 'update' : 'create')
   const [contactError, setContactError] = useState(false)
   const scope = useAdminScope()
-  const organizations = useOrganizations(scope.isSuperAdmin)
+  const permissions = patientPermissions(scope.user)
+  const canWrite = record ? permissions.update : permissions.create
+  const organizations = useOrganizations(scope.isSuperAdmin && canWrite)
   const create = useCreatePatient()
   const update = useUpdatePatient()
   const assignment = useAssignDevice()
   const pending = create.isPending || update.isPending || assignment.isPending
   const [createdPatient, setCreatedPatient] = useState<PatientRecord>()
+  const [diagnosisChanges, setDiagnosisChanges] = useState<PatientIcd10Change[]>([])
+  const associations = usePatientIcd10(
+    selectedTab === 'icd10' ? (record?.id ?? createdPatient?.id) : undefined,
+  )
+  const saveDiagnoses = useSavePatientIcd10(record ? 'update' : 'create')
   const [deviceDraft, setDeviceDraft] = useState({ ...emptyDeviceLabel })
   const savedPayload = useRef<string | null>(null)
   const saving = useRef(false)
@@ -405,11 +420,14 @@ export function PatientEditor({
   ) as Record<(typeof patientTextFields)[number], string>
   const owned =
     scope.isSuperAdmin || (!!scope.orgId && (!record || record.organisationId === scope.orgId))
+  const canAssign = canWrite && permissions.update && owned
   const candidate = useDeviceAssignmentCandidate(
     deviceDraft.imei,
     record?.id ?? createdPatient?.id,
-    owned,
+    canAssign,
   )
+  if (!canWrite) return null
+
   return (
     <Formik<PatientValues>
       initialValues={{
@@ -428,9 +446,10 @@ export function PatientEditor({
       validationSchema={validationSchema}
       validateOnMount
       onSubmit={async (values) => {
-        if (!owned || pending || saving.current || resolvingAddresses.size > 0) return
+        if (!canWrite || !owned || pending || saving.current || resolvingAddresses.size > 0) return
         saving.current = true
         setContactError(false)
+        saveDiagnoses.reset()
         const payload = patientPayload(values, record)
         if (!scope.isSuperAdmin) payload.organisationId = scope.orgId
         const serialized = JSON.stringify(payload)
@@ -470,9 +489,22 @@ export function PatientEditor({
               return
             }
           }
+          if (diagnosisChanges.length) {
+            try {
+              await saveDiagnoses.mutateAsync({
+                patientId: patient.id,
+                changes: diagnosisChanges,
+                onApplied: (change) =>
+                  setDiagnosisChanges((current) => current.filter((item) => item !== change)),
+              })
+            } catch {
+              setSelectedTab('icd10')
+              return
+            }
+          }
           if (device) {
             await assignment.mutateAsync({ id: device.id, patientId: patient!.id })
-          } else if (!record && wasNew && selectedTab === 'assign') {
+          } else if (!record && wasNew && canAssign && selectedTab === 'assign') {
             // Tokens require a real patient ID; keep this tab open after the first save.
             return
           }
@@ -539,7 +571,7 @@ export function PatientEditor({
             <fieldset disabled={pending || isSubmitting} className="min-w-0">
               <PatientTabValidation onSelect={setSelectedTab} />
               <Tabs
-                selectedKey={selectedTab}
+                selectedKey={canAssign || selectedTab !== 'assign' ? selectedTab : 'basic'}
                 onSelectionChange={(key) => {
                   if (key === 'assign') setAssignmentVisited(true)
                   setSelectedTab(String(key) as PatientTab)
@@ -559,10 +591,16 @@ export function PatientEditor({
                     <FileText size={16} />
                     {t('Notes')}
                   </Tabs.Tab>
-                  <Tabs.Tab id="assign" isDisabled={pending || isSubmitting}>
-                    <MonitorSmartphone size={16} />
-                    {t('Assign Device')}
+                  <Tabs.Tab id="icd10">
+                    <Tags size={16} className="admin-icon-violet" aria-hidden="true" />
+                    {t('ICD-10')}
                   </Tabs.Tab>
+                  {canAssign && (
+                    <Tabs.Tab id="assign" isDisabled={pending || isSubmitting}>
+                      <MonitorSmartphone size={16} />
+                      {t('Assign Device')}
+                    </Tabs.Tab>
+                  )}
                 </Tabs.List>
                 <Tabs.Panel id="basic" className="patient-tab-panel patient-basic-info">
                   <PatientBasicSection title="Personal information">
@@ -823,7 +861,21 @@ export function PatientEditor({
                     <PatientNotesEditor />
                   </Suspense>
                 </Tabs.Panel>
-                {assignmentVisited && (
+                <Tabs.Panel id="icd10" className="patient-tab-panel">
+                  {saveDiagnoses.isError && (
+                    <p role="alert" className="mb-3 text-sm text-danger">
+                      {t('Some ICD-10 changes could not be saved. Save again to retry.')}
+                    </p>
+                  )}
+                  <PatientIcd10Editor
+                    associations={associations}
+                    canRemoveLinked={permissions.update}
+                    changes={diagnosisChanges}
+                    onChange={setDiagnosisChanges}
+                    busy={pending || isSubmitting}
+                  />
+                </Tabs.Panel>
+                {canAssign && assignmentVisited && (
                   <Tabs.Panel
                     id="assign"
                     shouldForceMount
@@ -834,7 +886,7 @@ export function PatientEditor({
                       values={deviceDraft}
                       onChange={setDeviceDraft}
                       patientId={record?.id ?? createdPatient?.id}
-                      allowed={owned}
+                      allowed={canAssign}
                       pending={pending || isSubmitting}
                       candidate={candidate}
                       error={assignment.error}
@@ -865,8 +917,13 @@ export function PatientEditDialog({
   onSaved: () => void
 }) {
   useAppTranslation()
-  const query = usePatient(patient.id)
-  const contacts = usePatientContacts(patient.id)
+  const scope = useAdminScope()
+  const canEdit =
+    patientPermissions(scope.user).update &&
+    (scope.isSuperAdmin || (!!scope.orgId && patient.organisationId === scope.orgId))
+  const query = usePatient(canEdit ? patient.id : undefined)
+  const contacts = usePatientContacts(canEdit ? patient.id : undefined)
+  if (!canEdit) return null
   if (query.data && contacts.data) {
     return (
       <PatientEditor

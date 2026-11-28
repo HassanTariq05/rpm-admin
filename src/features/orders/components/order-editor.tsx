@@ -49,6 +49,7 @@ import { splitPhoneNumber } from '@/features/users/phone-number'
 import { OrderShipThrough, OrderShipThroughSync } from './order-ship-through'
 import { PatientLastShipping } from './patient-last-shipping'
 import '../pages/orders-page.css'
+import { orderPermissions } from '../order-permissions'
 
 const tabs = [
   { id: 'order', label: 'Order information', icon: Package },
@@ -104,12 +105,14 @@ export function OrderEditor({
   useAppTranslation()
   const [selectedTab, setSelectedTab] = useState<OrderTab>('order')
   const scope = useAdminScope()
+  const permissions = orderPermissions(scope.user)
   const patients = usePatients()
   const organizations = useOrganizations()
   const create = useCreateOrder()
   const update = useUpdateOrder()
   const [active, setActive] = useState(record?.isActive ?? true)
   const tabIndex = tabs.findIndex((tab) => tab.id === selectedTab)
+  if (!(record ? permissions.update : permissions.create)) return null
   return (
     <Formik<OrderValues>
       initialValues={orderInitialValues(record, scope.orgId, scope.user?.id)}

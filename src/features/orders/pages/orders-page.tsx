@@ -33,6 +33,7 @@ import {
 import { OrderEditor } from '../components/order-editor'
 import { OrderDetails } from '../components/order-details'
 import { OrderStatus } from '../components/order-status'
+import { orderPermissions } from '../order-permissions'
 import './orders-page.css'
 
 function OrderProviderLogo({ source }: { source: Order['source'] }) {
@@ -62,6 +63,7 @@ function OrderCreated({ value }: { value: string }) {
 export function OrdersPage() {
   useAppTranslation()
   const scope = useAdminScope()
+  const permissions = orderPermissions(scope.user)
   const query = useOrders()
   const [source, setSource] = useState('all')
   const [status, setStatus] = useState('all')
@@ -74,6 +76,7 @@ export function OrdersPage() {
       (status === 'all' || order.internalStatus === status),
   )
   const ready = scope.ready && (scope.isSuperAdmin || !!scope.orgId)
+  if (!permissions.read) return null
   return (
     <div className="admin-page orders-page">
       <AdminPageHeader
@@ -93,10 +96,12 @@ export function OrdersPage() {
               <RefreshCw size={16} className={query.isFetching ? 'animate-spin' : ''} />
               {t('Refresh')}
             </Button>
-            <Button isDisabled={!ready} onPress={() => setEditor('new')}>
-              <Plus size={17} />
-              {t('Create order')}
-            </Button>
+            {permissions.create && (
+              <Button isDisabled={!ready} onPress={() => setEditor('new')}>
+                <Plus size={17} />
+                {t('Create order')}
+              </Button>
+            )}
           </>
         }
       />
@@ -355,7 +360,7 @@ export function OrdersPage() {
           />
         )}
       </section>
-      {editor && (
+      {editor && (editor === 'new' ? permissions.create : permissions.update) && (
         <OrderEditor
           record={editor === 'new' ? undefined : editor}
           onClose={() => setEditor(null)}

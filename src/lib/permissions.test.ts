@@ -1,18 +1,28 @@
 import { describe, expect, it } from 'vitest'
-import { normalizePermissions } from '@/lib/permissions'
+import { PERMISSIONS } from '@/types/permissions'
+import { hasPermission, normalizePermissions } from '@/lib/permissions'
 import { permissionsData } from '@/features/manage-roles/data/permission-data'
 
 describe('backend permission format', () => {
-  it('provides exactly the four supported CRUD actions for every resource', () => {
+  it('provides four CRUD actions per resource plus the dedicated read grants', () => {
     for (const group of permissionsData) {
-      expect(group.actions.map((action) => action.value.split('.')[1])).toEqual([
+      const crud = group.actions.filter(
+        ({ value }) =>
+          value !== PERMISSIONS.READ_DEVICE_READINGS &&
+          value !== PERMISSIONS.READ_INTERACTIVE_REPORT,
+      )
+      expect(crud.map((action) => action.value.split('.')[1])).toEqual([
         'read',
         'create',
         'update',
         'delete',
       ])
-      expect(new Set(group.actions.map((action) => action.value.split('.')[0])).size).toBe(1)
+      expect(new Set(crud.map((action) => action.value.split('.')[0])).size).toBe(1)
     }
+  })
+  it('recognizes the grouped device readings grant', () => {
+    const devices = permissionsData.find((group) => group.name === 'Devices')!
+    expect(hasPermission({ permissions: [devices] }, PERMISSIONS.READ_DEVICE_READINGS)).toBe(true)
   })
   it('migrates old values, deduplicates aliases, and excludes unsupported actions', () => {
     expect(

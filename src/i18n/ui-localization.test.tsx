@@ -53,7 +53,17 @@ vi.mock('@/hooks/use-administration', () => ({
   useAdminScope: () => ({
     ready: true,
     orgId: orderFixture.organisationId,
-    user: { id: 'viewer' },
+    user: {
+      id: 'viewer',
+      permissions: [
+        'orders.read',
+        'orders.create',
+        'orders.update',
+        'devices.read',
+        'devices.create',
+        'devices.update',
+      ],
+    },
     isSuperAdmin: false,
   }),
 }))
@@ -110,7 +120,7 @@ it('translates the Devices catalog and search controls while preserving device m
   expect(screen.getByRole('button', { name: 'Agregar dispositivo' })).toBeInTheDocument()
   expect(screen.getByRole('heading', { name: 'Catálogo de dispositivos' })).toBeInTheDocument()
   expect(screen.getByPlaceholderText('Buscar por IMEI, nombre o proveedor…')).toBeInTheDocument()
-  expect(screen.getByRole('heading', { name: 'Blood pressure' })).toBeInTheDocument()
+  expect(screen.getByText('Blood pressure')).toBeInTheDocument()
   expect(screen.getAllByText('Presión arterial').length).toBeGreaterThan(0)
 })
 it('updates an already open device editor, including buttons and placeholders', async () => {

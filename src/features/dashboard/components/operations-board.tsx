@@ -1,3 +1,8 @@
+import {
+  ColumnCell,
+  ColumnHeading,
+  ColumnTable,
+} from '@/app/components/administration/table-columns'
 import { useEffect, useRef } from 'react'
 import {
   Box,
@@ -86,51 +91,62 @@ export function FulfillmentPanel({ view = 'board' }: { view?: 'board' | 'journey
         </div>
       </div>
       {view === 'table' ? (
-        <div className="dash-table-scroll">
-          <table className="dash-fulfillment-table" aria-label={t('Orders')}>
-            <thead>
-              <tr>
-                <th>{t('Order')}</th>
-                <th>{t('Patient')}</th>
-                <th>{t('Device')}</th>
-                <th>{t('Vendor')}</th>
-                <th>{t('Status')}</th>
-                <th>{t('Shipment')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((order) => (
-                <tr key={order.id} className={selected?.id === order.id ? 'is-selected' : ''}>
-                  <td>
-                    <button
-                      type="button"
-                      aria-pressed={selected?.id === order.id}
-                      onClick={() => dispatch({ type: 'patch', values: { orderId: order.id } })}
-                    >
-                      {order.id}
-                      <ChevronRight size={13} />
-                    </button>
-                  </td>
-                  <td>
-                    <span className="dash-order-table-patient">
-                      <Avatar initials={order.initials} tone="blue" />
-                      {order.patient}
-                    </span>
-                  </td>
-                  <td>
-                    {t(order.item)}
-                    <small>{t(order.destination)}</small>
-                  </td>
-                  <td>{order.vendor}</td>
-                  <td>
-                    <Pill tone={stageTone[order.stage]}>{t(order.stage)}</Pill>
-                  </td>
-                  <td>{t(order.time)}</td>
+        <ColumnTable
+          columns={{
+            order: 'Order',
+            patient: 'Patient',
+            device: 'Device',
+            vendor: 'Vendor',
+            status: 'Status',
+            shipment: 'Shipment',
+          }}
+        >
+          <div className="dash-table-scroll">
+            <table className="dash-fulfillment-table" aria-label={t('Orders')}>
+              <thead>
+                <tr>
+                  <ColumnHeading column="order">{t('Order')}</ColumnHeading>
+                  <ColumnHeading column="patient">{t('Patient')}</ColumnHeading>
+                  <ColumnHeading column="device">{t('Device')}</ColumnHeading>
+                  <ColumnHeading column="vendor">{t('Vendor')}</ColumnHeading>
+                  <ColumnHeading column="status">{t('Status')}</ColumnHeading>
+                  <ColumnHeading column="shipment">{t('Shipment')}</ColumnHeading>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map((order) => (
+                  <tr key={order.id} className={selected?.id === order.id ? 'is-selected' : ''}>
+                    <ColumnCell column="order">
+                      <button
+                        type="button"
+                        aria-pressed={selected?.id === order.id}
+                        onClick={() => dispatch({ type: 'patch', values: { orderId: order.id } })}
+                      >
+                        {order.id}
+                        <ChevronRight size={13} />
+                      </button>
+                    </ColumnCell>
+                    <ColumnCell column="patient">
+                      <span className="dash-order-table-patient">
+                        <Avatar initials={order.initials} tone="blue" />
+                        {order.patient}
+                      </span>
+                    </ColumnCell>
+                    <ColumnCell column="device">
+                      {t(order.item)}
+                      <small>{t(order.destination)}</small>
+                    </ColumnCell>
+                    <ColumnCell column="vendor">{order.vendor}</ColumnCell>
+                    <ColumnCell column="status">
+                      <Pill tone={stageTone[order.stage]}>{t(order.stage)}</Pill>
+                    </ColumnCell>
+                    <ColumnCell column="shipment">{t(order.time)}</ColumnCell>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </ColumnTable>
       ) : view === 'journey' ? (
         <div className="dash-order-journeys">
           {filtered.map((order) => (

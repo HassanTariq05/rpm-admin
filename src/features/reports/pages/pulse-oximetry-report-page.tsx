@@ -1,3 +1,8 @@
+import {
+  ColumnCell,
+  ColumnHeading,
+  ColumnTable,
+} from '@/app/components/administration/table-columns'
 import { useState, type CSSProperties } from 'react'
 import {
   Activity,
@@ -170,42 +175,61 @@ export function PulseOximetryReportPage() {
         <summary>
           {t('Reading history')} <span>{readings.length}</span>
         </summary>
-        <div className="monitoring-table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">{t('Recorded (local time)')}</th>
-                <th scope="col">{t('Oxygen saturation (%)')}</th>
-                <th scope="col">{t('Pulse (bpm)')}</th>
-                <th scope="col">{t('Range')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...readings].reverse().map((reading) => {
-                const band = oximetryBand(reading.value)
-                const RangeIcon = band.id === 'in-range' ? Check : ArrowDown
-                return (
-                  <tr
-                    key={reading.timestamp}
-                    style={{ '--monitoring-row-accent': band.color } as CSSProperties}
-                  >
-                    <td>{oximetryDate.format(reading.timestamp)}</td>
-                    <td className="monitoring-log-value">
-                      {oximetryPercent.format(reading.value / 100)}
-                    </td>
-                    <td>{reading.pulse}</td>
-                    <td>
-                      <span className="monitoring-log-range">
-                        <RangeIcon size={13} aria-hidden="true" />
-                        {t(band.label)}
-                      </span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <ColumnTable
+          columns={{
+            recorded: 'Recorded (local time)',
+            saturation: 'Oxygen saturation (%)',
+            pulse: 'Pulse (bpm)',
+            range: 'Range',
+          }}
+        >
+          <div className="monitoring-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <ColumnHeading column="recorded" scope="col">
+                    {t('Recorded (local time)')}
+                  </ColumnHeading>
+                  <ColumnHeading column="saturation" scope="col">
+                    {t('Oxygen saturation (%)')}
+                  </ColumnHeading>
+                  <ColumnHeading column="pulse" scope="col">
+                    {t('Pulse (bpm)')}
+                  </ColumnHeading>
+                  <ColumnHeading column="range" scope="col">
+                    {t('Range')}
+                  </ColumnHeading>
+                </tr>
+              </thead>
+              <tbody>
+                {[...readings].reverse().map((reading) => {
+                  const band = oximetryBand(reading.value)
+                  const RangeIcon = band.id === 'in-range' ? Check : ArrowDown
+                  return (
+                    <tr
+                      key={reading.timestamp}
+                      style={{ '--monitoring-row-accent': band.color } as CSSProperties}
+                    >
+                      <ColumnCell column="recorded">
+                        {oximetryDate.format(reading.timestamp)}
+                      </ColumnCell>
+                      <ColumnCell column="saturation" className="monitoring-log-value">
+                        {oximetryPercent.format(reading.value / 100)}
+                      </ColumnCell>
+                      <ColumnCell column="pulse">{reading.pulse}</ColumnCell>
+                      <ColumnCell column="range">
+                        <span className="monitoring-log-range">
+                          <RangeIcon size={13} aria-hidden="true" />
+                          {t(band.label)}
+                        </span>
+                      </ColumnCell>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </ColumnTable>
       </details>
     </div>
   )

@@ -22,7 +22,7 @@ const user: AuthUser = {
   email: 'example@test.invalid',
   role: { id: 'role-a', name: 'Administrator' },
   organisation: { id: 'org-a', name: 'Example', status: 'active' },
-  permissions: [],
+  permissions: ['patients.read', 'device-readings.read', 'interactive_report.read'],
 }
 function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -91,4 +91,11 @@ it('retains the prior page during pagination but never across source or account 
   useAuthStore.getState().auth.setUser({ ...user, id: 'user-b' })
   view.rerender({ page: 1, source: undefined })
   expect(view.result.current.data).toBeUndefined()
+})
+
+it('does not fetch the Device Readings list with only the regular Device and Vital readings grants', () => {
+  useAuthStore.getState().auth.setUser({ ...user, permissions: ['devices.read', 'readings.read'] })
+  const { result } = renderHook(() => useReadings({ page: 1, pageSize: 25 }), { wrapper })
+  expect(result.current.fetchStatus).toBe('idle')
+  expect(service.getReadings).not.toHaveBeenCalled()
 })

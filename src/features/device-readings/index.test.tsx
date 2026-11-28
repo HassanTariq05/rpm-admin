@@ -51,10 +51,34 @@ beforeEach(() => {
   state.ready = true
   state.userId = 'viewer-a'
   useAuthStore.getState().auth.setAccessToken('synthetic-test-token')
+  useAuthStore.getState().auth.setUser({
+    id: 'operator',
+    name: 'Test operator',
+    email: 'operator@example.test',
+    role: { id: 'role-a', name: 'Administrator' },
+    permissions: ['device-readings.read'],
+  })
 })
 afterEach(() => {
   cleanup()
   useAuthStore.getState().auth.reset()
+})
+
+it('hides a reading column and keeps the empty row aligned with the visible columns', async () => {
+  state.data = { readings: [], page: 1, pageSize: 25, total: 0 }
+  const user = userEvent.setup()
+  render(<DeviceReadingsPage />)
+  const columns = screen.getByRole('button', { name: 'Columns' })
+  const searchRow = screen
+    .getByRole('textbox', { name: 'Search readings on this page' })
+    .closest('.readings-toolbar')
+  expect(searchRow).toContainElement(columns)
+  await user.click(columns)
+  await user.click(await screen.findByRole('menuitemcheckbox', { name: 'Patient' }))
+  if (screen.queryByRole('menu')) await user.keyboard('{Escape}')
+  const table = within(screen.getByRole('table', { name: 'Device readings' }))
+  expect(table.queryByRole('columnheader', { name: 'Patient' })).not.toBeInTheDocument()
+  expect(table.getByRole('cell')).toHaveAttribute('colspan', '5')
 })
 
 it('displays mixed-provider readings, missing patients, and complete record details', async () => {

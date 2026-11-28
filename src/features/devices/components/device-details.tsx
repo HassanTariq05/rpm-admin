@@ -17,6 +17,8 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { ConfirmDelete, FormModal } from '@/app/components/administration/admin-ui'
+import { useAdminScope } from '@/hooks/use-administration'
+import { devicePermissions } from '../device-permissions'
 import { useDevice, useDeleteDevice } from '@/hooks/use-devices'
 import type { ApiDevice } from '@/services/device-services/device-services'
 import { translate as t, useAppTranslation, locale } from '@/i18n'
@@ -60,15 +62,18 @@ export function DeviceDetails({
   onEdit: (record: ApiDevice) => void
 }) {
   useAppTranslation()
+  const permissions = devicePermissions(useAdminScope().user)
   const [deleting, setDeleting] = useState<ApiDevice | null>(null)
+  const confirmingDelete = permissions.delete ? deleting : null
   // Suspend detail fetching while confirming/deleting to avoid refetching a deleted record.
-  const query = useDevice(deleting ? undefined : id)
+  const query = useDevice(permissions.read && !confirmingDelete ? id : undefined)
   const remove = useDeleteDevice()
   const device = query.data ? deviceView(query.data) : null
-  if (deleting)
+  if (!permissions.read) return null
+  if (confirmingDelete)
     return (
       <ConfirmDelete
-        name={deviceView(deleting).name}
+        name={deviceView(confirmingDelete).name}
         entity="device"
         pending={remove.isPending}
         error={remove.error}
@@ -78,7 +83,7 @@ export function DeviceDetails({
         onConfirm={() => {
           if (remove.isPending) return
           void remove
-            .mutateAsync(deleting.id)
+            .mutateAsync(confirmingDelete.id)
             .then(onClose)
             .catch(() => {
               // Retain the confirmation dialog after failure so the user can retry.
@@ -98,30 +103,34 @@ export function DeviceDetails({
       className="w-full sm:max-w-[1180px] sm:p-6"
       cancelLabel="Close"
       footerStart={
-        <Button
-          variant="danger"
-          isDisabled={!query.data || query.isError || query.isFetching}
-          onPress={() => {
-            if (query.data) {
-              remove.reset()
-              setDeleting(query.data)
-            }
-          }}
-        >
-          <Trash2 size={16} />
-          {t('Delete device')}
-        </Button>
+        permissions.delete && (
+          <Button
+            variant="danger"
+            isDisabled={!query.data || query.isError || query.isFetching}
+            onPress={() => {
+              if (query.data) {
+                remove.reset()
+                setDeleting(query.data)
+              }
+            }}
+          >
+            <Trash2 size={16} />
+            {t('Delete device')}
+          </Button>
+        )
       }
       footer={
-        <Button
-          isDisabled={!query.data || query.isError || query.isFetching}
-          onPress={() => {
-            if (query.data) onEdit(query.data)
-          }}
-        >
-          <Pencil size={16} />
-          {t('Edit device')}
-        </Button>
+        permissions.update && (
+          <Button
+            isDisabled={!query.data || query.isError || query.isFetching}
+            onPress={() => {
+              if (query.data) onEdit(query.data)
+            }}
+          >
+            <Pencil size={16} />
+            {t('Edit device')}
+          </Button>
+        )
       }
     >
       {query.isPending ? (

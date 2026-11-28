@@ -16,6 +16,20 @@ import {
   useDeviceByImei,
 } from './use-devices'
 import { useAuthStore } from '@/stores/auth-store'
+const inventoryUser = {
+  id: 'viewer-a',
+  name: 'Inventory operator',
+  email: 'inventory@example.test',
+  role: { id: 'role-1', name: 'Administrator' },
+  permissions: [
+    'devices.read',
+    'devices.create',
+    'devices.update',
+    'devices.delete',
+    'patients.read',
+    'patients.update',
+  ],
+}
 const state = vi.hoisted(() => ({
   ready: true,
   userId: 'viewer-a',
@@ -37,12 +51,15 @@ const state = vi.hoisted(() => ({
 vi.mock('sonner', () => ({ toast: { success: state.success, error: state.error } }))
 vi.mock('@/hooks/use-administration', async (original) => ({
   ...(await original<typeof import('./use-administration')>()),
-  useAdminScope: () => ({
-    ready: state.ready,
-    user: state.ready ? { id: state.userId } : null,
-    orgId: state.orgId,
-    isSuperAdmin: state.isSuperAdmin,
-  }),
+  useAdminScope: () => {
+    const user = useAuthStore((store) => store.auth.user)
+    return {
+      ready: state.ready,
+      user: state.ready && user ? { ...user, id: state.userId } : null,
+      orgId: state.orgId,
+      isSuperAdmin: state.isSuperAdmin,
+    }
+  },
 }))
 vi.mock('@/services/device-services/device-services', async (original) => ({
   ...(await original<typeof import('@/services/device-services/device-services')>()),
@@ -82,11 +99,51 @@ beforeEach(() => {
   state.assign.mockResolvedValue({ device: { id: 'device-1' } })
   state.unassign.mockResolvedValue({ device: { id: 'device-1' } })
   useAuthStore.getState().auth.setAccessToken('synthetic-test-token')
+  useAuthStore.getState().auth.setUser(inventoryUser)
 })
 afterEach(() => {
   cleanup()
   useAuthStore.getState().auth.reset()
 })
+it('blocks inventory requests without Read, including manual refetch', async () => {
+  useAuthStore.getState().auth.setUser({ ...inventoryUser, permissions: ['devices.update'] })
+  const queryLogger = vi.spyOn(console, 'error').mockImplementation(() => {})
+  try {
+    const { result } = renderHook(
+      () => ({ list: useDevices(), detail: useDevice('device-1') }),
+      setup(),
+    )
+    await act(async () => {
+      await Promise.all([result.current.list.refetch(), result.current.detail.refetch()])
+    })
+    expect(state.getAll).not.toHaveBeenCalled()
+    expect(state.getById).not.toHaveBeenCalled()
+  } finally {
+    queryLogger.mockRestore()
+  }
+})
+
+it('checks current write permissions at submission and blocks requests with revoked grants', async () => {
+  const config = setup()
+  const invalidate = vi.spyOn(config.client, 'invalidateQueries')
+  const { result } = renderHook(
+    () => ({ create: useCreateDevice(), update: useUpdateDevice(), remove: useDeleteDevice() }),
+    config,
+  )
+  const { create, update, remove } = result.current
+  await act(async () => {
+    useAuthStore.getState().auth.setUser({ ...inventoryUser, permissions: ['devices.read'] })
+    const denied = 'You do not have permission to manage devices.'
+    await expect(create.mutateAsync({})).rejects.toThrow(denied)
+    await expect(update.mutateAsync({ id: 'device-1', payload: {} })).rejects.toThrow(denied)
+    await expect(remove.mutateAsync('device-1')).rejects.toThrow(denied)
+  })
+  expect(state.create).not.toHaveBeenCalled()
+  expect(state.update).not.toHaveBeenCalled()
+  expect(state.remove).not.toHaveBeenCalled()
+  expect(invalidate).not.toHaveBeenCalled()
+})
+
 it('waits for authentication, passes cancellation, and isolates cached inventory by user and organization', async () => {
   state.ready = false
   const config = setup()
@@ -176,7 +233,7 @@ it('deletes using the selected ID, invalidates inventory, and shows a success to
   await act(async () => {
     await result.current.mutateAsync('device-to-delete')
   })
-  expect(state.remove).toHaveBeenCalledWith('device-to-delete', expect.anything())
+  expect(state.remove).toHaveBeenCalledWith('device-to-delete')
   expect(invalidate).toHaveBeenCalledWith({ queryKey: ['devices'] })
   expect(state.success).toHaveBeenCalledWith('Device deleted')
 })

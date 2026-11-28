@@ -1,3 +1,10 @@
+import {
+  ColumnCell,
+  ColumnHeading,
+  ColumnVisibilityMenu,
+  VisibleTableColumns,
+} from '@/app/components/administration/table-columns'
+import { useTableColumnVisibility } from '@/app/components/administration/use-table-column-visibility'
 import { RecordOpenButton } from '@/app/components/administration/record-open-button'
 import { useState, type ReactNode } from 'react'
 import { Button, Input, Tabs, TextField } from '@heroui/react'
@@ -39,6 +46,7 @@ import { DeviceEditor } from '../components/device-editor'
 import { DevicePatientInfo } from '../components/device-patient-info'
 import { DeviceDetails } from '../components/device-details'
 import { DevicesSkeleton } from '../components/devices-skeleton'
+import { devicePermissions } from '../device-permissions'
 import { useDevices } from '@/hooks/use-devices'
 import { useAdminScope } from '@/hooks/use-administration'
 import { useOrganizations } from '@/hooks/use-organizations'
@@ -81,89 +89,111 @@ function InventoryStatus({ status }: { status: DeviceRecord['status'] }) {
 function DeviceList({
   devices,
   organizationNames,
+  visibleColumns,
   onOpen,
 }: {
   devices: DeviceRecord[]
   organizationNames: ReadonlyMap<string, string>
+  visibleColumns: ReadonlySet<string>
   onOpen: (id: string) => void
 }) {
   return (
-    <div className="device-list-scroll" role="region" aria-label={t('Devices list')} tabIndex={0}>
-      <table className="device-list-table" aria-label={t('Devices')}>
-        <thead>
-          <tr>
-            <th scope="col">{t('Device')}</th>
-            <th scope="col">{t('Assigned patient')}</th>
-            <th scope="col">{t('Organization')}</th>
-            <th scope="col">{t('Vendor')}</th>
-            <th scope="col">{t('Device type')}</th>
-            <th scope="col">{t('IMEI')}</th>
-            <th scope="col">{t('Status')}</th>
-            <th scope="col">
-              <span className="sr-only">{t('Actions')}</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {devices.map((device) => (
-            <tr key={device.id}>
-              <td>
-                <RecordOpenButton
-                  className="device-list-name"
-                  onOpen={() => onOpen(device.id)}
-                  label={t('View {{value0}}, IMEI {{value1}}', {
-                    value0: device.name,
-                    value1: device.imei || t('Not provided'),
-                  })}
-                >
-                  <span className="device-list-picture">
-                    <DevicePicture type={device.type} />
-                  </span>
-                  <span>
-                    <strong className="record-open-label">
-                      {device.model ? device.name : t(device.name)}
-                    </strong>
-                  </span>
-                </RecordOpenButton>
-              </td>
-              <td>
-                <div className="device-list-patient">
-                  <DevicePatientInfo device={device.raw} />
-                </div>
-              </td>
-              <td>{deviceOrganisationName(device.raw, organizationNames) || '—'}</td>
-              <td>
-                <DeviceLogo company={device.company} />
-              </td>
-              <td>
-                <span
-                  className={`device-type-label admin-tone-${typeTones[device.type as DeviceType] ?? 'blue'}`}
-                >
-                  {t(device.type)}
-                </span>
-              </td>
-              <td className="device-list-imei">{device.imei || '—'}</td>
-              <td>
-                <InventoryStatus status={device.status} />
-              </td>
-              <td>
-                <Button
-                  isIconOnly
-                  size="sm"
-                  variant="ghost"
-                  aria-label={t('View device details for {{device}}', {
-                    device: device.imei || device.name,
-                  })}
-                  onPress={() => onOpen(device.id)}
-                >
-                  <Eye size={17} />
-                </Button>
-              </td>
+    <VisibleTableColumns visible={visibleColumns}>
+      <div className="device-list-scroll" role="region" aria-label={t('Devices list')} tabIndex={0}>
+        <table className="device-list-table" aria-label={t('Devices')}>
+          <thead>
+            <tr>
+              <ColumnHeading column="device" scope="col">
+                {t('Device')}
+              </ColumnHeading>
+              <ColumnHeading column="patient" scope="col">
+                {t('Assigned patient')}
+              </ColumnHeading>
+              <ColumnHeading column="organization" scope="col">
+                {t('Organization')}
+              </ColumnHeading>
+              <ColumnHeading column="vendor" scope="col">
+                {t('Vendor')}
+              </ColumnHeading>
+              <ColumnHeading column="type" scope="col">
+                {t('Device type')}
+              </ColumnHeading>
+              <ColumnHeading column="imei" scope="col">
+                {t('IMEI')}
+              </ColumnHeading>
+              <ColumnHeading column="status" scope="col">
+                {t('Status')}
+              </ColumnHeading>
+              <th scope="col">
+                <span className="sr-only">{t('Actions')}</span>
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {devices.map((device) => (
+              <tr key={device.id}>
+                <ColumnCell column="device">
+                  <RecordOpenButton
+                    className="device-list-name"
+                    onOpen={() => onOpen(device.id)}
+                    label={t('View {{value0}}, IMEI {{value1}}', {
+                      value0: device.name,
+                      value1: device.imei || t('Not provided'),
+                    })}
+                  >
+                    <span className="device-list-picture">
+                      <DevicePicture type={device.type} />
+                    </span>
+                    <span>
+                      <strong className="record-open-label">
+                        {device.model ? device.name : t(device.name)}
+                      </strong>
+                    </span>
+                  </RecordOpenButton>
+                </ColumnCell>
+                <ColumnCell column="patient">
+                  <div className="device-list-patient">
+                    <DevicePatientInfo device={device.raw} />
+                  </div>
+                </ColumnCell>
+                <ColumnCell column="organization">
+                  {deviceOrganisationName(device.raw, organizationNames) || '—'}
+                </ColumnCell>
+                <ColumnCell column="vendor">
+                  <DeviceLogo company={device.company} />
+                </ColumnCell>
+                <ColumnCell column="type">
+                  <span
+                    className={`device-type-label admin-tone-${typeTones[device.type as DeviceType] ?? 'blue'}`}
+                  >
+                    {t(device.type)}
+                  </span>
+                </ColumnCell>
+                <ColumnCell column="imei" className="device-list-imei">
+                  {device.imei || '—'}
+                </ColumnCell>
+                <ColumnCell column="status">
+                  <InventoryStatus status={device.status} />
+                </ColumnCell>
+                <td>
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="ghost"
+                    aria-label={t('View device details for {{device}}', {
+                      device: device.imei || device.name,
+                    })}
+                    onPress={() => onOpen(device.id)}
+                  >
+                    <Eye size={17} />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </VisibleTableColumns>
   )
 }
 function FilterTabs({
@@ -223,7 +253,8 @@ export function DevicesPage({
 } = {}) {
   useAppTranslation()
   const scope = useAdminScope()
-  const organizations = useOrganizations(scope.isSuperAdmin)
+  const permissions = devicePermissions(scope.user)
+  const organizations = useOrganizations(scope.isSuperAdmin && permissions.read)
   const [organisationId, setOrganisationId] = useState<string>()
   const organizationFilter = scope.isSuperAdmin ? organisationId : undefined
   const query = useDevices(organizationFilter)
@@ -240,6 +271,15 @@ export function DevicesPage({
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [view, setView] = useState<DeviceViewMode>(readDeviceView)
+  const columns = useTableColumnVisibility({
+    device: 'Device',
+    patient: 'Assigned patient',
+    organization: 'Organization',
+    vendor: 'Vendor',
+    type: 'Device type',
+    imei: 'IMEI',
+    status: 'Status',
+  })
   const [details, setDetails] = useState<string | null>(null)
   const activeDetails = details ?? linkedDeviceId
   const closeDetails = () => {
@@ -260,6 +300,8 @@ export function DevicesPage({
     setOrganisationId(undefined)
     setPage(1)
   }
+  if (!permissions.read) return null
+
   return (
     <div className="admin-page devices-page">
       <AdminPageHeader
@@ -279,13 +321,15 @@ export function DevicesPage({
               <RefreshCw size={16} className={query.isFetching ? 'animate-spin' : ''} />
               {t('Refresh')}
             </Button>
-            <Button
-              isDisabled={!scope.ready || (!scope.isSuperAdmin && !scope.orgId)}
-              onPress={() => setEditor('new')}
-            >
-              <Plus size={17} />
-              {t('Add Device')}
-            </Button>
+            {permissions.create && (
+              <Button
+                isDisabled={!scope.ready || (!scope.isSuperAdmin && !scope.orgId)}
+                onPress={() => setEditor('new')}
+              >
+                <Plus size={17} />
+                {t('Add Device')}
+              </Button>
+            )}
           </>
         }
       />
@@ -395,6 +439,9 @@ export function DevicesPage({
                 </button>
               ))}
             </div>
+            {view === 'list' && !!visible.length && !query.isPending && !query.isError && (
+              <ColumnVisibilityMenu {...columns} />
+            )}
           </div>
         </div>
         <FilterTabs
@@ -465,6 +512,7 @@ export function DevicesPage({
             <DeviceList
               devices={visible}
               organizationNames={organizationNames}
+              visibleColumns={columns.visible}
               onOpen={setDetails}
             />
           ) : visible.length ? (
@@ -573,7 +621,7 @@ export function DevicesPage({
           }}
         />
       )}
-      {editor && (
+      {editor && (editor === 'new' ? permissions.create : permissions.update) && (
         <DeviceEditor
           record={editor === 'new' ? undefined : editor}
           onClose={() => setEditor(null)}

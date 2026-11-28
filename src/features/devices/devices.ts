@@ -1,5 +1,7 @@
 import { translate as t } from '@/i18n'
 import axios from 'axios'
+import { PatientPermissionError } from '@/features/patients/patient-permissions'
+import { DevicePermissionError } from './device-permissions'
 import {
   DeviceResponseError,
   type ApiDevice,
@@ -148,7 +150,12 @@ export function devicePayload(
   }
 }
 export function deviceErrorMessage(error: unknown): string {
-  if (error instanceof DeviceResponseError) return error.message
+  if (
+    error instanceof DeviceResponseError ||
+    error instanceof DevicePermissionError ||
+    error instanceof PatientPermissionError
+  )
+    return error.message
   if (axios.isAxiosError(error)) {
     switch (error.response?.status) {
       case 400:

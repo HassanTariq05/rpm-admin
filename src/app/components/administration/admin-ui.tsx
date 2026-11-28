@@ -351,7 +351,7 @@ export function FormModal({
         scroll={scroll}
       >
         <Modal.Dialog className={cn('app-dialog bg-surface text-foreground', dialogClassName)}>
-          <Modal.Header className={headerAction ? 'pe-20!' : undefined}>
+          <Modal.Header className={headerAction ? 'pe-28!' : undefined}>
             {headerIcon ? (
               <div className="flex items-center gap-4">
                 <span className="modal-header-icon" aria-hidden="true">
@@ -369,7 +369,11 @@ export function FormModal({
               </>
             )}
           </Modal.Header>
-          {headerAction && <div className="absolute end-12 top-4">{headerAction}</div>}
+          {headerAction && (
+            <div data-slot="modal-header-actions" className="absolute end-12 top-4">
+              {headerAction}
+            </div>
+          )}
           {!pending && <Modal.CloseTrigger aria-label={t('Close')} />}
           <Modal.Body className="space-y-4">{children}</Modal.Body>
           <Modal.Footer>

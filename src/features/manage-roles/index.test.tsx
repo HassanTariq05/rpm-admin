@@ -60,9 +60,29 @@ it('lets an administrator edit a role from the organization-scoped list when det
       name: 'Nurse',
       description: undefined,
       organisationId: 'org-1',
-      permissions: ['patients.read', 'patients.create', 'patients.update', 'patients.delete'],
+      permissions: [
+        'patients.read',
+        'patients.create',
+        'patients.update',
+        'patients.delete',
+        'interactive_report.read',
+      ],
     },
   })
+})
+
+it('saves the four Orders permissions using the backend keys', async () => {
+  const user = userEvent.setup()
+  render(<ManageRolesPage />)
+  await user.click(screen.getByRole('checkbox', { name: 'Select all Orders' }))
+  await user.click(screen.getByRole('button', { name: 'Save changes' }))
+  expect(state.update).toHaveBeenCalledWith(
+    expect.objectContaining({
+      payload: expect.objectContaining({
+        permissions: ['orders.read', 'orders.create', 'orders.update', 'orders.delete'],
+      }),
+    }),
+  )
 })
 
 it.each([{ organisationId: 'org-1' }, { organizationId: 'org-1' }])(
@@ -126,4 +146,16 @@ it('does not label a role as foreign when the session organization is unavailabl
   expect(screen.getByText(/Unable to verify this role’s organization/)).toBeInTheDocument()
   expect(screen.queryByText('This role belongs to another organization.')).not.toBeInTheDocument()
   expect(screen.getByRole('checkbox', { name: 'Select all Patients' })).toBeDisabled()
+})
+
+it('saves Read Device Readings independently from Devices CRUD', async () => {
+  const user = userEvent.setup()
+  render(<ManageRolesPage />)
+  await user.click(screen.getByRole('checkbox', { name: 'Read Device Readings' }))
+  await user.click(screen.getByRole('button', { name: 'Save changes' }))
+  expect(state.update).toHaveBeenCalledWith(
+    expect.objectContaining({
+      payload: expect.objectContaining({ permissions: ['device-readings.read'] }),
+    }),
+  )
 })

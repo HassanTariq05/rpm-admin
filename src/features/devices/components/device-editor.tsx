@@ -13,6 +13,7 @@ import {
   SubmitButton,
 } from '@/app/components/administration/admin-ui'
 import { useCreateDevice, useUpdateDevice } from '@/hooks/use-devices'
+import { devicePermissions } from '../device-permissions'
 import { useAdminScope } from '@/hooks/use-administration'
 import { useOrganizations } from '@/hooks/use-organizations'
 import { translate as t, useAppTranslation } from '@/i18n'
@@ -156,8 +157,10 @@ export function DeviceEditor({
   const generatedExternalId = useRef<string | null>(null)
   const [captured, setCaptured] = useState<Partial<DeviceLabelFields>>({})
   const scope = useAdminScope()
-  const organizations = useOrganizations(scope.isSuperAdmin)
-  const canSave = scope.ready && (scope.isSuperAdmin || !!scope.orgId)
+  const permissions = devicePermissions(scope.user)
+  const canEdit = record ? permissions.update : permissions.create
+  const organizations = useOrganizations(scope.isSuperAdmin && canEdit)
+  const canSave = canEdit && scope.ready && (scope.isSuperAdmin || !!scope.orgId)
   const initialOrgId = record ? deviceOrganisationId(record) : scope.orgId
   const currentOrgName = scope.user?.organisation?.name ?? scope.user?.organization?.name
   const orgChoices = (scope.isSuperAdmin ? (organizations.data ?? []) : []).map(({ id, name }) => ({
@@ -176,6 +179,8 @@ export function DeviceEditor({
   const create = useCreateDevice()
   const update = useUpdateDevice()
   const pending = create.isPending || update.isPending
+  if (!canEdit) return null
+
   return (
     <Formik<DeviceValues>
       initialValues={{

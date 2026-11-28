@@ -1,3 +1,5 @@
+import { hasPermission } from '@/lib/permissions'
+import { PERMISSIONS } from '@/types/permissions'
 import { translate as t, useAppTranslation } from '@/i18n'
 import { LanguagePicker } from '@/i18n/language-provider'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
@@ -32,6 +34,9 @@ import { useAuthStore } from '@/stores/auth-store'
 import { getInitials } from '@/lib/initials'
 import { ThemePicker } from '@/app/components/theme-picker'
 import { NotificationPanel } from '@/features/notifications/notification-panel'
+import { patientPermissions } from '@/features/patients/patient-permissions'
+import { devicePermissions } from '@/features/devices/device-permissions'
+import { orderPermissions } from '@/features/orders/order-permissions'
 import './app-shell.css'
 
 type AppPath =
@@ -59,10 +64,9 @@ const navItems: {
   { label: 'Dashboard', to: '/', icon: LayoutDashboard },
   { label: 'Patients', to: '/patients', icon: UsersRound },
   { label: 'Devices', to: '/devices', icon: MonitorSmartphone },
-
   { label: 'Device Readings', to: '/device-readings', icon: Activity },
-  { label: 'Orders', to: '/orders', icon: Package },
   { label: 'Reports', to: '/reports', icon: ChartNoAxesCombined },
+  { label: 'Orders', to: '/orders', icon: Package },
   { label: 'Users', to: '/users', administration: true, icon: UserRoundCog },
   { label: 'Organizations', to: '/organizations', administration: true, icon: Building2 },
   { label: 'Roles', to: '/roles', administration: true, icon: Shield },
@@ -111,7 +115,18 @@ export function AppShell({ children }: { children: ReactNode }) {
     auth.user?.organisation?.name?.trim() || auth.user?.organization?.name?.trim() || 'Organization'
   const roleName = auth.user?.role?.name
   const showAdministration = roleName === 'Super Admin' || roleName === 'Administrator'
-  const visibleNavItems = navItems.filter((item) => !item.administration || showAdministration)
+  const canReadPatients = patientPermissions(auth.user).read
+  const canReadDeviceReadings = hasPermission(auth.user, PERMISSIONS.READ_DEVICE_READINGS)
+  const canReadDevices = devicePermissions(auth.user).read
+  const canReadOrders = orderPermissions(auth.user).read
+  const visibleNavItems = navItems.filter(
+    (item) =>
+      (!item.administration || showAdministration) &&
+      (item.to !== '/orders' || canReadOrders) &&
+      (item.to !== '/devices' || canReadDevices) &&
+      (item.to !== '/device-readings' || canReadDeviceReadings) &&
+      (item.to !== '/patients' || canReadPatients),
+  )
   const { colorMode, toggleColorMode, sidebarCollapsed, toggleSidebar } = usePreferences()
 
   const getNavClass = (active: boolean, mobile = false) =>

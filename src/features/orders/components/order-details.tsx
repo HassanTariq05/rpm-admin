@@ -1,3 +1,8 @@
+import {
+  ColumnCell,
+  ColumnHeading,
+  ColumnTable,
+} from '@/app/components/administration/table-columns'
 import { useState } from 'react'
 import { Button, Tabs } from '@heroui/react'
 import {
@@ -23,6 +28,7 @@ import {
 import { FormModal } from '@/app/components/administration/admin-ui'
 import { useOrder, useOrderEvents, useDeleteOrder, useSubmitOrder } from '@/hooks/use-orders'
 import { useOrganizations } from '@/hooks/use-organizations'
+import { useAdminScope } from '@/hooks/use-administration'
 import type { Order } from '@/services/order-services/order-services'
 import { formatPhoneNumber } from '@/features/users/phone-number'
 import { translate as t, useAppTranslation } from '@/i18n'
@@ -38,6 +44,7 @@ import {
   submissionIssues,
 } from '../orders'
 import { OrderMetadata, OrderOverview } from './order-overview'
+import { orderPermissions } from '../order-permissions'
 import '../pages/orders-page.css'
 
 const detailTabs = [
@@ -57,12 +64,14 @@ export function OrderDetails({
   onEdit: (order: Order) => void
 }) {
   useAppTranslation()
+  const permissions = orderPermissions(useAdminScope().user)
   const [selectedTab, setSelectedTab] = useState('overview')
-  const [action, setAction] = useState<'submit' | 'delete' | null>(null)
+  const [requestedAction, setAction] = useState<'submit' | 'delete' | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [deleted, setDeleted] = useState(false)
-  const query = useOrder(deleted ? undefined : id)
-  const events = useOrderEvents(deleted ? undefined : id)
+  const orderId = permissions.read && !deleted ? id : undefined
+  const query = useOrder(orderId)
+  const events = useOrderEvents(orderId)
   const organizations = useOrganizations()
   const remove = useDeleteOrder()
   const submit = useSubmitOrder()
@@ -70,12 +79,18 @@ export function OrderDetails({
   const pending = remove.isPending || submit.isPending
   const issues = order ? submissionIssues(order) : []
   const fresh = !!order && !query.isFetching && !query.isError
+  const action =
+    (requestedAction === 'delete' && permissions.delete) ||
+    (requestedAction === 'submit' && permissions.update)
+      ? requestedAction
+      : null
   const refresh = () => {
     void query.refetch()
     void events.refetch()
   }
   async function confirm() {
-    if (pending || !order) return
+    if (pending || !fresh || !order || !action) return
+    if (action === 'delete' ? !order.isActive : !canEditOrder(order) || issues.length > 0) return
     setActionError(null)
     try {
       if (action === 'delete') {
@@ -90,6 +105,7 @@ export function OrderDetails({
       setActionError(orderErrorMessage(error))
     }
   }
+  if (!permissions.read) return null
   return (
     <FormModal
       open
@@ -105,7 +121,7 @@ export function OrderDetails({
       className="order-editor-container w-full sm:max-w-[1328px] sm:p-6"
       cancelLabel="Close"
       footerStart={
-        order && !action ? (
+        order && !action && permissions.delete ? (
           <Button
             variant="danger"
             isDisabled={!fresh || pending || !order.isActive}
@@ -141,7 +157,7 @@ export function OrderDetails({
                 <RefreshCw size={16} className={query.isFetching ? 'animate-spin' : ''} />
                 {t('Refresh')}
               </Button>
-              {canEditOrder(order) && (
+              {permissions.update && canEditOrder(order) && (
                 <>
                   <Button
                     variant="outline"
@@ -362,32 +378,34 @@ export function OrderDetails({
                     })}
                   </span>
                 </div>
-                <table className="order-items">
-                  <caption className="sr-only">{t('Ordered SKUs and quantities')}</caption>
-                  <thead>
-                    <tr>
-                      <th>{t('SKU')}</th>
-                      <th>{t('Quantity')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {order.lines.map((line, index) => (
-                      <tr key={index}>
-                        <td>
-                          <span className="order-sku">
-                            <span>
-                              <Package size={21} />
-                            </span>
-                            <strong>{line.sku}</strong>
-                          </span>
-                        </td>
-                        <td>
-                          <span className="order-quantity">{line.quantity}</span>
-                        </td>
+                <ColumnTable columns={{ sku: 'SKU', quantity: 'Quantity' }}>
+                  <table className="order-items">
+                    <caption className="sr-only">{t('Ordered SKUs and quantities')}</caption>
+                    <thead>
+                      <tr>
+                        <ColumnHeading column="sku">{t('SKU')}</ColumnHeading>
+                        <ColumnHeading column="quantity">{t('Quantity')}</ColumnHeading>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {order.lines.map((line, index) => (
+                        <tr key={index}>
+                          <ColumnCell column="sku">
+                            <span className="order-sku">
+                              <span>
+                                <Package size={21} />
+                              </span>
+                              <strong>{line.sku}</strong>
+                            </span>
+                          </ColumnCell>
+                          <ColumnCell column="quantity">
+                            <span className="order-quantity">{line.quantity}</span>
+                          </ColumnCell>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </ColumnTable>
                 {!order.lines.length && (
                   <p className="py-6 text-center text-sm text-muted">
                     {t('No order items recorded.')}

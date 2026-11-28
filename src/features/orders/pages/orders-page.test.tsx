@@ -3,8 +3,14 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { OrdersPage } from './orders-page'
 import { orderFixture } from '../orders.fixtures'
+const state = vi.hoisted(() => ({ permissions: ['orders.read', 'orders.create'] }))
 vi.mock('@/hooks/use-administration', () => ({
-  useAdminScope: () => ({ ready: true, orgId: orderFixture.organisationId, isSuperAdmin: false }),
+  useAdminScope: () => ({
+    ready: true,
+    orgId: orderFixture.organisationId,
+    isSuperAdmin: false,
+    user: { permissions: state.permissions },
+  }),
 }))
 vi.mock('@/hooks/use-orders', () => ({
   useOrders: () => ({
@@ -40,7 +46,20 @@ vi.mock('@/hooks/use-orders', () => ({
     refetch: vi.fn(),
   }),
 }))
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  state.permissions = ['orders.read', 'orders.create']
+})
+
+it('keeps creation hidden with read-only access and hides the table without Read', () => {
+  state.permissions = ['orders.read']
+  const view = render(<OrdersPage />)
+  expect(screen.getByRole('button', { name: 'SMART-DRAFT' })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Create order' })).not.toBeInTheDocument()
+  state.permissions = ['orders.create']
+  view.rerender(<OrdersPage />)
+  expect(screen.queryByRole('grid', { name: 'orders' })).not.toBeInTheDocument()
+})
 it('filters orders through compact status summaries and restores the complete list', async () => {
   const user = userEvent.setup()
   render(<OrdersPage />)

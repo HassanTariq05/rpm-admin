@@ -954,6 +954,16 @@
   color: var(--editor-violet);
   background: color-mix(in srgb, var(--editor-violet) 10%, var(--panel));
 }
+@media (max-width: 640px) {
+  .patient-form-tab-list {
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+  .patient-form-tab-list [role='tab'] {
+    flex: 1 0 auto;
+    white-space: nowrap;
+  }
+}
 .patient-tab-panel {
   padding: 2px;
 }
@@ -1272,6 +1282,31 @@
 .patient-interactive-report-modal .modal__body {
   min-inline-size: 0;
   overflow-x: hidden;
+}
+@media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+  @supports (background-clip: text) {
+    .patient-report-summary-shimmer {
+      display: inline-block;
+      background-image: linear-gradient(
+        105deg,
+        var(--muted) 40%,
+        var(--foreground) 50%,
+        var(--muted) 60%
+      );
+      background-size: 250% 100%;
+      background-clip: text;
+      color: transparent;
+      animation: patient-report-summary-shimmer 1.8s linear infinite;
+    }
+  }
+}
+@keyframes patient-report-summary-shimmer {
+  from {
+    background-position: 100% 50%;
+  }
+  to {
+    background-position: 0% 50%;
+  }
 }
 .patient-details-modal .modal__footer {
   flex-shrink: 0;
@@ -1972,4 +2007,60 @@
 }
 .dark .google-maps-attribution {
   color: #fff;
+}
+
+@media (max-width: 767px) {
+  .patient-interactive-report-modal.modal__dialog {
+    --report-header-action-size: 36px;
+    --report-header-inset: max(8px, env(safe-area-inset-right));
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    padding: 0 max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
+  }
+
+  .app-dialog.patient-interactive-report-modal .modal__header {
+    min-height: 54px;
+    margin: 0;
+    padding-block-start: max(8px, env(safe-area-inset-top));
+    padding-inline-start: 2px;
+    padding-inline-end: calc(
+      3 * var(--report-header-action-size) + var(--report-header-inset) + 10px
+    ) !important;
+  }
+
+  .patient-interactive-report-modal [data-slot='modal-header-actions'] {
+    top: max(8px, env(safe-area-inset-top));
+    inset-inline-end: calc(var(--report-header-inset) + var(--report-header-action-size) + 4px);
+  }
+
+  .patient-interactive-report-modal .patient-report-actions {
+    gap: 4px;
+  }
+
+  .patient-interactive-report-modal :is(.modal__close-trigger, .patient-report-action) {
+    width: var(--report-header-action-size);
+    height: var(--report-header-action-size);
+    touch-action: manipulation;
+  }
+
+  .patient-interactive-report-modal .modal__close-trigger {
+    top: max(8px, env(safe-area-inset-top));
+    inset-inline-end: var(--report-header-inset);
+  }
+
+  .patient-interactive-report-modal .modal__body {
+    margin-top: 4px;
+  }
+
+  .app-dialog.patient-interactive-report-modal:not(.patient-camera-dialog) .modal__footer {
+    padding-block-end: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 390px) {
+  .patient-interactive-report-modal .modal-header-icon {
+    display: none;
+  }
 }

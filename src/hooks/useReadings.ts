@@ -1,5 +1,8 @@
+import { canReadInteractiveReport } from '@/features/patients/patient-permissions'
+import { hasPermission } from '@/lib/permissions'
+import { PERMISSIONS } from '@/types/permissions'
 import axios from 'axios'
-import { useQuery } from '@tanstack/react-query'
+import { skipToken, useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth-store'
 import { useAdminScope } from '@/hooks/use-administration'
 import { useReadingsRealtime } from '@/hooks/use-readings-realtime'
@@ -12,15 +15,15 @@ import {
 } from '@/services/reading-services/reading-services'
 
 export function useReadings(params: ReadingsParams) {
-  useReadingsRealtime()
   const service = useReadingService()
   const { user, orgId } = useAdminScope()
   const token = useAuthStore((state) => state.auth.accessToken)
+  const canRead = !!token && hasPermission(user, PERMISSIONS.READ_DEVICE_READINGS)
+  useReadingsRealtime(canRead)
   const scopeKey = [user?.id ?? '', orgId ?? '', params.source ?? 'all']
   return useQuery({
     queryKey: ['readings', ...scopeKey, params.page, params.pageSize],
-    queryFn: ({ signal }) => service.getReadings(params, signal),
-    enabled: !!user && !!token,
+    queryFn: canRead ? ({ signal }) => service.getReadings(params, signal) : skipToken,
     staleTime: 30_000,
     // Only retain pages from the same account, organization, and source filter.
     placeholderData: (previous, previousQuery) =>
@@ -58,15 +61,17 @@ export function useReadingsByPatient({
   const token = useAuthStore((state) => state.auth.accessToken)
   return useQuery({
     queryKey: ['readings', user?.id ?? '', orgId ?? '', 'patient', patientId, from, to],
-    enabled: !!user && !!token && !!patientId,
     staleTime: 30_000,
-    queryFn: ({ signal }) =>
-      loadReportReadings((page) =>
-        service.getReadingsByPatient(
-          { patientId: patientId!, page, pageSize: reportPageSize, from, to },
-          signal,
-        ),
-      ),
+    queryFn:
+      token && patientId && canReadInteractiveReport(user)
+        ? ({ signal }) =>
+            loadReportReadings((page) =>
+              service.getReadingsByPatient(
+                { patientId, page, pageSize: reportPageSize, from, to },
+                signal,
+              ),
+            )
+        : skipToken,
     retry: (failureCount, error) => {
       if (error instanceof ReadingsResponseError) return false
       if (axios.isAxiosError(error) && error.response && error.response.status < 500) return false

@@ -17,11 +17,11 @@ import {
   RemoveFormatting,
 } from 'lucide-react'
 import { translate as t, useAppTranslation } from '@/i18n'
+import { isRichTextNote } from '../report-notes'
 
 // Treat legacy plain text as text nodes so literal angle brackets are preserved.
 function initialContent(value: string): string | JSONContent {
-  if (/<\/?(?:p|div|br|strong|b|em|i|u|s|ul|ol|li|blockquote)(?:\s[^>]*|\s*\/?)>/i.test(value))
-    return value
+  if (isRichTextNote(value)) return value
   return {
     type: 'doc',
     content: (value || '').split(/\r?\n/).map((line) => ({
@@ -33,13 +33,16 @@ function initialContent(value: string): string | JSONContent {
 export function PatientNotesEditor({
   label = 'Notes',
   showLabel = true,
+  disabled = false,
 }: {
   label?: string
   showLabel?: boolean
+  disabled?: boolean
 }) {
   useAppTranslation()
   const [field, meta, helpers] = useField<string>('notes')
   const { isSubmitting } = useFormikContext()
+  const editable = !disabled && !isSubmitting
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -51,7 +54,7 @@ export function PatientNotesEditor({
       }),
     ],
     content: initialContent(field.value),
-    editable: !isSubmitting,
+    editable,
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
     editorProps: {
@@ -73,6 +76,7 @@ export function PatientNotesEditor({
   const state = useEditorState({
     editor,
     selector: ({ editor: current }) => ({
+      isEmpty: current?.isEmpty,
       bold: current?.isActive('bold'),
       italic: current?.isActive('italic'),
       underline: current?.isActive('underline'),
@@ -88,6 +92,9 @@ export function PatientNotesEditor({
     if (editor && field.value !== (editor.isEmpty ? '' : editor.getHTML()))
       editor.commands.setContent(initialContent(field.value), { emitUpdate: false })
   }, [editor, field.value])
+  useEffect(() => {
+    editor?.setEditable(editable, false)
+  }, [editor, editable])
   const tools = [
     {
       label: 'Bold',
@@ -167,7 +174,7 @@ export function PatientNotesEditor({
                 isIconOnly
                 aria-label={t(label)}
                 aria-pressed={active}
-                isDisabled={!editor || isSubmitting || disabled}
+                isDisabled={!editor || !editable || disabled}
                 onMouseDown={(event) => event.preventDefault()}
                 onPress={run}
               >
@@ -183,7 +190,7 @@ export function PatientNotesEditor({
             aria-hidden="true"
           />
           <EditorContent editor={editor} />
-          {editor?.isEmpty && (
+          {state?.isEmpty && (
             <span className="patient-rich-text-placeholder" aria-hidden="true">
               {t('Enter notes')}
             </span>

@@ -1,3 +1,5 @@
+import type { usePatientIcd10 } from '@/hooks/use-patient-icd10'
+import { PatientIcd10Tags } from './patient-icd10-tags'
 import type { ComponentType } from 'react'
 import { Activity, CalendarDays, Hash, Mail, Phone, User, Weight } from 'lucide-react'
 import type { PatientRecord } from '@/services/patient-services/patient-services'
@@ -40,7 +42,7 @@ function Field({
         />
       ) : (
         <p
-          className="truncate pl-6 text-sm font-medium text-foreground"
+          className="text-sm font-medium text-foreground wrap-anywhere sm:ps-6"
           title={value ? String(value) : ''}
         >
           {value || '—'}
@@ -52,10 +54,10 @@ function Field({
 
 export function PatientDetailCard({
   record,
-  compact = false,
+  icd10,
 }: {
   record: PatientRecord
-  compact?: boolean
+  icd10: ReturnType<typeof usePatientIcd10>
 }) {
   useAppTranslation()
   const name = patientName(record)
@@ -64,12 +66,12 @@ export function PatientDetailCard({
   return (
     <section
       aria-label={t('Patient details')}
-      className="rounded-xl border border-border bg-surface-muted p-5"
+      className="min-w-0 rounded-xl border border-border bg-surface-muted p-3 sm:p-5"
     >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="mb-4 flex items-start justify-between gap-2 sm:items-center sm:gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <User size={20} className="shrink-0 text-violet-600 dark:text-violet-400" />
-          <h3 className="truncate text-base font-semibold text-foreground">{name}</h3>
+          <h3 className="min-w-0 text-base font-semibold text-foreground wrap-anywhere">{name}</h3>
           {record.gender && (
             <span className="shrink-0 text-xs capitalize text-muted">· {record.gender}</span>
           )}
@@ -93,9 +95,7 @@ export function PatientDetailCard({
         </span>
       </div>
 
-      <div
-        className={`grid grid-cols-2 items-start gap-x-6 gap-y-4 ${compact ? '' : 'sm:grid-cols-4'}`}
-      >
+      <div className="grid grid-cols-2 items-start gap-x-3 gap-y-3 sm:grid-cols-4 sm:gap-x-6 sm:gap-y-4">
         <Field
           icon={Hash}
           label={t('MRN')}
@@ -133,6 +133,9 @@ export function PatientDetailCard({
           value={record.bmi ? `${record.bmi}` : null}
           tone="text-emerald-600 dark:text-emerald-400"
         />
+      </div>
+      <div className="mt-4 border-t border-border pt-3">
+        <PatientIcd10Tags query={icd10} />
       </div>
     </section>
   )

@@ -85,7 +85,7 @@
   padding: 14px 15px;
   border-top: 1px solid var(--border);
 }
-.dash-clinical-table td:first-child {
+.dash-clinical-table td[data-column='patient'] {
   min-width: 170px;
 }
 .dash-clinical-table button,
@@ -115,7 +115,7 @@
   font-weight: 550;
   white-space: nowrap;
 }
-.dash-clinical-table td:nth-child(3) {
+.dash-clinical-table td[data-column='alerts'] {
   font-size: 10px;
   color: var(--muted);
 }

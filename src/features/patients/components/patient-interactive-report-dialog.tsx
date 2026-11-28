@@ -1,3 +1,9 @@
+import { usePatientIcd10 } from '@/hooks/use-patient-icd10'
+import {
+  ColumnCell,
+  ColumnHeading,
+  ColumnTable,
+} from '@/app/components/administration/table-columns'
 import { useId, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { endOfMonth, getLocalTimeZone, startOfMonth, today } from '@internationalized/date'
 import { Button, CloseButton } from '@heroui/react'
@@ -6,12 +12,14 @@ import {
   Activity,
   AlertCircle,
   ArrowUp,
+  Bot,
   CalendarDays,
   ChartNoAxesCombined,
   Check,
   ClipboardList,
   Download,
   Loader2,
+  Printer,
   Smartphone,
   Target,
 } from 'lucide-react'
@@ -20,9 +28,13 @@ import type { PatientRecord } from '@/services/patient-services/patient-services
 import type { ApiDevice } from '@/services/device-services/device-services'
 import type { DeviceReading } from '@/services/reading-services/reading-services'
 import { dateFormatter, numberFormatter, translate as t, useAppTranslation } from '@/i18n'
+import { canReadInteractiveReport, patientPermissions } from '../patient-permissions'
 import { useAuthStore } from '@/stores/auth-store'
-import { downloadReportPdf } from '@/features/reports/download-report-pdf'
-import { reportNotes, type NoteLine } from '../report-notes'
+import { downloadReportPdf, printReportPdf } from '@/features/reports/download-report-pdf'
+import { providerNoteLines, providerNoteTimestamp } from '../report-notes'
+import { useProviderNoteActions, useProviderNotes } from '@/hooks/use-provider-notes'
+import { prepareReportAiReadings } from '../report-ai-readings'
+import { useReportAiSummary } from '../use-report-ai-summary'
 import type { PatientReadingGroup } from '../patient-rpm-pdf'
 import { patientName } from '../patients'
 import { usePatientDevices } from '@/hooks/use-devices'
@@ -30,7 +42,7 @@ import { useReadingsRealtime } from '@/hooks/use-readings-realtime'
 import { useReadingsByPatient } from '@/hooks/useReadings'
 import { measurement, readingLabel, readingTimestamp } from '@/features/device-readings/readings'
 import { PatientDetailCard } from './patient-detail-dialog'
-import { PatientDoctorNotes } from './patient-doctor-notes'
+import { PatientDoctorNotes, type DoctorNotesValues } from './patient-doctor-notes'
 import { allDevices, PatientReportFilters, type ReportRange } from './patient-report-filters'
 import { BloodPressureChart } from '@/features/reports/components/blood-pressure-chart'
 import {
@@ -84,28 +96,38 @@ function ReportState({
   )
 }
 
-export function PatientInteractiveReportDialog({
-  record,
-  onClose,
-}: {
+type PatientInteractiveReportProps = {
   record: PatientRecord
   onClose: () => void
-}) {
-  useAppTranslation()
+}
+
+export function PatientInteractiveReportDialog(props: PatientInteractiveReportProps) {
+  const canRead = useAuthStore((state) => canReadInteractiveReport(state.auth.user))
+  return canRead ? <PatientInteractiveReportContent {...props} /> : null
+}
+
+function PatientInteractiveReportContent({ record, onClose }: PatientInteractiveReportProps) {
+  const { i18n } = useAppTranslation()
   useReadingsRealtime()
   const user = useAuthStore((state) => state.auth.user)
+  const accessToken = useAuthStore((state) => state.auth.accessToken)
+  const icd10 = usePatientIcd10(record.id)
+  const noteHistory = useProviderNotes(record.id)
+  const noteActions = useProviderNoteActions(record.id)
   const devices = usePatientDevices(record.id)
   const [selected, setSelected] = useState([allDevices])
-  const [range, setRange] = useState<ReportRange>(() => {
+  const [range, setRange] = useState<ReportRange | null>(() => {
     const current = today(getLocalTimeZone())
     return { start: startOfMonth(current), end: endOfMonth(current) }
   })
   const showAll = selected.includes(allDevices)
-  const dates = { from: range.start.toString(), to: range.end.toString() }
+  const dates = range ? { from: range.start.toString(), to: range.end.toString() } : {}
   const timeZone = getLocalTimeZone()
   const query = useReadingsByPatient({
-    from: range.start.toDate(timeZone).toISOString(),
-    to: new Date(range.end.add({ days: 1 }).toDate(timeZone).getTime() - 1).toISOString(),
+    ...(range && {
+      from: range.start.toDate(timeZone).toISOString(),
+      to: new Date(range.end.add({ days: 1 }).toDate(timeZone).getTime() - 1).toISOString(),
+    }),
     patientId: selected.length ? record.id : undefined,
   })
 
@@ -156,32 +178,76 @@ export function PatientInteractiveReportDialog({
   }, [devices.data, query.data, selected, showAll])
   const chartKey = JSON.stringify([selected, dates.from, dates.to])
   const viewAll = () => setSelected([allDevices])
+  const canSummarize =
+    !!selected.length && !!query.data && !query.isPlaceholderData && (showAll || !!devices.data)
+  const readingGroups = useMemo(() => groups.map(([, group]) => group), [groups])
+  const selectedDays = range
+    ? (range.end.toDate('UTC').getTime() - range.start.toDate('UTC').getTime()) / 86_400_000 + 1
+    : null
+  const language = i18n.resolvedLanguage === 'es' ? 'es' : 'en'
+  const preparedSummary = useMemo(
+    () => (canSummarize ? prepareReportAiReadings(readingGroups, language, selectedDays) : null),
+    [canSummarize, readingGroups, language, selectedDays],
+  )
+  const aiSummary = useReportAiSummary(preparedSummary?.input, chartKey, accessToken)
+  const readingSummary = aiSummary.output && preparedSummary?.display(aiSummary.output)
   const canGenerate =
-    !!selected.length && !!devices.data && !!query.data && !query.isPlaceholderData
+    !!selected.length &&
+    !!devices.data &&
+    !!query.data &&
+    !query.isPlaceholderData &&
+    !noteHistory.isLoading &&
+    !icd10.isLoading &&
+    !noteActions.isPending &&
+    aiSummary.status !== 'loading'
+  const [printing, setPrinting] = useState(false)
 
-  async function generateReport(notes: NoteLine[]) {
+  async function generateReport(values: DoctorNotesValues, action: 'download' | 'print') {
     if (!canGenerate) return
+    const draft = providerNoteLines(values.notes)
+    const notes = (noteHistory.data ?? []).flatMap((note) => [
+      {
+        spans: [{ text: providerNoteTimestamp(note.createdAt), bold: true }],
+        indent: 0,
+        quote: false,
+      },
+      ...(values.noteId === note.id && draft.length ? draft : providerNoteLines(note.body)),
+    ])
+    if (!values.noteId) notes.unshift(...draft)
     const selectedDevices = new Set(selected)
     const report = {
       patient: record,
+      icd10Codes: icd10.data?.map(({ code }) => code),
       generatedBy: user?.name?.trim() || user?.email,
       generatedAt: new Date(),
       ...dates,
       devices: (devices.data ?? [])
         .filter((device) => showAll || selectedDevices.has(device.id))
         .map((device) => device.deviceModel?.trim() || t('Device')),
-      groups: groups.map(([, group]) => group),
+      groups: readingGroups,
+      readingSummary,
       notes,
     }
-    await downloadReportPdf(`rpm-report-${dates.from}-${dates.to}.pdf`, async (logo) => {
+    const createPdf = async (logo: ArrayBuffer) => {
       const { createPatientRpmPdf } = await import('../patient-rpm-pdf')
       return createPatientRpmPdf(report, logo)
-    })
+    }
+    if (action === 'print') {
+      setPrinting(true)
+      try {
+        await printReportPdf(createPdf)
+      } finally {
+        setPrinting(false)
+      }
+    } else {
+      const period = range ? `${dates.from}-${dates.to}` : 'all-dates'
+      await downloadReportPdf(`rpm-report-${period}.pdf`, createPdf)
+    }
   }
 
-  const notesForm = useFormik({
-    initialValues: { notes: '' },
-    onSubmit: ({ notes }) => generateReport(reportNotes(notes)),
+  const notesForm = useFormik<DoctorNotesValues>({
+    initialValues: { notes: '', noteId: null },
+    onSubmit: (values) => generateReport(values, 'download'),
   })
 
   return (
@@ -191,15 +257,26 @@ export function PatientInteractiveReportDialog({
       description={t('View interactive report for {{patient}}.', { patient: patientName(record) })}
       headerIcon={<ChartNoAxesCombined size={22} />}
       headerAction={
-        <CloseButton
-          aria-label={t('Generate Report')}
-          className="patient-report-download"
-          isDisabled={!canGenerate}
-          isPending={notesForm.isSubmitting}
-          onPress={() => void notesForm.submitForm()}
-        >
-          <Download size={14} aria-hidden="true" />
-        </CloseButton>
+        <div className="patient-report-actions flex gap-2">
+          <CloseButton
+            aria-label={t('Print Report')}
+            className="patient-report-action"
+            isDisabled={!canGenerate || notesForm.isSubmitting}
+            isPending={printing}
+            onPress={() => void generateReport(notesForm.values, 'print')}
+          >
+            <Printer size={14} aria-hidden="true" />
+          </CloseButton>
+          <CloseButton
+            aria-label={t('Generate Report')}
+            className="patient-report-action"
+            isDisabled={!canGenerate || printing}
+            isPending={notesForm.isSubmitting}
+            onPress={() => void notesForm.submitForm()}
+          >
+            <Download size={14} aria-hidden="true" />
+          </CloseButton>
+        </div>
       }
       pending={false}
       onClose={onClose}
@@ -209,10 +286,14 @@ export function PatientInteractiveReportDialog({
       className="patient-details-container w-full p-3 sm:w-full sm:max-w-[1180px] sm:p-3"
       dialogClassName="admin-editor-modal patient-editor-modal patient-details-modal patient-assignment-modal patient-interactive-report-modal"
     >
-      <div className="grid gap-4 md:grid-cols-2">
-        <PatientDetailCard record={record} compact />
+      <div className="grid min-w-0 grid-cols-1 gap-4">
+        <PatientDetailCard record={record} icd10={icd10} />
         <FormikProvider value={notesForm}>
-          <PatientDoctorNotes />
+          <PatientDoctorNotes
+            history={noteHistory}
+            actions={noteActions}
+            canManage={patientPermissions(user).update}
+          />
         </FormikProvider>
       </div>
       <PatientReportFilters
@@ -263,10 +344,14 @@ export function PatientInteractiveReportDialog({
       ) : !groups.length ? (
         <ReportState
           icon={<CalendarDays />}
-          title="No readings in this date range"
-          description="Try a different date range or include more devices."
+          title={range ? 'No readings in this date range' : 'No readings yet'}
+          description={
+            range
+              ? 'Try a different date range or include more devices.'
+              : 'Readings will appear here when devices send them.'
+          }
           action={
-            showAll ? (
+            showAll && range ? (
               <Button
                 variant="outline"
                 onPress={() => {
@@ -276,11 +361,11 @@ export function PatientInteractiveReportDialog({
               >
                 {t('Previous month')}
               </Button>
-            ) : (
+            ) : !showAll ? (
               <Button variant="outline" onPress={viewAll}>
                 {t('Show all devices')}
               </Button>
-            )
+            ) : undefined
           }
         />
       ) : (
@@ -289,6 +374,45 @@ export function PatientInteractiveReportDialog({
             <p role="status" className="text-sm text-muted">
               {t('The latest readings could not be refreshed.')}
             </p>
+          )}
+          {canSummarize && (
+            <section
+              aria-label={t('AI-generated summary')}
+              className="rounded-xl border border-border bg-surface-muted p-4 wrap-anywhere sm:p-5"
+            >
+              <h3 className="mb-3 flex items-center gap-2 text-foreground">
+                <Bot size={17} className="admin-icon-violet" aria-hidden="true" />
+                {t('AI-generated summary')}
+              </h3>
+              {readingSummary ? (
+                <ul className="grid gap-3">
+                  {readingSummary.map(({ title, lines }, index) => (
+                    <li key={index} className="rounded-lg border border-border bg-surface p-3">
+                      <h4 className="mb-1 text-sm font-semibold text-foreground">{title}</h4>
+                      <ul className="list-disc space-y-1 ps-5 text-sm text-muted">
+                        {lines.map((line, lineIndex) => (
+                          <li key={lineIndex}>{line}</li>
+                        ))}
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p role="status" className="text-sm text-muted">
+                  {aiSummary.status === 'loading' ? (
+                    <span className="patient-report-summary-shimmer">{t('Generating...')}</span>
+                  ) : aiSummary.status === 'unconfigured' ? (
+                    t('The AI summary is not configured.')
+                  ) : aiSummary.status === 'credit_balance_exhausted' ? (
+                    t(
+                      'The AI summary is unavailable because the OpenAI API credit balance is exhausted.',
+                    )
+                  ) : (
+                    t('The AI summary is unavailable for these readings.')
+                  )}
+                </p>
+              )}
+            </section>
           )}
           {groups.map(([key, { type, model, imei, readings }]) => {
             const label = t(readingLabel(type))
@@ -384,30 +508,44 @@ function PatientReadingReport({
   }
 
   return (
-    <div className="panel monitoring-log monitoring-table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">{t('Recorded (local time)')}</th>
-            <th scope="col">{t('Device')}</th>
-            <th scope="col">{t('Measurement')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {readings.map((reading) => {
-            const timestamp = readingTimestamp(reading, 'recorded')
-            const { value, unit } = measurement(reading)
-            return (
-              <tr key={reading.id}>
-                <td>{timestamp == null ? '—' : pressureDate.format(timestamp)}</td>
-                <td>{reading.deviceModel || reading.imei || '—'}</td>
-                <td>{unit ? `${value} ${unit}` : value}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+    <ColumnTable
+      columns={{ recorded: 'Recorded (local time)', device: 'Device', measurement: 'Measurement' }}
+    >
+      <div className="panel monitoring-log monitoring-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <ColumnHeading column="recorded" scope="col">
+                {t('Recorded (local time)')}
+              </ColumnHeading>
+              <ColumnHeading column="device" scope="col">
+                {t('Device')}
+              </ColumnHeading>
+              <ColumnHeading column="measurement" scope="col">
+                {t('Measurement')}
+              </ColumnHeading>
+            </tr>
+          </thead>
+          <tbody>
+            {readings.map((reading) => {
+              const timestamp = readingTimestamp(reading, 'recorded')
+              const { value, unit } = measurement(reading)
+              return (
+                <tr key={reading.id}>
+                  <ColumnCell column="recorded">
+                    {timestamp == null ? '—' : pressureDate.format(timestamp)}
+                  </ColumnCell>
+                  <ColumnCell column="device">
+                    {reading.deviceModel || reading.imei || '—'}
+                  </ColumnCell>
+                  <ColumnCell column="measurement">{unit ? `${value} ${unit}` : value}</ColumnCell>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </ColumnTable>
   )
 }
 
@@ -550,41 +688,62 @@ function PatientPressureReport({
         <summary>
           {t('Reading history')} <span>{readings.length}</span>
         </summary>
-        <div className="monitoring-table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">{t('Recorded (local time)')}</th>
-                <th scope="col">{t('Blood pressure (mmHg)')}</th>
-                <th scope="col">{t('Pulse (bpm)')}</th>
-                <th scope="col">{t('Range')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...readings].reverse().map((reading) => {
-                const category = pressureCategory(reading)
-                const band = pressureBands[category]
-                const RangeIcon = category === 'normal' ? Check : ArrowUp
-                return (
-                  <tr
-                    key={reading.id}
-                    style={{ '--monitoring-row-accent': band.color } as CSSProperties}
-                  >
-                    <td>{pressureDate.format(reading.timestamp)}</td>
-                    <td className="monitoring-log-value">{formatPressure(reading)}</td>
-                    <td>{reading.pulse || '—'}</td>
-                    <td>
-                      <span className="monitoring-log-range">
-                        <RangeIcon size={13} aria-hidden="true" />
-                        {t(band.label)}
-                      </span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <ColumnTable
+          columns={{
+            recorded: 'Recorded (local time)',
+            pressure: 'Blood pressure (mmHg)',
+            pulse: 'Pulse (bpm)',
+            range: 'Range',
+          }}
+        >
+          <div className="monitoring-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <ColumnHeading column="recorded" scope="col">
+                    {t('Recorded (local time)')}
+                  </ColumnHeading>
+                  <ColumnHeading column="pressure" scope="col">
+                    {t('Blood pressure (mmHg)')}
+                  </ColumnHeading>
+                  <ColumnHeading column="pulse" scope="col">
+                    {t('Pulse (bpm)')}
+                  </ColumnHeading>
+                  <ColumnHeading column="range" scope="col">
+                    {t('Range')}
+                  </ColumnHeading>
+                </tr>
+              </thead>
+              <tbody>
+                {[...readings].reverse().map((reading) => {
+                  const category = pressureCategory(reading)
+                  const band = pressureBands[category]
+                  const RangeIcon = category === 'normal' ? Check : ArrowUp
+                  return (
+                    <tr
+                      key={reading.id}
+                      style={{ '--monitoring-row-accent': band.color } as CSSProperties}
+                    >
+                      <ColumnCell column="recorded">
+                        {pressureDate.format(reading.timestamp)}
+                      </ColumnCell>
+                      <ColumnCell column="pressure" className="monitoring-log-value">
+                        {formatPressure(reading)}
+                      </ColumnCell>
+                      <ColumnCell column="pulse">{reading.pulse || '—'}</ColumnCell>
+                      <ColumnCell column="range">
+                        <span className="monitoring-log-range">
+                          <RangeIcon size={13} aria-hidden="true" />
+                          {t(band.label)}
+                        </span>
+                      </ColumnCell>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </ColumnTable>
       </details>
     </div>
   )

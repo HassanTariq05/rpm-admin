@@ -16,6 +16,9 @@ const api = vi.hoisted(() => ({
   createScan: vi.fn(),
   getScan: vi.fn(),
 }))
+vi.mock('@/hooks/use-patient-icd10', () => ({
+  usePatientIcd10: () => ({}),
+}))
 vi.mock('@tanstack/react-router', async (original) => ({
   ...(await original<typeof import('@tanstack/react-router')>()),
   useNavigate: () => api.navigate,
@@ -47,7 +50,7 @@ vi.mock('@/hooks/use-administration', async (original) => ({
   ...(await original<typeof import('@/hooks/use-administration')>()),
   useAdminScope: () => ({
     ready: true,
-    user: { id: 'operator' },
+    user: useAuthStore((state) => state.auth.user),
     orgId: 'org-a',
     isSuperAdmin: true,
   }),
@@ -71,6 +74,13 @@ function show(ui: React.ReactNode) {
 beforeEach(() => {
   vi.resetAllMocks()
   useAuthStore.getState().auth.setAccessToken('synthetic-test-token')
+  useAuthStore.getState().auth.setUser({
+    id: 'operator',
+    name: 'Test operator',
+    email: 'operator@example.test',
+    role: { id: 'role-a', name: 'Administrator' },
+    permissions: ['patients.read', 'patients.update', 'devices.read'],
+  })
   const scan = {
     token: 'one-time',
     patientId: patient.id,
@@ -213,4 +223,20 @@ it('offers View device beside Unassign and opens the selected device through nav
   await user.click(screen.getByRole('menuitem', { name: 'View device' }))
   expect(api.navigate).toHaveBeenCalledWith({ to: '/devices', search: { deviceId: device.id } })
   expect(api.unassign).not.toHaveBeenCalled()
+})
+
+it('blocks assignment and hides Unassign for a read-only patient role', async () => {
+  const auth = useAuthStore.getState().auth
+  auth.setUser({ ...auth.user!, permissions: ['patients.read', 'devices.read'] })
+  const user = userEvent.setup()
+  const { unmount } = show(<PatientAssignDeviceDialog record={patient} onClose={vi.fn()} />)
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(api.getAll).not.toHaveBeenCalled()
+  unmount()
+
+  show(<PatientDetails record={patient} onClose={vi.fn()} />)
+  await user.click(screen.getByRole('tab', { name: 'Devices' }))
+  await user.click(await screen.findByRole('button', { name: /Device actions for/ }))
+  expect(await screen.findByRole('menuitem', { name: 'View device' })).toBeInTheDocument()
+  expect(screen.queryByRole('menuitem', { name: 'Unassign' })).toBeNull()
 })

@@ -1,4 +1,8 @@
+import { usePatientIcd10 } from '@/hooks/use-patient-icd10'
+import { PatientIcd10Tags } from './patient-icd10-tags'
 import type { ReactNode } from 'react'
+import { useAuthStore } from '@/stores/auth-store'
+import { patientPermissions } from '../patient-permissions'
 import { Button, Tabs } from '@heroui/react'
 import {
   Building2,
@@ -174,16 +178,20 @@ function PatientContactDetails({ patientId }: { patientId: string }) {
   )
 }
 
-export function PatientDetails({
-  record,
-  organization,
-  onClose,
-}: {
+type PatientDetailsProps = {
   record: PatientRecord
   organization?: string
   onClose: () => void
-}) {
+}
+
+export function PatientDetails(props: PatientDetailsProps) {
+  const canRead = useAuthStore((state) => patientPermissions(state.auth.user).read)
+  return canRead ? <PatientDetailsContent {...props} /> : null
+}
+
+function PatientDetailsContent({ record, organization, onClose }: PatientDetailsProps) {
   useAppTranslation()
+  const icd10 = usePatientIcd10(record.id)
   const name = patientName(record)
   const age = patientAge(record.dob)
   const bmi = calculatePatientBmi(record.height?.toString() ?? '', record.weight?.toString() ?? '')
@@ -342,6 +350,9 @@ export function PatientDetails({
                   {record.otherDemographics}
                 </Detail>
               </dl>
+            </PatientBasicSection>
+            <PatientBasicSection title="Diagnoses">
+              <PatientIcd10Tags query={icd10} />
             </PatientBasicSection>
           </div>
         </Tabs.Panel>

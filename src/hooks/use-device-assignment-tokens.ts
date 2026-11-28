@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { requirePatientPermission } from '@/features/patients/patient-permissions'
 import { useAuthStore } from '@/stores/auth-store'
 import { useAdminScope } from './use-administration'
 import {
@@ -19,6 +20,7 @@ export function useCreateAssignmentToken() {
   const service = useAssignmentTokenService()
   return useMutation({
     mutationFn: async (patientId: string) => {
+      requirePatientPermission('update')
       const token = await service.create(patientId)
       if (token.patientId !== patientId || token.sourceType !== assignmentTokenSource)
         throw new AssignmentTokenResponseError()

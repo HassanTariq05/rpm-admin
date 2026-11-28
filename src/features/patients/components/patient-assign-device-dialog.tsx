@@ -8,6 +8,7 @@ import { translate as t, useAppTranslation } from '@/i18n'
 import { emptyDeviceLabel } from '../device-scanning/label-parser'
 import { patientName } from '../patients'
 import { useAssignDevice } from '@/hooks/use-devices'
+import { patientPermissions } from '../patient-permissions'
 import { useAdminScope } from '@/hooks/use-administration'
 import { PatientDeviceAssignmentForm } from './patient-device-assignment-form'
 export function PatientAssignDeviceDialog({
@@ -20,9 +21,13 @@ export function PatientAssignDeviceDialog({
   useAppTranslation()
   const [draft, setDraft] = useState({ ...emptyDeviceLabel })
   const scope = useAdminScope()
-  const allowed = scope.isSuperAdmin || (!!scope.orgId && record.organisationId === scope.orgId)
+  const allowed =
+    patientPermissions(scope.user).update &&
+    (scope.isSuperAdmin || (!!scope.orgId && record.organisationId === scope.orgId))
   const candidate = useDeviceAssignmentCandidate(draft.imei, record.id, allowed)
   const assignment = useAssignDevice()
+  if (!allowed) return null
+
   return (
     <FormModal
       open
@@ -54,7 +59,13 @@ export function PatientAssignDeviceDialog({
             isPending={assignment.isPending}
             isDisabled={scanning || !candidate.assignable || assignment.isPending}
             onPress={() => {
-              if (scanning || !candidate.assignable || !candidate.device || assignment.isPending)
+              if (
+                !allowed ||
+                scanning ||
+                !candidate.assignable ||
+                !candidate.device ||
+                assignment.isPending
+              )
                 return
               assignment.mutate(
                 { id: candidate.device.id, patientId: record.id },

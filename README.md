@@ -222,3 +222,16 @@ Device integration checks:
 ```bash
 npm test -- src/features/devices src/services/device-services src/hooks/use-devices.test.tsx
 ```
+
+## AI summaries for RPM reports
+
+Set the server-side `OPENAI_API_KEY` in `.env.local` and restart Vite for local
+development. Set the same variable in the hosting environment for Vercel.
+`OPENAI_RPM_MODEL` optionally overrides the default model, `gpt-5-mini`.
+
+The authenticated summary route sends normalized measurements, reading statistics,
+report range categories, and relative timing for the selected filters. Patient
+identifiers, device identifiers and names, notes, raw payloads, and exact
+timestamps stay out of the OpenAI request. The browser adds event timestamps
+back to the clinician-facing summary. Without a key or a valid model response,
+the report remains available and exports without an AI summary.

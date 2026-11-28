@@ -1,3 +1,6 @@
+import type { AuthUser } from '@/stores/auth-store'
+import type { PermissionValue } from '@/types/permissions'
+
 // Migrate previously saved demo keys when loading or saving a role.
 const legacyPermissions: Record<string, string> = {
   VIEW_PATIENT: 'patients.read',
@@ -50,4 +53,41 @@ export function normalizePermissions(permissions: Iterable<string>): string[] {
       normalized.add(permission)
   }
   return [...normalized]
+}
+
+type PermissionUser = Pick<AuthUser, 'permissions'> | null | undefined
+
+function permissionGrants(user: PermissionUser) {
+  const assigned = Array.isArray(user?.permissions) ? user.permissions : []
+  return new Set(
+    normalizePermissions(
+      assigned.flatMap((permission) =>
+        typeof permission === 'string'
+          ? [permission]
+          : Array.isArray(permission?.actions)
+            ? permission.actions.flatMap((action) =>
+                typeof action?.value === 'string' ? [action.value] : [],
+              )
+            : [],
+      ),
+    ),
+  )
+}
+
+export function hasPermission(user: PermissionUser, permission: PermissionValue) {
+  return permissionGrants(user).has(permission)
+}
+
+export function crudPermissions(
+  user: PermissionUser,
+  required: Record<'read' | 'create' | 'update' | 'delete', PermissionValue>,
+) {
+  const grants = permissionGrants(user)
+  const read = grants.has(required.read)
+  return {
+    read,
+    create: read && grants.has(required.create),
+    update: read && grants.has(required.update),
+    delete: read && grants.has(required.delete),
+  }
 }

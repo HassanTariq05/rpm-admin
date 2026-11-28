@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { skipToken, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { translate as t } from '@/i18n'
 import { useAuthStore } from '@/stores/auth-store'
@@ -10,6 +10,8 @@ import {
   DeviceResponseError,
   type DeviceWrite,
 } from '@/services/device-services/device-services'
+import { devicePermissions, DevicePermissionError } from '@/features/devices/device-permissions'
+import { requirePatientPermission } from '@/features/patients/patient-permissions'
 import { deviceErrorMessage } from '@/features/devices/devices'
 function retry(failures: number, error: unknown) {
   if (error instanceof DeviceResponseError) return false
@@ -28,8 +30,10 @@ export function useDevices(organisationId?: string) {
   const filter = scope.isSuperAdmin ? organisationId : undefined
   const query = useQuery({
     queryKey: ['devices', 'list', scope.user?.id, scope.orgId, !!scope.isSuperAdmin, filter],
-    queryFn: ({ signal }) => service.getAll(filter ? { organisationId: filter } : {}, signal),
-    enabled: scope.ready && !!token,
+    queryFn:
+      scope.ready && token && devicePermissions(scope.user).read
+        ? ({ signal }) => service.getAll(filter ? { organisationId: filter } : {}, signal)
+        : skipToken,
     retry,
   })
   useDeviceQueryError(query.error, query.errorUpdatedAt)
@@ -41,37 +45,44 @@ export function useDevice(id?: string) {
   const token = useAuthStore((state) => state.auth.accessToken)
   const query = useQuery({
     queryKey: ['devices', 'detail', id, scope.user?.id, scope.orgId],
-    queryFn: ({ signal }) => service.getById(id!, signal),
-    enabled: scope.ready && !!token && !!id,
+    queryFn:
+      scope.ready && token && id && devicePermissions(scope.user).read
+        ? ({ signal }) => service.getById(id, signal)
+        : skipToken,
     retry,
   })
   useDeviceQueryError(query.error, query.errorUpdatedAt)
   return query
 }
-export function useCreateDevice() {
+function useDeviceMutation<TData, TVariables>(
+  action: 'create' | 'update' | 'delete',
+  mutate: (variables: TVariables) => Promise<TData>,
+  message: string,
+) {
   return useAdminMutation(
-    useDeviceService().create,
-    'Device added',
+    async (variables: TVariables) => {
+      const { user, accessToken } = useAuthStore.getState().auth
+      if (!accessToken || !devicePermissions(user)[action]) throw new DevicePermissionError()
+      return mutate(variables)
+    },
+    message,
     ['devices'],
     deviceErrorMessage,
   )
+}
+export function useCreateDevice() {
+  return useDeviceMutation('create', useDeviceService().create, 'Device added')
 }
 export function useUpdateDevice() {
   const service = useDeviceService()
-  return useAdminMutation(
+  return useDeviceMutation(
+    'update',
     ({ id, payload }: { id: string; payload: DeviceWrite }) => service.update(id, payload),
     'Device updated',
-    ['devices'],
-    deviceErrorMessage,
   )
 }
 export function useDeleteDevice() {
-  return useAdminMutation(
-    useDeviceService().remove,
-    'Device deleted',
-    ['devices'],
-    deviceErrorMessage,
-  )
+  return useDeviceMutation('delete', useDeviceService().remove, 'Device deleted')
 }
 
 function useAssignmentQuery<T>(
@@ -117,8 +128,10 @@ export function useDeviceAssignments(id?: string) {
 export function useAssignDevice() {
   const service = useDeviceService()
   return useAdminMutation(
-    ({ id, patientId, notes }: { id: string; patientId: string; notes?: string | null }) =>
-      service.assign(id, { patientId, ...(notes !== undefined ? { notes } : {}) }),
+    async ({ id, patientId, notes }: { id: string; patientId: string; notes?: string | null }) => {
+      requirePatientPermission('update')
+      return service.assign(id, { patientId, ...(notes !== undefined ? { notes } : {}) })
+    },
     'Device assigned',
     ['devices'],
     deviceErrorMessage,
@@ -127,8 +140,10 @@ export function useAssignDevice() {
 export function useUnassignDevice() {
   const service = useDeviceService()
   return useAdminMutation(
-    ({ id, notes }: { id: string; notes?: string | null }) =>
-      service.unassign(id, notes !== undefined ? { notes } : {}),
+    async ({ id, notes }: { id: string; notes?: string | null }) => {
+      requirePatientPermission('update')
+      return service.unassign(id, notes !== undefined ? { notes } : {})
+    },
     'Device unassigned',
     ['devices'],
     deviceErrorMessage,
