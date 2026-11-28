@@ -4,7 +4,7 @@ import {
   maxSummaryRequestBytes,
   reportAiInputSchema,
   reportAiOutputSchema,
-} from '../src/features/patients/report-ai-summary-contract.ts'
+} from '../src/features/patients/report-ai-summary-contract.js'
 
 interface SummaryConfig {
   key?: string

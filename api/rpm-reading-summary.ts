@@ -1,4 +1,4 @@
-import { handleReportAiSummary } from '../server/report-ai-summary.ts'
+import { handleReportAiSummary } from '../server/report-ai-summary.js'
 
 export function POST(request: Request) {
   return handleReportAiSummary(request, {
